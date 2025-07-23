@@ -1,0 +1,37 @@
+Included Dependencies and Licenses
+
+Geist (latest)
+License: MIT
+Source: https://github.com/CIRSS/geist-p
+License available at:https://github.com/CIRSS/geist-p/blob/main/LICENSE
+
+argparse (v2.0.1)
+License: Python Software Foundation License 2.0
+Source: https://github.com/nodeca/argparse
+Redistributed under the Python-2.0 license. See node_modules/argparse/LICENSE for details.
+
+js-yaml (v4.1.0)
+License: MIT
+Source: https://github.com/nodeca/js-yaml
+Author: Vladimir Zapparov dervus.grim@gmail.com
+Redistributed under the MIT License. See node_modules/js-yaml/LICENSE for details.
+
+Prism.js (v1.29.0)
+License: MIT
+Source: https://github.com/PrismJS/prism
+Files used via CDN:
+prism-core.min.js
+prism-python.min.js
+prism-line-numbers.min.js
+License available at: https://github.com/PrismJS/prism/blob/master/LICENSE
+
+vis-network (v9.x)
+License: MIT
+Source: https://github.com/visjs/vis-network
+File used via CDN:
+vis-network.min.js
+License available at: https://github.com/visjs/vis-network/blob/master/LICENSE-MIT
+
+Project License
+This extension (argframe, version 0.0.1) is licensed under the MIT License.
+Source: https://github.com/xai-ca/argframe-vscode

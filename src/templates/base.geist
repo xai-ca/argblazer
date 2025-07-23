@@ -1,0 +1,507 @@
+{% template rule_expand_args %}
+    arg(X) :- attacks(X, _).
+    arg(X) :- attacks(_, X).
+{% endtemplate %}
+
+{% template list_arguments_raw data %}
+{%- set sorted_data = data | clingo_list_arguments %}
+{%- for args in sorted_data %}
+    <span class="extension-set" data-set="{ {%- for arg in args %}{{ arg }}{% if not loop.last %}, {% endif %}{% endfor %}}">{ {%- for arg in args %}{{ arg }}{% if not loop.last %}, {% endif %}{% endfor %}}</span>
+{% endfor %}
+{% endtemplate %}
+
+{% template list_arguments data %}
+{%- set sorted_data = data | clingo_list_arguments %}
+{%- for args in sorted_data %}
+    $\\{ {%- for arg in args %}{{ arg }}{% if not loop.last %}, {% endif %}{% endfor %}$\\}
+{% endfor %}
+{% endtemplate %}
+
+{% template rule_conflict_free_extensions %}
+    % Generate all possible subsets of arguments
+    {in(X)} :- arg(X).
+    % An extension is conflict-free if it doesn't contain two arguments where one attacks the other
+    :- in(X), in(Y), attacks(X,Y).
+{% endtemplate %}
+
+{% template rule_admissible_extensions %}
+    {% rule_conflict_free_extensions %}
+    % Defense: Z defends X against attacker Y
+    defends(Z, X, Y) :- in(Z), attacks(Y, X), attacks(Z, Y).
+
+    % Admissibility: every argument must be defended against every attacker  
+    :- in(X), attacks(Y, X), not defends(_, X, Y).
+{% endtemplate %}
+
+{% template rule_complete_extensions %}
+    {% rule_admissible_extensions %}
+    undefended(X) :- not defends(_, X, Y), attacks(Y, X).
+    in(X) :- defends(Z, X, _), in(Z), not undefended(X).
+    :- arg(X), not attacks(_, X), not in(X).
+{% endtemplate %}
+
+{% template rule_preferred_extensions %}
+    % Get all model IDs
+    model_id(ID) :- in_arg_and_id(_, ID).
+
+    % ID1 is dominated by ID2 if ID1 is a subset of ID2
+    dominated(ID1) :-
+        model_id(ID1), model_id(ID2), ID1 != ID2,
+        not is_superset_of(ID1, ID2),  % ID1 doesn't have extra args
+        is_superset_of(ID2, ID1).      % ID2 has extra args
+
+    % ID1 is a superset of ID2 if ID1 has an argument that ID2 doesn't
+    is_superset_of(ID1, ID2) :- 
+        model_id(ID1), model_id(ID2), ID1 != ID2,
+        in_arg_and_id(ARG, ID1), 
+        not in_arg_and_id(ARG, ID2).
+    
+    % An admissible extension that is not a subset of a larger admissible extension
+    preferred_model_id(ID) :- model_id(ID), not dominated(ID).
+
+    % Force choice: pick exactly one preferred extension per answer set
+    1 {selected(ID) : preferred_model_id(ID)} 1.
+
+    % Show arguments from the selected extension
+    in(ARG) :- selected(ID), in_arg_and_id(ARG, ID).
+{% endtemplate %}
+
+{% template rule_grounded_extensions %}
+    out(X) :- attacks(Y, X), in(Y).
+    in(X) :- arg(X), out(Y) : attacks(Y, X).
+{% endtemplate %}
+
+{% template rule_stable_extensions %}
+    {% rule_conflict_free_extensions %}
+    attacked_by_extension(X) :- in(Y), attacks(Y, X).
+    :- arg(X), not in(X), not attacked_by_extension(X).
+{% endtemplate %}
+
+{% template head %}
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ArgFrame Report</title>
+        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+        <!-- Prism.js CSS for code snippet with line numbers-->
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+        <style>
+            body{margin:0;padding:20px;font-family:'JetBrains Mono',monospace;background:#fff;color:#333}
+            /* Prism fix */
+            .token.operator{background:transparent!important}
+            /* Common boxed sections */
+            .exhibit-section,.extensions-section{margin-bottom:20px;padding:16px;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.05)}
+            .exhibit-section h3,.extensions-section h3{margin:0 0 12px;font-size:16px;font-weight:600;color:#333}
+            /* Header */
+            .af-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+            .title{font-size:18px;font-weight:600;margin:0}
+            .display-controls{display:flex;align-items:center;gap:8px}
+            .display-dropdown{padding:4px 8px;min-width:140px;font-size:12px;font-family:'JetBrains Mono',monospace;background:#f8f9fa;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer}
+            .display-dropdown:hover{background:#f0f0f0;border-color:#bbb}
+            .display-dropdown:focus{outline:none;border-color:#999;box-shadow:0 0 3px rgba(0,0,0,.1)}
+            /* Graph container */
+            #graph-container{width:100%;height:calc(100vh - 280px);border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;background:#f8f9fa;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+            .loading{display:flex;justify-content:center;align-items:center;height:100%;font-size:16px;color:#666}
+            .error{color:#555;text-align:center;padding:20px}
+            .vis-network{height:100%!important;font-family:'JetBrains Mono',monospace!important}
+            /* Extension list */
+            .extensions-section{margin-top:20px}
+            .extensions-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+            .toggle-buttons{display:flex;gap:8px}
+            .toggle-btn,.extension-set{padding:4px 8px;font-size:12px;font-weight:500;font-family:'JetBrains Mono',monospace;border-radius:4px;cursor:pointer;transition:all .2s}
+            .toggle-btn{background:#d0d0d0;border:1px solid #aaa}
+            .toggle-btn:hover{background:#c0c0c0;border-color:#999}
+            .toggle-btn.active{background:#f0f0f0;border-color:#ddd;color:#777}
+            .extensions-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+            .extension-item{display:flex;align-items:flex-start;padding:6px 0;font-size:13px}
+            .extension-label{font-weight:600;color:#555;min-width:100px;margin-right:8px;flex-shrink:0}
+            /* Make the container for sets flexible so items wrap onto new lines */
+            .extension-values{color:#555;flex:1;display:flex;flex-wrap:wrap;gap:4px}
+            /* Ensure each set can wrap its own content if it gets too long */
+            .extension-set{border:1px solid #d0d0d0;background:#f0f0f0;box-shadow:0 1px 2px rgba(0,0,0,.1);max-width:100%;word-break:break-word;white-space:normal}
+            .extension-set:hover,.extension-set.selected{background:#FFE6CC;border-color:#D79B00;box-shadow:0 2px 4px rgba(0,0,0,.15)}
+            .extension-set.selected{font-weight:600}
+            /* Responsive */
+            @media(max-width:768px){
+                .af-header{flex-direction:column;align-items:flex-start;gap:8px}
+                .display-controls{align-self:stretch;justify-content:space-between}
+                .extensions-grid{grid-template-columns:1fr}
+                #graph-container{height:calc(100vh - 360px)}
+            }
+        </style>
+    </head>
+{% endtemplate %}
+
+{% template script_funcs %}
+    let network, nodes, edges;
+
+    function formatMultiLineLabel(key, argData, displayMode = 'label-summary') {
+        const maxLineLength = 40;
+        const separator = '-'.repeat(30);
+
+        console.log(typeof argData);
+        if (displayMode === 'label' || typeof argData === 'string') {
+            return key;
+        }
+
+        let formattedText = `${key}\\n${separator}\\n`;
+
+        // Extract summary from the array structure
+        const summaryItem = argData.find(item => item.summary);
+        if (summaryItem && summaryItem.summary) {
+            formattedText += `${wrapText(summaryItem.summary, maxLineLength)}`;
+        }
+
+        if (displayMode === 'label-summary-details') {
+            // Extract details from the array structure
+            const detailsItem = argData.find(item => item.details);
+            if (detailsItem && detailsItem.details) {
+                const details = detailsItem.details;
+                
+                const ruleItem = details.find(item => item.rule);
+                if (ruleItem && ruleItem.rule) {
+                    formattedText += `\\n\\n<i>Rule:</i> ${wrapText(ruleItem.rule, maxLineLength, true)}`;
+                }
+                
+                const evidenceItem = details.find(item => item.evidence);
+                if (evidenceItem && evidenceItem.evidence) {
+                    formattedText += `\\n\\n<i>Evidence:</i> ${wrapText(evidenceItem.evidence, maxLineLength, true)}`;
+                }
+                
+                const conclusionItem = details.find(item => item.conclusion);
+                if (conclusionItem && conclusionItem.conclusion) {
+                    formattedText += `\\n\\n<i>Conclusion:</i> ${wrapText(conclusionItem.conclusion, maxLineLength, true)}`;
+                }
+            }
+        }
+
+        return formattedText;
+    }
+
+    function wrapText(text, maxLineLength, ital = false) {
+        if (!text || text.length <= maxLineLength) {
+            const out = text || '';
+            return ital ? `<i>${out}</i>` : out;
+        }
+
+        const sentences = text.split(/([.;!?])/);
+        let processedText = '';
+
+        for (let i = 0; i < sentences.length; i += 2) {
+            const sentence = sentences[i] || '';
+            const punctuation = sentences[i + 1] || '';
+            const fullSentence = sentence + punctuation;
+
+            if (fullSentence.length <= maxLineLength) {
+                processedText += fullSentence;
+                if (punctuation && i < sentences.length - 2) {
+                    processedText += '\\n';
+                }
+            } else {
+                const words = sentence.split(' ');
+                let currentLine = '';
+
+                for (let word of words) {
+                    const testLine = currentLine ? currentLine + ' ' + word : word;
+                    if (testLine.length > maxLineLength && currentLine.length > 0) {
+                        processedText += currentLine + '\\n';
+                        currentLine = word;
+                    } else {
+                        currentLine = testLine;
+                    }
+                }
+
+                if (currentLine) {
+                    processedText += currentLine + punctuation;
+                    if (punctuation && i < sentences.length - 2) {
+                        processedText += '\\n';
+                    }
+                }
+            }
+        }
+
+        // Add italic tags per line if requested
+        if (ital) {
+            processedText = processedText.split('\\n').map(l => `<i>${l}</i>`).join('\\n');
+        }
+
+        return processedText.trim();
+    }
+
+    function initializeGraph() {
+        const container = document.getElementById('graph-container');
+        const displayMode = document.getElementById('argument-display-mode').value;
+
+        const nodeData = argumentationData.arguments.map(arg => {
+            const key = Object.keys(arg)[0];
+            const argData = arg[key];
+
+            return {
+                id: key,
+                label: formatMultiLineLabel(key, argData, displayMode),
+                shape: 'box',
+                font: {
+                    color: '#000000',
+                    face: 'JetBrains Mono, monospace',
+                    size: 13,
+                    align: 'center',
+                    multi: true,
+                    ital: { color: '#555555' }
+                },
+                color: {
+                    background: '#D9E7D6',
+                    border: '#8CB26F',
+                    highlight: { background: '#C8DCC3', border: '#7BA86F' },
+                    hover: { background: '#C8DCC3', border: '#7BA86F' }
+                },
+                borderWidth: 2,
+                margin: 3,
+                widthConstraint: { minimum: 35, maximum: 250 },
+                heightConstraint: { minimum: 35, valign: 'middle' },
+                // Store original data for re-rendering
+                _originalData: { key, argData }
+            };
+        });
+
+        nodes = new vis.DataSet(nodeData);
+
+        // Safely handle cases where no attacks are defined
+        const attacksList = argumentationData.attacks || [];
+        const edgeData = attacksList.map((attack, index) => ({
+            id: `attack_${index}`,
+            from: attack[0],
+            to: attack[1],
+            label: 'attacks',
+            color: '#555555',
+            arrows: 'to',
+            font: { size: 0, color: '#555555', face: 'JetBrains Mono, monospace' },
+            width: 2,
+            smooth: { type: 'dynamic', roundness: 0.2 }
+        }));
+
+        edges = new vis.DataSet(edgeData);
+
+        const options = {
+            interaction: { hover: true, hoverConnectedEdges: true },
+            physics: {
+                enabled: true,
+                stabilization: { enabled: true, iterations: 100, fit: true },
+                barnesHut: {
+                    gravitationalConstant: -2000,
+                    centralGravity: 0.3,
+                    springLength: 200,
+                    springConstant: 0.04,
+                    damping: 0.09,
+                    avoidOverlap: 1
+                }
+            },
+            edges: {
+                smooth: { type: 'dynamic', roundness: 0.2 },
+                width: 2,
+                font: { size: 0, face: 'JetBrains Mono, monospace' }
+            },
+            nodes: {
+                borderWidth: 2,
+                font: { face: 'JetBrains Mono, monospace' }
+            }
+        };
+
+        container.innerHTML = '';
+        network = new vis.Network(container, { nodes, edges }, options);
+
+        network.on('hoverEdge', (params) => {
+            edges.update({ id: params.edge, font: { size: 14 }, width: 4 });
+        });
+
+        network.on('blurEdge', (params) => {
+            edges.update({ id: params.edge, font: { size: 0 }, width: 2 });
+        });
+
+        network.on('hoverNode', (params) => {
+            const connectedEdges = network.getConnectedEdges(params.node);
+            edges.update(connectedEdges.map(id => ({ id, width: 4 })));
+            nodes.update({ id: params.node, borderWidth: 4 });
+        });
+
+        network.on('blurNode', (params) => {
+            const connectedEdges = network.getConnectedEdges(params.node);
+            edges.update(connectedEdges.map(id => ({ id, width: 2 })));
+            nodes.update({ id: params.node, borderWidth: 2 });
+        });
+
+        // Add click handler for blank area to stop physics
+        network.on('click', (params) => {
+            // If no nodes or edges are clicked (blank area)
+            if (params.nodes.length === 0 && params.edges.length === 0) {
+                const physicsEnabled = network.physics.physicsEnabled;
+                if (physicsEnabled) {
+                    network.setOptions({ physics: { enabled: false } });
+                    console.log('Physics stopped - graph stabilized');
+                } else {
+                    network.setOptions({ physics: { enabled: true } });
+                    console.log('Physics restarted');
+                }
+            }
+        });
+
+        setupExtensionClickHandlers();
+    }
+
+    function setupExtensionClickHandlers() {
+        let currentlySelected = null;
+
+        document.querySelectorAll('.extension-set').forEach(setElement => {
+            setElement.addEventListener('click', (event) => {
+                event.preventDefault();
+
+                if (currentlySelected === setElement) {
+                    resetNodeHighlighting();
+                    setElement.classList.remove('selected');
+                    currentlySelected = null;
+                    return;
+                }
+
+                if (currentlySelected) {
+                    currentlySelected.classList.remove('selected');
+                }
+
+                setElement.classList.add('selected');
+                currentlySelected = setElement;
+
+                const setData = setElement.getAttribute('data-set');
+                const nodeIds = parseExtensionSet(setData);
+                highlightNodes(nodeIds);
+            });
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('.extension-set') && currentlySelected) {
+                currentlySelected.classList.remove('selected');
+                currentlySelected = null;
+                resetNodeHighlighting();
+            }
+        });
+    }
+
+    function parseExtensionSet(setString) {
+        if (setString === '{}') return [];
+        const content = setString.slice(1, -1).trim();
+        return content ? content.split(',').map(id => id.trim()) : [];
+    }
+
+    function highlightNodes(nodeIds) {
+        if (nodeIds.length === 0) {
+            resetNodeHighlighting();
+            return;
+        }
+
+        const currentNodes = nodes.get();
+        const updateNodes = currentNodes.map(node => ({
+            ...node,
+            borderWidth: 2,
+            color: nodeIds.includes(node.id) ? {
+                background: '#FFE6CC',
+                border: '#D79B00',
+                highlight: { background: '#FFDBAA', border: '#C68800' },
+                hover: { background: '#FFDBAA', border: '#C68800' }
+            } : {
+                background: '#D9E7D6',
+                border: '#8CB26F',
+                highlight: { background: '#C8DCC3', border: '#7BA86F' },
+                hover: { background: '#C8DCC3', border: '#7BA86F' }
+            }
+        }));
+        
+        nodes.update(updateNodes);
+    }
+
+    function resetNodeHighlighting() {
+        const currentNodes = nodes.get();
+        const updateNodes = currentNodes.map(node => ({
+            ...node,
+            borderWidth: 2,
+            color: {
+                background: '#D9E7D6',
+                border: '#8CB26F',
+                highlight: { background: '#C8DCC3', border: '#7BA86F' },
+                hover: { background: '#C8DCC3', border: '#7BA86F' }
+            }
+        }));
+        
+        nodes.update(updateNodes);
+    }
+
+    function updateGraphDisplayMode() {
+        const displayMode = document.getElementById('argument-display-mode').value;
+        const currentNodes = nodes.get();
+        
+        const updatedNodes = currentNodes.map(node => {
+            if (node._originalData) {
+                const { key, argData } = node._originalData;
+                return {
+                    ...node,
+                    label: formatMultiLineLabel(key, argData, displayMode),
+                    font: {
+                        ...node.font,
+                        align: 'center'
+                    }
+                };
+            }
+            return node;
+        });
+        
+        nodes.update(updatedNodes);
+        network.fit();
+    }
+
+    function setupControls() {
+        // Setup display mode dropdown
+        const displayModeSelect = document.getElementById('argument-display-mode');
+        if (displayModeSelect) {
+            displayModeSelect.addEventListener('change', updateGraphDisplayMode);
+        }
+
+        // Setup toggle buttons
+        const conflictFreeBtn = document.getElementById('toggle-conflict-free');
+        const admissibleBtn = document.getElementById('toggle-admissible');
+        const conflictFreeItem = document.getElementById('conflict-free-item');
+        const admissibleItem = document.getElementById('admissible-item');
+
+        if (conflictFreeBtn && conflictFreeItem) {
+            conflictFreeBtn.addEventListener('click', () => {
+                conflictFreeBtn.classList.toggle('active');
+                if (conflictFreeBtn.classList.contains('active')) {
+                    conflictFreeItem.style.display = 'none';
+                    conflictFreeBtn.textContent = 'Show Conflict-free';
+                } else {
+                    conflictFreeItem.style.display = 'flex';
+                    conflictFreeBtn.textContent = 'Hide Conflict-free';
+                }
+            });
+        }
+
+        if (admissibleBtn && admissibleItem) {
+            admissibleBtn.addEventListener('click', () => {
+                admissibleBtn.classList.toggle('active');
+                if (admissibleBtn.classList.contains('active')) {
+                    admissibleItem.style.display = 'none';
+                    admissibleBtn.textContent = 'Show Admissible';
+                } else {
+                    admissibleItem.style.display = 'flex';
+                    admissibleBtn.textContent = 'Hide Admissible';
+                }
+            });
+        }
+    }
+
+    window.addEventListener('load', () => {
+        try {
+            initializeGraph();
+            setupControls();
+        } catch (error) {
+            document.getElementById('graph-container').innerHTML = 
+                `<div class="error">Error loading graph: ${error.message}</div>`;
+        }
+    });
+{% endtemplate %}
