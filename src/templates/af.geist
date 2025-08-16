@@ -15,18 +15,27 @@
         <pre class="line-numbers"><code class="language-python">{{ exhibit }}</code></pre>
     </div>
     <div class="af-header">
-        <div class="title">Argumentation Framework</div>
-        <div class="display-controls">
-            <label for="argument-display-mode">Display mode:</label>
-            <select id="argument-display-mode" class="display-dropdown">
-                <option value="label">Label only</option>
-                <option value="label-summary" selected>Label + Summary</option>
-                <option value="label-summary-details">Label + Summary + Details</option>
-            </select>
+        <div class="title">Graph</div>
+        <div class="header-controls">
+            <div class="step-navigation">
+                <button id="prev-step" class="nav-btn" disabled>&lt;</button>
+                <span id="step-indicator">Step 1</span>
+                <button id="next-step" class="nav-btn">&gt;</button>
+            </div>
+            <div class="display-controls">
+                <label for="argument-display-mode">Display:</label>
+                <select id="argument-display-mode" class="display-dropdown">
+                    <option value="label">Label</option>
+                    <option value="label-summary" selected>Summary</option>
+                    <option value="label-summary-details">Details</option>
+                </select>
+            </div>
         </div>
     </div>
     <div id="graph-container">
-        <div class="loading">Loading argumentation graph...</div>
+        <div class="diagram-wrapper", id="wrapper">
+            <div id="mermaid-diagram"></div>
+        </div>
     </div>
 
     <div class="extensions-section">
@@ -114,9 +123,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
-<script src="https://unpkg.com/vis-network@latest/standalone/umd/vis-network.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.9.0/mermaid.min.js"></script>
+<script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"></script>
 <script>
     const argumentationData = {{ af4graph }};
+    let panzoomInstance = null;
+    let currentStep = 1;
+    let maxStep = 1;
+    let nodeData, colors;
     {% script_funcs %}
 </script>
 </html>

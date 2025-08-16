@@ -180,6 +180,7 @@ async function generateAndUpdateReport(yamlContent: string, panel: vscode.Webvie
             const pythonCommand = `${pythonPath} -c "
 import json
 from geist import report
+import networkx as nx
 
 def generate_report(af4ext, af4graph, exhibit):
     expanded_report = report(
@@ -200,12 +201,20 @@ json_data = json.loads('''${escapedJson}''')
 for idx in range(len(json_data['arguments'])):
     if type(json_data['arguments'][idx]) == str:
         json_data['arguments'][idx] = {json_data['arguments'][idx]: ''}
-af4graph = json.dumps(json_data)
 
 af4ext = ''
+edges = []
 if 'attacks' in json_data:
     for attack in json_data['attacks']:
         af4ext = af4ext + 'attacks({arg1}, {arg2}).\\n'.format(arg1=attack[0], arg2=attack[1])
+        edges.append((attack[0], attack[1]))
+if edges:
+    # Compute shortest distance as rank
+    G = nx.Graph()
+    G.add_edges_from(edges)
+    json_data['rank']=nx.single_source_shortest_path_length(G, 'a')
+
+af4graph = json.dumps(json_data)
 html_output = generate_report(af4ext, af4graph, json_data['exhibit'] if 'exhibit' in json_data else '[Not provided]')
 print(html_output)
 "`;

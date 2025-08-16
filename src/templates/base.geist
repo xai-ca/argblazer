@@ -96,13 +96,19 @@
             /* Header */
             .af-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
             .title{font-size:18px;font-weight:600;margin:0}
+            .header-controls{display:flex;align-items:center;gap:16px}
+            .step-navigation{display:flex;align-items:center;gap:8px}
+            .nav-btn{padding:4px 8px;font-size:14px;font-weight:500;font-family:'JetBrains Mono',monospace;background:#f0f0f0;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer;transition:all .2s}
+            .nav-btn:hover:not(:disabled){background:#e0e0e0;border-color:#bbb}
+            .nav-btn:disabled{background:#f8f8f8;border-color:#e0e0e0;color:#ccc;cursor:not-allowed}
+            #step-indicator{font-size:14px;font-weight:500;color:#555;min-width:60px;text-align:center}
             .display-controls{display:flex;align-items:center;gap:8px}
             .display-dropdown{padding:4px 8px;min-width:140px;font-size:12px;font-family:'JetBrains Mono',monospace;background:#f8f9fa;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer}
             .display-dropdown:hover{background:#f0f0f0;border-color:#bbb}
             .display-dropdown:focus{outline:none;border-color:#999;box-shadow:0 0 3px rgba(0,0,0,.1)}
             /* Graph container */
             #graph-container{width:100%;height:calc(100vh - 280px);border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;background:#f8f9fa;box-shadow:0 2px 8px rgba(0,0,0,.1)}
-            .loading{display:flex;justify-content:center;align-items:center;height:100%;font-size:16px;color:#666}
+            .diagram-wrapper{display:flex;justify-content:center;align-items:center;height:100%;transform-origin: center;font-size:16px;color:#666}
             .error{color:#555;text-align:center;padding:20px}
             .vis-network{height:100%!important;font-family:'JetBrains Mono',monospace!important}
             /* Extension list */
@@ -125,32 +131,172 @@
             /* Responsive */
             @media(max-width:768px){
                 .af-header{flex-direction:column;align-items:flex-start;gap:8px}
+                .header-controls{flex-direction:column;align-items:flex-start;gap:8px;width:100%}
+                .step-navigation{align-self:stretch;justify-content:center}
                 .display-controls{align-self:stretch;justify-content:space-between}
                 .extensions-grid{grid-template-columns:1fr}
-                #graph-container{height:calc(100vh - 360px)}
+                #graph-container{height:calc(100vh - 400px)}
             }
         </style>
     </head>
 {% endtemplate %}
 
 {% template script_funcs %}
-    let network, nodes, edges;
+// Calculate the scale that fits element in container
+    function getFitScale(container, elem) {
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+
+        const elemWidth = elem.clientWidth;
+        const elemHeight = elem.clientHeight;
+
+        return Math.min(
+            containerWidth / elemWidth,
+            containerHeight / elemHeight
+        );
+    }
+
+    // Initialize step data
+    function initializeSteps() {
+        if (argumentationData.arguments) {
+            // Find maximum step number
+            maxStep = Math.max(...argumentationData.arguments.map(arg => {
+                const argData = Object.values(arg)[0];
+                // Look for step field in the array
+                const stepItem = argData.find(item => item.step !== undefined);
+                return stepItem ? stepItem.step : 1;
+            }));
+        }
+        updateStepIndicator();
+    }
+    
+    // Get filtered arguments for current step
+    function getFilteredArguments(step) {
+        if (!argumentationData.arguments) return [];
+        return argumentationData.arguments.filter(arg => {
+            const argData = Object.values(arg)[0];
+            // Look for step field in the array
+            const stepItem = argData.find(item => item.step !== undefined);
+            const argStep = stepItem ? stepItem.step : 1;
+            return argStep <= step;
+        });
+    }
+    
+    // Get newly added arguments for a specific step
+    function getNewArgumentsForStep(step) {
+        if (!argumentationData.arguments) return [];
+        return argumentationData.arguments.filter(arg => {
+            const argData = Object.values(arg)[0];
+            // Look for step field in the array
+            const stepItem = argData.find(item => item.step !== undefined);
+            const argStep = stepItem ? stepItem.step : 1;
+            return argStep === step;
+        });
+    }
+    
+    // Get filtered attacks for current step
+    function getFilteredAttacks(step) {
+        if (!argumentationData.attacks) return [];
+        
+        // Get argument IDs that should be visible in current step
+        const visibleArgIds = new Set();
+        getFilteredArguments(step).forEach(arg => {
+            visibleArgIds.add(Object.keys(arg)[0]);
+        });
+        
+        // Filter attacks to only show those between visible arguments
+        return argumentationData.attacks.filter(attack => {
+            return visibleArgIds.has(attack[0]) && visibleArgIds.has(attack[1]);
+        });
+    }
+
+    // Filter subgraphs based on rank field for current step
+    function generateSubgraphs(step) {
+        if (!argumentationData.rank) return '';
+        
+        const filteredArguments = getFilteredArguments(step);
+        const visibleArgIds = new Set(filteredArguments.map(arg => Object.keys(arg)[0]));
+        
+        // Group arguments by rank, only including visible ones
+        const rankGroups = {};
+        Object.entries(argumentationData.rank).forEach(([argId, rank]) => {
+            if (visibleArgIds.has(argId)) {
+                if (!rankGroups[rank]) {
+                    rankGroups[rank] = [];
+                }
+                rankGroups[rank].push(argId);
+            }
+        });
+        
+        // Sort ranks in descending order (largest rank first)
+        const sortedRanks = Object.keys(rankGroups).map(Number).sort((a, b) => b - a);
+        
+        let subgraphString = '';
+        const subgraphIds = [];
+        
+        sortedRanks.forEach(rank => {
+            const rankLabel = rank + 1; // Convert to 1-based for display
+            const subgraphId = `r${rankLabel}`;
+            subgraphIds.push(subgraphId);
+            subgraphString += `  subgraph ${subgraphId}[Rank ${rankLabel}]\n`;
+            rankGroups[rank].forEach(argId => {
+                subgraphString += `    ${argId}\n`;
+            });
+            subgraphString += `  end\n`;
+        });
+        
+        // Add ghost styling for subgraphs
+        if (subgraphIds.length > 0) {
+            subgraphString += `  classDef ghost fill:transparent,stroke:none,color:transparent;\n`;
+            subgraphString += `  class ${subgraphIds.join(',')} ghost\n`;
+        }
+        
+        return subgraphString;
+    }
+    
+    // Update step indicator and button states
+    function updateStepIndicator() {
+        if (currentStep <= maxStep){
+            document.getElementById('step-indicator').textContent = `Step ${currentStep}`;
+        } else {
+            document.getElementById('step-indicator').textContent = `End`;
+        }
+        
+        document.getElementById('prev-step').disabled = currentStep <= 1;
+        document.getElementById('next-step').disabled = currentStep > maxStep;
+    }
+    
+    // Setup step navigation
+    function setupStepNavigation() {
+        document.getElementById('prev-step').addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepIndicator();
+                updateGraphDisplayMode();
+            }
+        });
+        
+        document.getElementById('next-step').addEventListener('click', () => {
+            if (currentStep <= maxStep) {
+                currentStep++;
+                updateStepIndicator();
+                updateGraphDisplayMode();
+            }
+        });
+    }
 
     function formatMultiLineLabel(key, argData, displayMode = 'label-summary') {
-        const maxLineLength = 40;
-        const separator = '-'.repeat(30);
-
-        console.log(typeof argData);
+        const separator = `<hr style='border:0;border-top:1px dashed;margin:0;'/>`;
         if (displayMode === 'label' || typeof argData === 'string') {
-            return key;
+            return `<span style='padding:4px;'>${key}</span>`;
         }
 
-        let formattedText = `${key}\\n${separator}\\n`;
+        let formattedText = `${key}<br>${separator}`;
 
         // Extract summary from the array structure
         const summaryItem = argData.find(item => item.summary);
         if (summaryItem && summaryItem.summary) {
-            formattedText += `${wrapText(summaryItem.summary, maxLineLength)}`;
+            formattedText += `<span style='padding:4px;'>${summaryItem.summary}</span>`;
         }
 
         if (displayMode === 'label-summary-details') {
@@ -159,193 +305,99 @@
             if (detailsItem && detailsItem.details) {
                 const details = detailsItem.details;
                 
+                let formattedDetails = ``
                 const ruleItem = details.find(item => item.rule);
                 if (ruleItem && ruleItem.rule) {
-                    formattedText += `\\n\\n<i>Rule:</i> ${wrapText(ruleItem.rule, maxLineLength, true)}`;
+                    formattedDetails += `<li><i>rule</i>: ${ruleItem.rule}</li>`;
                 }
                 
                 const evidenceItem = details.find(item => item.evidence);
                 if (evidenceItem && evidenceItem.evidence) {
-                    formattedText += `\\n\\n<i>Evidence:</i> ${wrapText(evidenceItem.evidence, maxLineLength, true)}`;
+                    formattedDetails += `<li><i>evidence</i>: ${evidenceItem.evidence}</li>`;
                 }
                 
                 const conclusionItem = details.find(item => item.conclusion);
                 if (conclusionItem && conclusionItem.conclusion) {
-                    formattedText += `\\n\\n<i>Conclusion:</i> ${wrapText(conclusionItem.conclusion, maxLineLength, true)}`;
+                    formattedDetails += `<li><i>conclusion</i>: ${conclusionItem.conclusion}</li>`;
+                }
+                if (formattedDetails){
+                    formattedText += `${separator}<ul style="margin:0; text-align:left;">${formattedDetails}</ul>`
                 }
             }
         }
-
         return formattedText;
     }
 
-    function wrapText(text, maxLineLength, ital = false) {
-        if (!text || text.length <= maxLineLength) {
-            const out = text || '';
-            return ital ? `<i>${out}</i>` : out;
-        }
-
-        const sentences = text.split(/([.;!?])/);
-        let processedText = '';
-
-        for (let i = 0; i < sentences.length; i += 2) {
-            const sentence = sentences[i] || '';
-            const punctuation = sentences[i + 1] || '';
-            const fullSentence = sentence + punctuation;
-
-            if (fullSentence.length <= maxLineLength) {
-                processedText += fullSentence;
-                if (punctuation && i < sentences.length - 2) {
-                    processedText += '\\n';
-                }
-            } else {
-                const words = sentence.split(' ');
-                let currentLine = '';
-
-                for (let word of words) {
-                    const testLine = currentLine ? currentLine + ' ' + word : word;
-                    if (testLine.length > maxLineLength && currentLine.length > 0) {
-                        processedText += currentLine + '\\n';
-                        currentLine = word;
-                    } else {
-                        currentLine = testLine;
-                    }
-                }
-
-                if (currentLine) {
-                    processedText += currentLine + punctuation;
-                    if (punctuation && i < sentences.length - 2) {
-                        processedText += '\\n';
-                    }
-                }
-            }
-        }
-
-        // Add italic tags per line if requested
-        if (ital) {
-            processedText = processedText.split('\\n').map(l => `<i>${l}</i>`).join('\\n');
-        }
-
-        return processedText.trim();
+    function initializePanzoom(wrapper, mermaidContainer) {
+        // Create new panzoom instance with fit-to-screen scale
+        panzoomInstance = Panzoom(mermaidContainer, { 
+            canvas: true, 
+            startScale: getFitScale(wrapper, mermaidContainer) 
+        });
+        // Bind wheel event for zooming
+        wrapper.addEventListener('wheel', function(event) {
+            if (!event.shiftKey) return;
+            panzoomInstance.zoomWithWheel(event);
+        });
     }
 
-    function initializeGraph() {
-        const container = document.getElementById('graph-container');
-        const displayMode = document.getElementById('argument-display-mode').value;
+    async function render() {
 
-        const nodeData = argumentationData.arguments.map(arg => {
-            const key = Object.keys(arg)[0];
-            const argData = arg[key];
+        // Zoom/pan state shared across renders
+        const mermaidContainer = document.getElementById('mermaid-diagram')
+        const wrapper = document.getElementById('wrapper');
+        
+        // Completely clear the container first
+        mermaidContainer.innerHTML = '';
 
-            return {
-                id: key,
-                label: formatMultiLineLabel(key, argData, displayMode),
-                shape: 'box',
-                font: {
-                    color: '#000000',
-                    face: 'JetBrains Mono, monospace',
-                    size: 13,
-                    align: 'center',
-                    multi: true,
-                    ital: { color: '#555555' }
-                },
-                color: {
-                    background: '#D9E7D6',
-                    border: '#8CB26F',
-                    highlight: { background: '#C8DCC3', border: '#7BA86F' },
-                    hover: { background: '#C8DCC3', border: '#7BA86F' }
-                },
-                borderWidth: 2,
-                margin: 3,
-                widthConstraint: { minimum: 35, maximum: 250 },
-                heightConstraint: { minimum: 35, valign: 'middle' },
-                // Store original data for re-rendering
-                _originalData: { key, argData }
-            };
-        });
+        let graph = `graph BT\n`;
+        graph += `  classDef default fill:#D9E7D6,stroke:#8CB26F\n`
+        graph += `  classDef add fill:#DAE8FC,stroke:#6C8EBF\n`
+        graph += `  classDef select fill:#FFE6CC,stroke:#D79B00\n`
+        
+        // Add subgraphs
+        graph += generateSubgraphs(currentStep);
+        
+        // Get newly added nodes for current step (only highlight if step > 1)
+        const newNodes = currentStep > 1 ? getNewArgumentsForStep(currentStep) : [];
+        const newNodeIds = new Set(newNodes.map(arg => Object.keys(arg)[0]));
+        
+        nodeData.forEach(node => {
+            graph += `  ${node.id}[\"${node.label}\"]\n`;
+            
+            // Determine node color based on state
+            let defaultNodes='', addedNodes='', selectedNodes='';
 
-        nodes = new vis.DataSet(nodeData);
-
-        // Safely handle cases where no attacks are defined
-        const attacksList = argumentationData.attacks || [];
-        const edgeData = attacksList.map((attack, index) => ({
-            id: `attack_${index}`,
-            from: attack[0],
-            to: attack[1],
-            label: 'attacks',
-            color: '#555555',
-            arrows: 'to',
-            font: { size: 0, color: '#555555', face: 'JetBrains Mono, monospace' },
-            width: 2,
-            smooth: { type: 'dynamic', roundness: 0.2 }
-        }));
-
-        edges = new vis.DataSet(edgeData);
-
-        const options = {
-            interaction: { hover: true, hoverConnectedEdges: true },
-            physics: {
-                enabled: true,
-                stabilization: { enabled: true, iterations: 100, fit: true },
-                barnesHut: {
-                    gravitationalConstant: -2000,
-                    centralGravity: 0.3,
-                    springLength: 200,
-                    springConstant: 0.04,
-                    damping: 0.09,
-                    avoidOverlap: 1
-                }
-            },
-            edges: {
-                smooth: { type: 'dynamic', roundness: 0.2 },
-                width: 2,
-                font: { size: 0, face: 'JetBrains Mono, monospace' }
-            },
-            nodes: {
-                borderWidth: 2,
-                font: { face: 'JetBrains Mono, monospace' }
+            if (colors[node.id] === '#FFE6CC') {
+                // Extension selected - keep the selected highlighting
+                selectedNodes += selectedNodes ? `,${node.id}` : node.id;
+            } else if (newNodeIds.has(node.id)) {
+                // Newly added node in current step
+                addedNodes += addedNodes ? `,${node.id}` : node.id;
+            } else {
+                // Default node color
+                defaultNodes += defaultNodes ? `,${node.id}` : node.id;
             }
-        };
-
-        container.innerHTML = '';
-        network = new vis.Network(container, { nodes, edges }, options);
-
-        network.on('hoverEdge', (params) => {
-            edges.update({ id: params.edge, font: { size: 14 }, width: 4 });
+            
+            if (defaultNodes) graph += `  class ${defaultNodes} default\n`;
+            if (addedNodes) graph += `  class ${addedNodes} add\n`;
+            if (selectedNodes) graph += `  class ${selectedNodes} select\n`;
         });
-
-        network.on('blurEdge', (params) => {
-            edges.update({ id: params.edge, font: { size: 0 }, width: 2 });
+        // Add attack relationships - use filtered attacks for current step
+        const filteredAttacks = getFilteredAttacks(currentStep);
+        filteredAttacks.forEach(attack => {
+            graph += `    ${attack[0]} --> ${attack[1]}\n`;
         });
-
-        network.on('hoverNode', (params) => {
-            const connectedEdges = network.getConnectedEdges(params.node);
-            edges.update(connectedEdges.map(id => ({ id, width: 4 })));
-            nodes.update({ id: params.node, borderWidth: 4 });
-        });
-
-        network.on('blurNode', (params) => {
-            const connectedEdges = network.getConnectedEdges(params.node);
-            edges.update(connectedEdges.map(id => ({ id, width: 2 })));
-            nodes.update({ id: params.node, borderWidth: 2 });
-        });
-
-        // Add click handler for blank area to stop physics
-        network.on('click', (params) => {
-            // If no nodes or edges are clicked (blank area)
-            if (params.nodes.length === 0 && params.edges.length === 0) {
-                const physicsEnabled = network.physics.physicsEnabled;
-                if (physicsEnabled) {
-                    network.setOptions({ physics: { enabled: false } });
-                    console.log('Physics stopped - graph stabilized');
-                } else {
-                    network.setOptions({ physics: { enabled: true } });
-                    console.log('Physics restarted');
-                }
-            }
-        });
-
-        setupExtensionClickHandlers();
+        try {
+            const { svg } = await mermaid.render('diagram-id', graph);
+            mermaidContainer.innerHTML = svg;
+            
+        if (!panzoomInstance) {
+            initializePanzoom(wrapper, mermaidContainer);
+        }
+        } catch (error) {
+            console.error('Error rendering mermaid diagram:', error);
+        }
     }
 
     function setupExtensionClickHandlers() {
@@ -396,67 +448,51 @@
             return;
         }
 
-        const currentNodes = nodes.get();
-        const updateNodes = currentNodes.map(node => ({
-            ...node,
-            borderWidth: 2,
-            color: nodeIds.includes(node.id) ? {
-                background: '#FFE6CC',
-                border: '#D79B00',
-                highlight: { background: '#FFDBAA', border: '#C68800' },
-                hover: { background: '#FFDBAA', border: '#C68800' }
-            } : {
-                background: '#D9E7D6',
-                border: '#8CB26F',
-                highlight: { background: '#C8DCC3', border: '#7BA86F' },
-                hover: { background: '#C8DCC3', border: '#7BA86F' }
-            }
-        }));
+        // Update colors object for highlighted nodes
+        colors = {};
+        nodeData.forEach(node => {
+            colors[node.id] = nodeIds.includes(node.id) ? '#FFE6CC' : null;
+        });
         
-        nodes.update(updateNodes);
+        // Re-render the graph with updated colors
+        render();
     }
 
     function resetNodeHighlighting() {
-        const currentNodes = nodes.get();
-        const updateNodes = currentNodes.map(node => ({
-            ...node,
-            borderWidth: 2,
-            color: {
-                background: '#D9E7D6',
-                border: '#8CB26F',
-                highlight: { background: '#C8DCC3', border: '#7BA86F' },
-                hover: { background: '#C8DCC3', border: '#7BA86F' }
-            }
-        }));
+        // Reset all colors to null (let render function determine colors)
+        colors = {};
+        nodeData.forEach(node => colors[node.id] = null);
         
-        nodes.update(updateNodes);
+        // Re-render the graph
+        render();
+    }
+
+    function fetchNodeData(displayMode) {
+        const filteredArguments = getFilteredArguments(currentStep);
+        return filteredArguments.map(arg => {
+            const key = Object.keys(arg)[0];
+            const argData = arg[key];
+            return { 
+                id: key, 
+                label: formatMultiLineLabel(key, argData, displayMode) 
+            };
+        });
     }
 
     function updateGraphDisplayMode() {
         const displayMode = document.getElementById('argument-display-mode').value;
-        const currentNodes = nodes.get();
-        
-        const updatedNodes = currentNodes.map(node => {
-            if (node._originalData) {
-                const { key, argData } = node._originalData;
-                return {
-                    ...node,
-                    label: formatMultiLineLabel(key, argData, displayMode),
-                    font: {
-                        ...node.font,
-                        align: 'center'
-                    }
-                };
-            }
-            return node;
-        });
-        
-        nodes.update(updatedNodes);
-        network.fit();
+        // Update nodeData with new labels
+        nodeData = fetchNodeData(displayMode);
+        // Reset panzoom instance so it will be recreated with new scale
+        if (panzoomInstance) {
+            panzoomInstance.destroy();
+            panzoomInstance = null;
+        }
+        render();
     }
 
     function setupControls() {
-        // Setup display mode dropdown
+        // Setup display dropdown
         const displayModeSelect = document.getElementById('argument-display-mode');
         if (displayModeSelect) {
             displayModeSelect.addEventListener('change', updateGraphDisplayMode);
@@ -495,13 +531,29 @@
         }
     }
 
-    window.addEventListener('load', () => {
-        try {
-            initializeGraph();
-            setupControls();
-        } catch (error) {
-            document.getElementById('graph-container').innerHTML = 
-                `<div class="error">Error loading graph: ${error.message}</div>`;
-        }
-    });
+    function initializeGraph() {
+        const displayMode = document.getElementById('argument-display-mode').value;
+        
+        // Initialize step navigation
+        initializeSteps();
+        setupStepNavigation();
+
+        // Initialize Mermaid with compact configuration
+        mermaid.initialize({
+            startOnLoad: false,
+            flowchart: {
+                padding: 0.01,
+                htmlLabels: true
+            }
+        });
+
+        colors = {};
+        nodeData = fetchNodeData(displayMode);
+        nodeData.forEach(node => colors[node.id] = null);
+        render();
+        setupExtensionClickHandlers();
+        setupControls();
+    }
+
+    initializeGraph();
 {% endtemplate %}
