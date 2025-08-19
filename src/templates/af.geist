@@ -11,8 +11,13 @@
 {% head %}
 <body>
     <div class="exhibit-section">
-        <h3>Exhibit</h3>
-        <pre class="line-numbers"><code class="language-python">{{ exhibit }}</code></pre>
+        <div class="section-header" onclick="toggleSection('exhibit')">
+            <h3>Exhibit</h3>
+            <span class="section-toggle" id="exhibit-toggle">▼</span>
+        </div>
+        <div class="section-content" id="exhibit-content">
+            <pre class="line-numbers"><code class="language-python">{{ exhibit }}</code></pre>
+        </div>
     </div>
     <div class="af-header">
         <div class="title">Graph</div>
@@ -41,82 +46,87 @@
     </div>
 
     <div class="extensions-section" id="extensions-section" style="display: none;">
-        <div class="extensions-header">
+        <div class="section-header" onclick="toggleSection('extensions')">
             <h3>Extensions</h3>
-            <div class="toggle-buttons">
-                <button id="toggle-conflict-free" class="toggle-btn active">Show Conflict-free</button>
-                <button id="toggle-admissible" class="toggle-btn active">Show Admissible</button>
-            </div>
+            <span class="section-toggle" id="extensions-toggle">▼</span>
         </div>
-        <div class="extensions-grid">
-            <div id="conflict-free-item" class="extension-item" style="display: none;">
-                <span class="extension-label">Conflict-free:</span>
-                <span class="extension-values">
-                    {% query ":memory:af", datastore="clingo", rformat="dict", predicate="in", isfilepath=False as conflict_free %}
-                        {% rule_conflict_free_extensions %}
-                    {% endquery %}
-                    {% list_arguments_raw conflict_free %}
-                </span>
+        <div class="section-content" id="extensions-content">
+            <div class="extensions-header">
+                <div class="toggle-buttons">
+                    <button id="toggle-conflict-free" class="toggle-btn active">Show Conflict-free</button>
+                    <button id="toggle-admissible" class="toggle-btn active">Show Admissible</button>
+                </div>
             </div>
-            <div id="admissible-item" class="extension-item" style="display: none;">
-                <span class="extension-label">Admissible:</span>
-                <span class="extension-values">
-                    {% query ":memory:af", datastore="clingo", rformat="dict", predicate="in", isfilepath=False as admissible %}
-                        {% rule_admissible_extensions %}
-                    {% endquery %}
-                    {% list_arguments_raw admissible %}
-                </span>
-            </div>
-            <div class="extension-item">
-                <span class="extension-label">Complete:</span>
-                <span class="extension-values">
-                    {% query ":memory:af", datastore="clingo", rformat="dict", predicate="in", isfilepath=False as complete %}
-                        {% rule_complete_extensions %}
-                    {% endquery %}
-                    {% list_arguments_raw complete %}
-                </span>
-            </div>
-            <div class="extension-item">
-                <span class="extension-label">Preferred:</span>
-                <span class="extension-values">
-                    {% query ":memory:af", datastore="clingo", rformat="df", predicate="in", isfilepath=False as preferred_in %}
-                        {% rule_complete_extensions %}
-                    {% endquery %}
-                    {% if preferred_in|length == 1 %}
-                        {%- set preferred = preferred_in %}
-                    {% else %}
-                        {%- create ":memory:af_preferred", datastore="clingo", isfilepath=False %}
-                            {%- for ext in preferred_in %}
-                                {%- set idx = loop.index %}
-                                {%- for _, row in ext["in"].iterrows() %}
-                                    in_arg_and_id({{ row["arg1"] }}, {{ idx }}).
-                                {% endfor %}
-                            {% endfor %}
-                        {% endcreate %}
-                        {%- query ":memory:af_preferred", datastore="clingo", rformat="dict", predicate="in", isfilepath=False as preferred %}
-                            {% rule_preferred_extensions %}
+            <div class="extensions-grid">
+                <div id="conflict-free-item" class="extension-item" style="display: none;">
+                    <span class="extension-label">Conflict-free:</span>
+                    <span class="extension-values">
+                        {% query ":memory:af", datastore="clingo", rformat="dict", predicate="in", isfilepath=False as conflict_free %}
+                            {% rule_conflict_free_extensions %}
                         {% endquery %}
-                    {% endif %}
-                    {% list_arguments_raw preferred %}
-                </span>
-            </div>
-            <div class="extension-item">
-                <span class="extension-label">Grounded:</span>
-                <span class="extension-values">
-                    {% query ":memory:af", datastore="clingo", rformat="dict", predicate="in", isfilepath=False as grounded %}
-                        {% rule_grounded_extensions %}
-                    {% endquery %}
-                    {% list_arguments_raw grounded %}
-                </span>
-            </div>
-            <div class="extension-item">
-                <span class="extension-label">Stable:</span>
-                <span class="extension-values">
-                    {% query ":memory:af", datastore="clingo", rformat="dict", predicate="in", isfilepath=False as stable %}
-                        {% rule_stable_extensions %}
-                    {% endquery %}
-                    {% list_arguments_raw stable %}
-                </span>
+                        {% list_arguments_raw conflict_free %}
+                    </span>
+                </div>
+                <div id="admissible-item" class="extension-item" style="display: none;">
+                    <span class="extension-label">Admissible:</span>
+                    <span class="extension-values">
+                        {% query ":memory:af", datastore="clingo", rformat="dict", predicate="in", isfilepath=False as admissible %}
+                            {% rule_admissible_extensions %}
+                        {% endquery %}
+                        {% list_arguments_raw admissible %}
+                    </span>
+                </div>
+                <div class="extension-item">
+                    <span class="extension-label">Complete:</span>
+                    <span class="extension-values">
+                        {% query ":memory:af", datastore="clingo", rformat="dict", predicate="in", isfilepath=False as complete %}
+                            {% rule_complete_extensions %}
+                        {% endquery %}
+                        {% list_arguments_raw complete %}
+                    </span>
+                </div>
+                <div class="extension-item">
+                    <span class="extension-label">Preferred:</span>
+                    <span class="extension-values">
+                        {% query ":memory:af", datastore="clingo", rformat="df", predicate="in", isfilepath=False as preferred_in %}
+                            {% rule_complete_extensions %}
+                        {% endquery %}
+                        {% if preferred_in|length == 1 %}
+                            {%- set preferred = preferred_in %}
+                        {% else %}
+                            {%- create ":memory:af_preferred", datastore="clingo", isfilepath=False %}
+                                {%- for ext in preferred_in %}
+                                    {%- set idx = loop.index %}
+                                    {%- for _, row in ext["in"].iterrows() %}
+                                        in_arg_and_id({{ row["arg1"] }}, {{ idx }}).
+                                    {% endfor %}
+                                {% endfor %}
+                            {% endcreate %}
+                            {%- query ":memory:af_preferred", datastore="clingo", rformat="dict", predicate="in", isfilepath=False as preferred %}
+                                {% rule_preferred_extensions %}
+                            {% endquery %}
+                        {% endif %}
+                        {% list_arguments_raw preferred %}
+                    </span>
+                </div>
+                <div class="extension-item">
+                    <span class="extension-label">Grounded:</span>
+                    <span class="extension-values">
+                        {% query ":memory:af", datastore="clingo", rformat="dict", predicate="in", isfilepath=False as grounded %}
+                            {% rule_grounded_extensions %}
+                        {% endquery %}
+                        {% list_arguments_raw grounded %}
+                    </span>
+                </div>
+                <div class="extension-item">
+                    <span class="extension-label">Stable:</span>
+                    <span class="extension-values">
+                        {% query ":memory:af", datastore="clingo", rformat="dict", predicate="in", isfilepath=False as stable %}
+                            {% rule_stable_extensions %}
+                        {% endquery %}
+                        {% list_arguments_raw stable %}
+                    </span>
+                </div>
             </div>
         </div>
     </div>
