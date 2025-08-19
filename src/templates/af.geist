@@ -20,8 +20,8 @@
         </div>
     </div>
     <div class="main-content">
-        <div class="af-header">
-            <div class="title">Graph</div>
+        <div class="section-header">
+            <h3>Graph</h3>
             <div class="header-controls">
                 <div class="step-navigation">
                     <button id="start-step" class="nav-btn">start</button>
