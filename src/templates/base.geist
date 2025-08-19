@@ -167,6 +167,8 @@
                 return stepItem ? stepItem.step : 1;
             }));
         }
+        // Set currentStep to show "End" by default (maxStep + 1)
+        currentStep = maxStep + 1;
         updateStepIndicator();
     }
     
@@ -264,6 +266,8 @@
         
         document.getElementById('prev-step').disabled = currentStep <= 1;
         document.getElementById('next-step').disabled = currentStep > maxStep;
+        document.getElementById('start-step').disabled = currentStep <= 1;
+        document.getElementById('end-step').disabled = currentStep > maxStep;
     }
     
     // Setup step navigation
@@ -279,6 +283,24 @@
         document.getElementById('next-step').addEventListener('click', () => {
             if (currentStep <= maxStep) {
                 currentStep++;
+                updateStepIndicator();
+                updateGraphDisplayMode();
+            }
+        });
+
+        // Quick navigation to the first step
+        document.getElementById('start-step').addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep = 1;
+                updateStepIndicator();
+                updateGraphDisplayMode();
+            }
+        });
+        
+        // Quick navigation to the final stage
+        document.getElementById('end-step').addEventListener('click', () => {
+            if (currentStep <= maxStep) {
+                currentStep = maxStep + 1;
                 updateStepIndicator();
                 updateGraphDisplayMode();
             }

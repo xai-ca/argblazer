@@ -18,9 +18,11 @@
         <div class="title">Graph</div>
         <div class="header-controls">
             <div class="step-navigation">
+                <button id="start-step" class="nav-btn">start</button>
                 <button id="prev-step" class="nav-btn" disabled>&lt;</button>
                 <span id="step-indicator">Step 1</span>
                 <button id="next-step" class="nav-btn">&gt;</button>
+                <button id="end-step" class="nav-btn">end</button>
             </div>
             <div class="display-controls">
                 <label for="argument-display-mode">Display:</label>
@@ -117,7 +119,6 @@
                 </span>
             </div>
         </div>
-
     </div>
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
