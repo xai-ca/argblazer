@@ -258,10 +258,20 @@
     
     // Update step indicator and button states
     function updateStepIndicator() {
+        const extensionsSection = document.getElementById('extensions-section');
+        
         if (currentStep <= maxStep){
             document.getElementById('step-indicator').textContent = `Step ${currentStep}`;
+            // Hide extensions section during steps
+            if (extensionsSection) {
+                extensionsSection.style.display = 'none';
+            }
         } else {
             document.getElementById('step-indicator').textContent = `End`;
+            // Show extensions section at the end
+            if (extensionsSection) {
+                extensionsSection.style.display = 'block';
+            }
         }
         
         document.getElementById('prev-step').disabled = currentStep <= 1;

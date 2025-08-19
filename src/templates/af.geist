@@ -40,7 +40,7 @@
         </div>
     </div>
 
-    <div class="extensions-section">
+    <div class="extensions-section" id="extensions-section" style="display: none;">
         <div class="extensions-header">
             <h3>Extensions</h3>
             <div class="toggle-buttons">
