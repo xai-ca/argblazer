@@ -10,13 +10,6 @@
 {% endfor %}
 {% endtemplate %}
 
-{% template list_arguments data %}
-{%- set sorted_data = data | clingo_list_arguments %}
-{%- for args in sorted_data %}
-    $\\{ {%- for arg in args %}{{ arg }}{% if not loop.last %}, {% endif %}{% endfor %}$\\}
-{% endfor %}
-{% endtemplate %}
-
 {% template rule_conflict_free_extensions %}
     % Generate all possible subsets of arguments
     {in(X)} :- arg(X).
@@ -87,18 +80,19 @@
         <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
         <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
         <style>
-            body{margin:0;padding:20px;font-family:'JetBrains Mono',monospace;background:#fff;color:#333}
+            body{margin:0;padding:10px 20px 0 20px;font-family:'JetBrains Mono',monospace;background:#fff;color:#333;height:100vh;box-sizing:border-box;display:flex;flex-direction:column}
             /* Prism fix */
             .token.operator{background:transparent!important}
             /* Common boxed sections */
-            .exhibit-section,.extensions-section{margin-bottom:20px;padding:0;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.05)}
-            .section-header{display:flex;justify-content:space-between;align-items:center;padding:16px;cursor:pointer;user-select:none;border-bottom:1px solid #e0e0e0}
+            .exhibit-section,.extensions-section{margin-bottom:10px;padding:0;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.05);max-height:400px;display:flex;flex-direction:column}
+            .extensions-section{margin-bottom:10px}
+            .section-header{display:flex;justify-content:space-between;align-items:center;padding:16px;cursor:pointer;user-select:none;border-bottom:1px solid #e0e0e0;flex-shrink:0}
             .section-header:hover{background:#f0f0f0}
             .section-header h3{margin:0;font-size:16px;font-weight:600;color:#333}
             .section-toggle{font-size:14px;color:#666;transition:transform 0.2s ease}
             .section-toggle.collapsed{transform:rotate(-90deg)}
-            .section-content{padding:16px;overflow:hidden;transition:max-height 0.3s ease;max-height:none}
-            .section-content.collapsed{max-height:0!important;padding-top:0;padding-bottom:0}
+            .section-content{padding:16px;overflow-y:auto;transition:max-height 0.3s ease;max-height:none;flex:1;min-height:0}
+            .section-content.collapsed{max-height:0!important;padding-top:0;padding-bottom:0;overflow:hidden}
             /* Header */
             .af-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
             .title{font-size:18px;font-weight:600;margin:0}
@@ -112,15 +106,16 @@
             .display-dropdown{padding:4px 8px;min-width:140px;font-size:12px;font-family:'JetBrains Mono',monospace;background:#f8f9fa;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer}
             .display-dropdown:hover{background:#f0f0f0;border-color:#bbb}
             .display-dropdown:focus{outline:none;border-color:#999;box-shadow:0 0 3px rgba(0,0,0,.1)}
+            /* Main content wrapper */
+            .main-content{display:flex;flex-direction:column;flex:1;min-height:0}
             /* Graph container */
-            #graph-container{width:100%;height:calc(100vh - 280px);border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;background:#f8f9fa;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+            #graph-container{width:100%;flex:1;min-height:200px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;background:#f8f9fa;box-shadow:0 2px 8px rgba(0,0,0,.1)}
             .diagram-wrapper{display:flex;justify-content:center;align-items:center;height:100%;transform-origin: center;font-size:16px;color:#666}
             .error{color:#555;text-align:center;padding:20px}
-            .vis-network{height:100%!important;font-family:'JetBrains Mono',monospace!important}
             /* Extension list */
-            .extensions-section{margin-top:20px}
+            .extensions-section{margin-top:10px}
             .extensions-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-            .toggle-buttons{display:flex;gap:8px}
+            .toggle-buttons{display:flex;gap:8px;margin-left:auto}
             .toggle-btn,.extension-set{padding:4px 8px;font-size:12px;font-weight:500;font-family:'JetBrains Mono',monospace;border-radius:4px;cursor:pointer;transition:all .2s}
             .toggle-btn{background:#d0d0d0;border:1px solid #aaa}
             .toggle-btn:hover{background:#c0c0c0;border-color:#999}
@@ -136,12 +131,13 @@
             .extension-set.selected{font-weight:600}
             /* Responsive */
             @media(max-width:768px){
+                body{padding:10px 10px 0 10px}
                 .af-header{flex-direction:column;align-items:flex-start;gap:8px}
                 .header-controls{flex-direction:column;align-items:flex-start;gap:8px;width:100%}
                 .step-navigation{align-self:stretch;justify-content:center}
                 .display-controls{align-self:stretch;justify-content:space-between}
                 .extensions-grid{grid-template-columns:1fr}
-                #graph-container{height:calc(100vh - 400px)}
+                #graph-container{min-height:150px}
             }
         </style>
     </head>
@@ -610,7 +606,33 @@
             toggle.classList.add('collapsed');
             content.style.maxHeight = '0';
         }
+        
+        // After the animation, recalculate graph layout
+        setTimeout(() => {
+            if (panzoomInstance) {
+                const mermaidContainer = document.getElementById('mermaid-diagram');
+                const wrapper = document.getElementById('wrapper');
+                if (mermaidContainer && wrapper) {
+                    // Reset panzoom to fit new container size
+                    panzoomInstance.destroy();
+                    initializePanzoom(wrapper, mermaidContainer);
+                }
+            }
+        }, 300); // Wait for CSS transition to complete
     }
 
     initializeGraph();
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        if (panzoomInstance) {
+            const mermaidContainer = document.getElementById('mermaid-diagram');
+            const wrapper = document.getElementById('wrapper');
+            if (mermaidContainer && wrapper) {
+                // Reset panzoom to fit new window size
+                panzoomInstance.destroy();
+                initializePanzoom(wrapper, mermaidContainer);
+            }
+        }
+    });
 {% endtemplate %}

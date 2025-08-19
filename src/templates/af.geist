@@ -19,29 +19,31 @@
             <pre class="line-numbers"><code class="language-python">{{ exhibit }}</code></pre>
         </div>
     </div>
-    <div class="af-header">
-        <div class="title">Graph</div>
-        <div class="header-controls">
-            <div class="step-navigation">
-                <button id="start-step" class="nav-btn">start</button>
-                <button id="prev-step" class="nav-btn" disabled>&lt;</button>
-                <span id="step-indicator">Step 1</span>
-                <button id="next-step" class="nav-btn">&gt;</button>
-                <button id="end-step" class="nav-btn">end</button>
-            </div>
-            <div class="display-controls">
-                <label for="argument-display-mode">Display:</label>
-                <select id="argument-display-mode" class="display-dropdown">
-                    <option value="label">Label</option>
-                    <option value="label-summary" selected>Summary</option>
-                    <option value="label-summary-details">Details</option>
-                </select>
+    <div class="main-content">
+        <div class="af-header">
+            <div class="title">Graph</div>
+            <div class="header-controls">
+                <div class="step-navigation">
+                    <button id="start-step" class="nav-btn">start</button>
+                    <button id="prev-step" class="nav-btn" disabled>&lt;</button>
+                    <span id="step-indicator">Step 1</span>
+                    <button id="next-step" class="nav-btn">&gt;</button>
+                    <button id="end-step" class="nav-btn">end</button>
+                </div>
+                <div class="display-controls">
+                    <label for="argument-display-mode">Display:</label>
+                    <select id="argument-display-mode" class="display-dropdown">
+                        <option value="label">Label</option>
+                        <option value="label-summary" selected>Summary</option>
+                        <option value="label-summary-details">Details</option>
+                    </select>
+                </div>
             </div>
         </div>
-    </div>
-    <div id="graph-container">
-        <div class="diagram-wrapper", id="wrapper">
-            <div id="mermaid-diagram"></div>
+        <div id="graph-container">
+            <div class="diagram-wrapper", id="wrapper">
+                <div id="mermaid-diagram"></div>
+            </div>
         </div>
     </div>
 
