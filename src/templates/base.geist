@@ -96,7 +96,7 @@
             .section-header h3{margin:0;font-size:16px;font-weight:600;color:#333}
             .section-toggle{font-size:14px;color:#666;transition:transform 0.2s ease}
             .section-toggle.collapsed{transform:rotate(-90deg)}
-            .section-content{padding:16px;overflow-y:auto;transition:max-height 0.3s ease;max-height:400px;flex:1;min-height:0}
+            .section-content{padding:16px;overflow-y:auto;transition:max-height 0.3s ease;flex:1;min-height:0}
             .section-content.collapsed{max-height:0!important;padding-top:0;padding-bottom:0;overflow:hidden}
             .section-header:has(+ .section-content.collapsed){border-bottom:none}
             .header-controls{display:flex;align-items:center;gap:16px;flex-wrap:nowrap;min-width:0}
@@ -112,7 +112,7 @@
             /* Main content wrapper */
             .main-content{display:flex;flex-direction:column;flex:2;min-height:0}
             /* Graph container */
-            #graph-container{width:calc(100% - 2px);margin-left:0;margin-right:0;flex:1;min-height:200px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;background:#f8f9fa;box-shadow:0 2px 4px rgba(0,0,0,.05)}
+            #graph-container{width:calc(100% - 2px);margin-left:0;margin-right:0;flex:1;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;background:#f8f9fa;box-shadow:0 2px 4px rgba(0,0,0,.05)}
             .diagram-wrapper{display:flex;justify-content:center;align-items:center;height:100%;transform-origin: center;font-size:16px;color:#666}
             .error{color:#555;text-align:center;padding:20px}
             /* Extension list */
@@ -286,6 +286,7 @@
             if (extensionsSection) {
                 extensionsSection.style.flex = '0 0 0';
                 extensionsSection.style.overflow = 'hidden';
+                extensionsSection.style.border = 'none';
             }
         } else {
             document.getElementById('step-indicator').textContent = `End`;
@@ -299,6 +300,7 @@
                     extensionsSection.style.flex = '1 1 0';
                 }
                 extensionsSection.style.overflow = 'auto';
+                extensionsSection.style.border = '';
             }
         }
         
@@ -631,22 +633,19 @@
             // Expand
             content.classList.remove('collapsed');
             toggle.classList.remove('collapsed');
-            // Remove inline max-height to let CSS max-height take effect for scrolling
             content.style.maxHeight = '';
-            // Restore the section's flex properties
+            
+            // Set flex to content height, but allow shrinking if needed
             if (section) {
-                if (sectionName === 'exhibit' || sectionName === 'extensions') {
-                    section.style.flex = '1 1 0';
-                } else if (sectionName === 'graph') {
-                    section.style.flex = '2 1 0';
-                }
+                let totalHeight = section.querySelector('.section-header').offsetHeight + content.scrollHeight;            
+                totalHeight = Math.min(totalHeight, section.parentElement.offsetHeight / 4);
+                section.style.flex = `0 1 ${totalHeight}px`;
             }
         } else {
             // Collapse
             content.classList.add('collapsed');
             toggle.classList.add('collapsed');
             content.style.maxHeight = '0';
-            // Minimize the section's flex to just show the header
             if (section) {
                 section.style.flex = '0 0 auto';
             }
@@ -658,12 +657,11 @@
                 const mermaidContainer = document.getElementById('mermaid-diagram');
                 const wrapper = document.getElementById('wrapper');
                 if (mermaidContainer && wrapper) {
-                    // Reset panzoom to fit new container size
                     panzoomInstance.destroy();
                     initializePanzoom(wrapper, mermaidContainer);
                 }
             }
-        }, 300); // Wait for CSS transition to complete
+        }, 300);
     }
     
     // Handle window resize
