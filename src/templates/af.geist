@@ -10,7 +10,7 @@
 <html lang="en">
 {% head %}
 <body>
-    <div class="exhibit-section">
+    <div class="exhibit-section" id="exhibit-section">
         <div class="section-header" onclick="toggleSection('exhibit')">
             <h3>Exhibit</h3>
             <span class="section-toggle" id="exhibit-toggle">▼</span>
@@ -19,7 +19,10 @@
             <pre class="line-numbers"><code class="language-python">{{ exhibit }}</code></pre>
         </div>
     </div>
-    <div class="main-content">
+    
+    <div class="resize-handle" id="resize-handle-1"></div>
+    
+    <div class="main-content" id="graph-section">
         <div class="section-header">
             <h3>Graph</h3>
             <div class="header-controls">
@@ -47,7 +50,9 @@
         </div>
     </div>
 
-    <div class="extensions-section" id="extensions-section" style="display: none;">
+    <div class="resize-handle" id="resize-handle-2"></div>
+
+    <div class="extensions-section" id="extensions-section">
         <div class="section-header" onclick="toggleSection('extensions')">
             <h3>Extensions</h3>
             <span class="section-toggle" id="extensions-toggle">▼</span>

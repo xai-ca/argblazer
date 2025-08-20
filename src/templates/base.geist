@@ -81,10 +81,16 @@
         <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
         <style>
             body{margin:0;padding:10px 20px 0 20px;font-family:'JetBrains Mono',monospace;background:#fff;color:#333;height:100vh;box-sizing:border-box;display:flex;flex-direction:column}
+            body::after{content:'';height:10px;flex-shrink:0}
             /* Prism fix */
             .token.operator{background:transparent!important}
             /* Common boxed sections */
-            .exhibit-section,.extensions-section{margin-bottom:10px;padding:0;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.05);display:flex;flex-direction:column}
+            .exhibit-section,.extensions-section{padding:0;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.05);display:flex;flex-direction:column;flex:1;min-height:0}
+            /* Resize handles */
+            .resize-handle{height:10px;background:transparent;cursor:row-resize;display:flex;align-items:center;justify-content:center;position:relative;z-index:1000;margin:5px 0}
+            .resize-handle::before{content:'';width:80px;height:3px;background:#dee2e6;border-radius:2px;transition:all 0.2s ease}
+            .resize-handle:hover::before{background:#28a745;width:120px;height:4px;box-shadow:0 2px 8px rgba(40, 167, 69, 0.3)}
+            .resize-handle:active::before{background:#1e7e34}
             .section-header{display:flex;justify-content:space-between;align-items:center;padding:5px;cursor:pointer;user-select:none;border-bottom:1px solid #e0e0e0;flex-shrink:0}
             .main-content > .section-header{cursor:default;margin-bottom:0;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px 8px 0 0;box-shadow:0 2px 4px rgba(0,0,0,.05);border-bottom:1px solid #e0e0e0}
             .section-header h3{margin:0;font-size:16px;font-weight:600;color:#333}
@@ -93,20 +99,20 @@
             .section-content{padding:16px;overflow-y:auto;transition:max-height 0.3s ease;max-height:400px;flex:1;min-height:0}
             .section-content.collapsed{max-height:0!important;padding-top:0;padding-bottom:0;overflow:hidden}
             .section-header:has(+ .section-content.collapsed){border-bottom:none}
-            .header-controls{display:flex;align-items:center;gap:16px}
-            .step-navigation{display:flex;align-items:center;gap:8px}
+            .header-controls{display:flex;align-items:center;gap:16px;flex-wrap:nowrap;min-width:0}
+            .step-navigation{display:flex;align-items:center;gap:8px;flex-shrink:0}
             .nav-btn{padding:4px 8px;font-size:14px;font-weight:500;font-family:'JetBrains Mono',monospace;background:#f0f0f0;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer;transition:all .2s}
             .nav-btn:hover:not(:disabled){background:#e0e0e0;border-color:#bbb}
             .nav-btn:disabled{background:#f8f8f8;border-color:#e0e0e0;color:#ccc;cursor:not-allowed}
             #step-indicator{font-size:14px;font-weight:500;color:#555;min-width:60px;text-align:center}
-            .display-controls{display:flex;align-items:center;gap:8px}
-            .display-dropdown{padding:4px 8px;min-width:140px;font-size:12px;font-family:'JetBrains Mono',monospace;background:#f8f9fa;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer}
+            .display-controls{display:flex;align-items:center;gap:8px;flex-shrink:0}
+            .display-dropdown{padding:4px 8px;min-width:80px;font-size:12px;font-family:'JetBrains Mono',monospace;background:#f8f9fa;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer}
             .display-dropdown:hover{background:#f0f0f0;border-color:#bbb}
             .display-dropdown:focus{outline:none;border-color:#999;box-shadow:0 0 3px rgba(0,0,0,.1)}
             /* Main content wrapper */
-            .main-content{display:flex;flex-direction:column;flex:1;min-height:0}
+            .main-content{display:flex;flex-direction:column;flex:2;min-height:0}
             /* Graph container */
-            #graph-container{margin-bottom:10px;width:calc(100% - 2px);margin-left:0;margin-right:0;flex:1;min-height:200px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;background:#f8f9fa;box-shadow:0 2px 4px rgba(0,0,0,.05)}
+            #graph-container{width:calc(100% - 2px);margin-left:0;margin-right:0;flex:1;min-height:200px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;background:#f8f9fa;box-shadow:0 2px 4px rgba(0,0,0,.05)}
             .diagram-wrapper{display:flex;justify-content:center;align-items:center;height:100%;transform-origin: center;font-size:16px;color:#666}
             .error{color:#555;text-align:center;padding:20px}
             /* Extension list */
@@ -126,20 +132,35 @@
             .extension-set:hover,.extension-set.selected{background:#FFE6CC;border-color:#D79B00;box-shadow:0 2px 4px rgba(0,0,0,.15)}
             .extension-set.selected{font-weight:600}
             /* Responsive */
-            @media(max-width:768px){
+            @media(max-width:600px){
                 body{padding:10px 10px 0 10px}
                 .header-controls{flex-direction:column;align-items:flex-start;gap:8px;width:100%}
                 .step-navigation{align-self:stretch;justify-content:center}
-                .display-controls{align-self:stretch;justify-content:space-between}
+                .display-controls{align-self:flex-end;justify-content:flex-end}
                 .extensions-grid{grid-template-columns:1fr}
                 #graph-container{min-height:150px}
+            }
+            /* Additional breakpoint for very small screens */
+            @media(max-width:480px){
+                .nav-btn{padding:2px 6px;font-size:12px}
+                .display-dropdown{min-width:70px;font-size:11px}
+                #step-indicator{min-width:50px;font-size:12px}
             }
         </style>
     </head>
 {% endtemplate %}
 
 {% template script_funcs %}
-// Calculate the scale that fits element in container
+
+    // Initialize resize handle visibility
+    function hideElementById(eid){
+        const elem = document.getElementById(eid);
+        if (elem) {
+            elem.style.display = currentStep <= maxStep ? 'none' : 'flex';
+        }
+    }
+
+    // Calculate the scale that fits element in container
     function getFitScale(container, elem) {
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
@@ -167,8 +188,9 @@
         // Set currentStep to show "End" by default (maxStep + 1)
         currentStep = maxStep + 1;
         updateStepIndicator();
+        hideElementById('resize-handle-2');
     }
-    
+
     // Get filtered arguments for current step
     function getFilteredArguments(step) {
         if (!argumentationData.arguments) return [];
@@ -256,18 +278,27 @@
     // Update step indicator and button states
     function updateStepIndicator() {
         const extensionsSection = document.getElementById('extensions-section');
+        const extensionsContent = document.getElementById('extensions-content');
         
         if (currentStep <= maxStep){
             document.getElementById('step-indicator').textContent = `Step ${currentStep}`;
-            // Hide extensions section during steps
+            // Hide extensions section during steps by reducing its flex
             if (extensionsSection) {
-                extensionsSection.style.display = 'none';
+                extensionsSection.style.flex = '0 0 0';
+                extensionsSection.style.overflow = 'hidden';
             }
         } else {
             document.getElementById('step-indicator').textContent = `End`;
-            // Show extensions section at the end
+            // Show extensions section at the end by restoring its flex
             if (extensionsSection) {
-                extensionsSection.style.display = 'block';
+                // Check if the extensions section is collapsed
+                const isCollapsed = extensionsContent && extensionsContent.classList.contains('collapsed');
+                if (isCollapsed) {
+                    extensionsSection.style.flex = '0 0 auto';
+                } else {
+                    extensionsSection.style.flex = '1 1 0';
+                }
+                extensionsSection.style.overflow = 'auto';
             }
         }
         
@@ -285,6 +316,7 @@
                 resetExtensionSelection();
                 updateStepIndicator();
                 updateGraphDisplayMode();
+                hideElementById('resize-handle-2');
             }
         });
         
@@ -293,6 +325,7 @@
                 currentStep++;
                 updateStepIndicator();
                 updateGraphDisplayMode();
+                hideElementById('resize-handle-2');
             }
         });
 
@@ -303,6 +336,7 @@
                 resetExtensionSelection();
                 updateStepIndicator();
                 updateGraphDisplayMode();
+                hideElementById('resize-handle-2');
             }
         });
         
@@ -312,6 +346,7 @@
                 currentStep = maxStep + 1;
                 updateStepIndicator();
                 updateGraphDisplayMode();
+                hideElementById('resize-handle-2');
             }
         });
     }
@@ -444,6 +479,7 @@
                     resetNodeHighlighting();
                     setElement.classList.remove('selected');
                     currentlySelected = null;
+                    render(); // Re-render the graph to show the changes
                     return;
                 }
 
@@ -589,6 +625,7 @@
     function toggleSection(sectionName) {
         const content = document.getElementById(`${sectionName}-content`);
         const toggle = document.getElementById(`${sectionName}-toggle`);
+        const section = document.getElementById(`${sectionName}-section`);
         
         if (content.classList.contains('collapsed')) {
             // Expand
@@ -596,11 +633,23 @@
             toggle.classList.remove('collapsed');
             // Remove inline max-height to let CSS max-height take effect for scrolling
             content.style.maxHeight = '';
+            // Restore the section's flex properties
+            if (section) {
+                if (sectionName === 'exhibit' || sectionName === 'extensions') {
+                    section.style.flex = '1 1 0';
+                } else if (sectionName === 'graph') {
+                    section.style.flex = '2 1 0';
+                }
+            }
         } else {
             // Collapse
             content.classList.add('collapsed');
             toggle.classList.add('collapsed');
             content.style.maxHeight = '0';
+            // Minimize the section's flex to just show the header
+            if (section) {
+                section.style.flex = '0 0 auto';
+            }
         }
         
         // After the animation, recalculate graph layout
@@ -616,8 +665,6 @@
             }
         }, 300); // Wait for CSS transition to complete
     }
-
-    initializeGraph();
     
     // Handle window resize
     window.addEventListener('resize', () => {
@@ -631,4 +678,178 @@
             }
         }
     });
+
+    // Setup resize handles functionality
+    function setupResizeHandles() {
+        const handle1 = document.getElementById('resize-handle-1');
+        const handle2 = document.getElementById('resize-handle-2');
+        const exhibitSection = document.getElementById('exhibit-section');
+        const graphSection = document.getElementById('graph-section');
+        const extensionsSection = document.getElementById('extensions-section');
+        
+        if (!handle1 || !handle2 || !exhibitSection || !graphSection || !extensionsSection) {
+            return;
+        }
+
+        let isResizing = false;
+        let currentHandle = null;
+        let startY = 0;
+        let startExhibitHeight = 0;
+        let startGraphHeight = 0;
+        let startExtensionsHeight = 0;
+
+        function startResize(e, handle) {
+            isResizing = true;
+            currentHandle = handle;
+            startY = e.clientY;
+            
+            // Get current flex-basis values or compute them
+            const exhibitRect = exhibitSection.getBoundingClientRect();
+            const graphRect = graphSection.getBoundingClientRect();
+            const extensionsRect = extensionsSection.getBoundingClientRect();
+            
+            startExhibitHeight = exhibitRect.height;
+            startGraphHeight = graphRect.height;
+            startExtensionsHeight = extensionsRect.height;
+            
+            document.body.style.cursor = 'row-resize';
+            document.body.style.userSelect = 'none';
+            
+            e.preventDefault();
+        }
+
+        function doResize(e) {
+            if (!isResizing || !currentHandle) return;
+            
+            const deltaY = e.clientY - startY;
+            const containerHeight = document.body.getBoundingClientRect().height - 50; // Account for padding (10px top + 10px bottom + 20px for margins + 10px reserved bottom space)
+            
+            // Get collapsed heights (header only)
+            const exhibitHeader = exhibitSection.querySelector('.section-header');
+            const extensionsHeader = extensionsSection.querySelector('.section-header');
+            const exhibitMinHeight = exhibitHeader ? exhibitHeader.getBoundingClientRect().height : 50;
+            const extensionsMinHeight = extensionsHeader ? extensionsHeader.getBoundingClientRect().height : 50;
+            const graphMinHeight = 250; // Keep a reasonable minimum for graph
+            
+            // Threshold for auto-collapse (slightly above minimum to trigger collapse)
+            const collapseThreshold = 20;
+            
+            // Get current heights for maximum calculations
+            const currentExhibitHeight = exhibitSection.getBoundingClientRect().height;
+            const currentExtensionsHeight = extensionsSection.getBoundingClientRect().height;
+            
+            if (currentHandle === handle1) {
+                // Check if exhibit section is collapsed
+                const exhibitContent = document.getElementById('exhibit-content');
+                const exhibitCollapsed = exhibitContent && exhibitContent.classList.contains('collapsed');
+                
+                // Calculate target height for exhibit
+                const targetExhibitHeight = startExhibitHeight + deltaY;
+                
+                if (!exhibitCollapsed) {
+                    // Exhibit is currently expanded
+                    if (targetExhibitHeight <= exhibitMinHeight + collapseThreshold) {
+                        // Auto-collapse when getting close to minimum
+                        toggleSection('exhibit');
+                    } else {
+                        // Calculate maximum height for exhibit: total window size - current extensions height - minimum graph size
+                        const exhibitMaxHeight = containerHeight - currentExtensionsHeight - graphMinHeight;
+                        
+                        // Normal resize with maximum constraint
+                        const newExhibitHeight = Math.max(
+                            exhibitMinHeight + collapseThreshold, 
+                            Math.min(exhibitMaxHeight, targetExhibitHeight)
+                        );
+                        const newGraphHeight = Math.max(graphMinHeight, startGraphHeight - deltaY);
+                        
+                        const exhibitFlex = newExhibitHeight / containerHeight * 4;
+                        const graphFlex = newGraphHeight / containerHeight * 4;
+                        
+                        exhibitSection.style.flex = `${exhibitFlex} 1 0`;
+                        graphSection.style.flex = `${graphFlex} 1 0`;
+                    }
+                } else {
+                    // Exhibit is currently collapsed
+                    if (targetExhibitHeight > exhibitMinHeight + collapseThreshold) {
+                        // Auto-expand when dragging away from minimum
+                        toggleSection('exhibit');
+                    }
+                }
+                
+            } else if (currentHandle === handle2) {
+                // Check if extensions section is collapsed
+                const extensionsContent = document.getElementById('extensions-content');
+                const extensionsCollapsed = extensionsContent && extensionsContent.classList.contains('collapsed');
+                
+                // Calculate target height for extensions
+                const targetExtensionsHeight = startExtensionsHeight - deltaY;
+                
+                if (!extensionsCollapsed) {
+                    // Extensions is currently expanded
+                    if (targetExtensionsHeight <= extensionsMinHeight + collapseThreshold) {
+                        // Auto-collapse when getting close to minimum
+                        toggleSection('extensions');
+                    } else {
+                        // Calculate maximum height for extensions: total window size - current exhibit height - minimum graph size
+                        const extensionsMaxHeight = containerHeight - currentExhibitHeight - graphMinHeight;
+                        
+                        // Normal resize with maximum constraint
+                        const newExtensionsHeight = Math.max(
+                            extensionsMinHeight + collapseThreshold, 
+                            Math.min(extensionsMaxHeight, targetExtensionsHeight)
+                        );
+                        const newGraphHeight = Math.max(graphMinHeight, startGraphHeight + deltaY);
+                        
+                        const graphFlex = newGraphHeight / containerHeight * 4;
+                        const extensionsFlex = newExtensionsHeight / containerHeight * 4;
+                        
+                        graphSection.style.flex = `${graphFlex} 1 0`;
+                        extensionsSection.style.flex = `${extensionsFlex} 1 0`;
+                    }
+                } else {
+                    // Extensions is currently collapsed
+                    if (targetExtensionsHeight > extensionsMinHeight + collapseThreshold) {
+                        // Auto-expand when dragging away from minimum
+                        toggleSection('extensions');
+                    }
+                }
+            }
+            
+            // Trigger graph re-render if panzoom exists
+            setTimeout(() => {
+                if (panzoomInstance) {
+                    const mermaidContainer = document.getElementById('mermaid-diagram');
+                    const wrapper = document.getElementById('wrapper');
+                    if (mermaidContainer && wrapper) {
+                        panzoomInstance.destroy();
+                        initializePanzoom(wrapper, mermaidContainer);
+                    }
+                }
+            }, 50);
+        }
+
+        function stopResize() {
+            if (!isResizing) return;
+            
+            isResizing = false;
+            currentHandle = null;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+
+        // Add event listeners
+        handle1.addEventListener('mousedown', (e) => startResize(e, handle1));
+        handle2.addEventListener('mousedown', (e) => startResize(e, handle2));
+        
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
+        
+        // Prevent text selection during resize
+        document.addEventListener('selectstart', (e) => {
+            if (isResizing) e.preventDefault();
+        });
+    }
+
+    initializeGraph();
+    setupResizeHandles();
 {% endtemplate %}
