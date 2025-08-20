@@ -85,7 +85,7 @@
             /* Prism fix */
             .token.operator{background:transparent!important}
             /* Common boxed sections */
-            .exhibit-section,.extensions-section{padding:0;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.05);display:flex;flex-direction:column;flex:1;min-height:0}
+            .exhibit-section,.extensions-section{padding:0;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.05);display:flex;flex-direction:column;min-height:0}
             /* Resize handles */
             .resize-handle{height:10px;background:transparent;cursor:row-resize;display:flex;align-items:center;justify-content:center;position:relative;z-index:1000;margin:5px 0}
             .resize-handle::before{content:'';width:80px;height:3px;background:#dee2e6;border-radius:2px;transition:all 0.2s ease}
@@ -110,7 +110,7 @@
             .display-dropdown:hover{background:#f0f0f0;border-color:#bbb}
             .display-dropdown:focus{outline:none;border-color:#999;box-shadow:0 0 3px rgba(0,0,0,.1)}
             /* Main content wrapper */
-            .main-content{display:flex;flex-direction:column;flex:2;min-height:0}
+            .main-content{display:flex;flex-direction:column;min-height:0}
             /* Graph container */
             #graph-container{width:calc(100% - 2px);margin-left:0;margin-right:0;flex:1;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;background:#f8f9fa;box-shadow:0 2px 4px rgba(0,0,0,.05)}
             .diagram-wrapper{display:flex;justify-content:center;align-items:center;height:100%;transform-origin: center;font-size:16px;color:#666}
@@ -277,30 +277,18 @@
     
     // Update step indicator and button states
     function updateStepIndicator() {
-        const extensionsSection = document.getElementById('extensions-section');
-        const extensionsContent = document.getElementById('extensions-content');
         
         if (currentStep <= maxStep){
             document.getElementById('step-indicator').textContent = `Step ${currentStep}`;
-            // Hide extensions section during steps by reducing its flex
+            // Hide extensions section during steps
             if (extensionsSection) {
-                extensionsSection.style.flex = '0 0 0';
-                extensionsSection.style.overflow = 'hidden';
-                extensionsSection.style.border = 'none';
+                extensionsSection.style.display = 'none';
             }
         } else {
             document.getElementById('step-indicator').textContent = `End`;
-            // Show extensions section at the end by restoring its flex
+            // Show extensions section at the end
             if (extensionsSection) {
-                // Check if the extensions section is collapsed
-                const isCollapsed = extensionsContent && extensionsContent.classList.contains('collapsed');
-                if (isCollapsed) {
-                    extensionsSection.style.flex = '0 0 auto';
-                } else {
-                    extensionsSection.style.flex = '1 1 0';
-                }
-                extensionsSection.style.overflow = 'auto';
-                extensionsSection.style.border = '';
+                extensionsSection.style.display = 'flex';
             }
         }
         
@@ -599,6 +587,23 @@
         }
     }
 
+    function initializeSectionHeight() {
+        const maxSectionHeight = windowHeight / 4;
+             
+        const exhibitHeaderHeight = exhibitSection.querySelector('.section-header').offsetHeight;
+        const extensionsHeaderHeight = extensionsSection.querySelector('.section-header').offsetHeight;
+        const exhibitContentHeight = exhibitContent.scrollHeight;
+        const extensionsContentHeight = extensionsContent.scrollHeight;
+
+        const exhibitDesiredHeight = Math.min(exhibitHeaderHeight + exhibitContentHeight, maxSectionHeight);
+        const extensionsDesiredHeight = Math.min(extensionsHeaderHeight + extensionsContentHeight, maxSectionHeight);
+        const graphDesiredHeight = windowHeight - exhibitDesiredHeight - extensionsDesiredHeight;
+        
+        exhibitSection.style.flex = `0 0 ${exhibitDesiredHeight}px`;
+        extensionsSection.style.flex = `0 0 ${extensionsDesiredHeight}px`;
+        graphSection.style.flex = `1 1 ${graphDesiredHeight}px`;
+    }
+
     function initializeGraph() {
         const displayMode = document.getElementById('argument-display-mode').value;
         
@@ -638,7 +643,7 @@
             // Set flex to content height, but allow shrinking if needed
             if (section) {
                 let totalHeight = section.querySelector('.section-header').offsetHeight + content.scrollHeight;            
-                totalHeight = Math.min(totalHeight, section.parentElement.offsetHeight / 4);
+                totalHeight = Math.min(totalHeight, windowHeight / 4);
                 section.style.flex = `0 1 ${totalHeight}px`;
             }
         } else {
@@ -679,16 +684,6 @@
 
     // Setup resize handles functionality
     function setupResizeHandles() {
-        const handle1 = document.getElementById('resize-handle-1');
-        const handle2 = document.getElementById('resize-handle-2');
-        const exhibitSection = document.getElementById('exhibit-section');
-        const graphSection = document.getElementById('graph-section');
-        const extensionsSection = document.getElementById('extensions-section');
-        
-        if (!handle1 || !handle2 || !exhibitSection || !graphSection || !extensionsSection) {
-            return;
-        }
-
         let isResizing = false;
         let currentHandle = null;
         let startY = 0;
@@ -720,7 +715,6 @@
             if (!isResizing || !currentHandle) return;
             
             const deltaY = e.clientY - startY;
-            const containerHeight = document.body.getBoundingClientRect().height - 50; // Account for padding (10px top + 10px bottom + 20px for margins + 10px reserved bottom space)
             
             // Get collapsed heights (header only)
             const exhibitHeader = exhibitSection.querySelector('.section-header');
@@ -738,7 +732,6 @@
             
             if (currentHandle === handle1) {
                 // Check if exhibit section is collapsed
-                const exhibitContent = document.getElementById('exhibit-content');
                 const exhibitCollapsed = exhibitContent && exhibitContent.classList.contains('collapsed');
                 
                 // Calculate target height for exhibit
@@ -751,7 +744,7 @@
                         toggleSection('exhibit');
                     } else {
                         // Calculate maximum height for exhibit: total window size - current extensions height - minimum graph size
-                        const exhibitMaxHeight = containerHeight - currentExtensionsHeight - graphMinHeight;
+                        const exhibitMaxHeight = windowHeight - currentExtensionsHeight - graphMinHeight;
                         
                         // Normal resize with maximum constraint
                         const newExhibitHeight = Math.max(
@@ -760,8 +753,8 @@
                         );
                         const newGraphHeight = Math.max(graphMinHeight, startGraphHeight - deltaY);
                         
-                        const exhibitFlex = newExhibitHeight / containerHeight * 4;
-                        const graphFlex = newGraphHeight / containerHeight * 4;
+                        const exhibitFlex = newExhibitHeight / windowHeight * 4;
+                        const graphFlex = newGraphHeight / windowHeight * 4;
                         
                         exhibitSection.style.flex = `${exhibitFlex} 1 0`;
                         graphSection.style.flex = `${graphFlex} 1 0`;
@@ -776,7 +769,6 @@
                 
             } else if (currentHandle === handle2) {
                 // Check if extensions section is collapsed
-                const extensionsContent = document.getElementById('extensions-content');
                 const extensionsCollapsed = extensionsContent && extensionsContent.classList.contains('collapsed');
                 
                 // Calculate target height for extensions
@@ -789,7 +781,7 @@
                         toggleSection('extensions');
                     } else {
                         // Calculate maximum height for extensions: total window size - current exhibit height - minimum graph size
-                        const extensionsMaxHeight = containerHeight - currentExhibitHeight - graphMinHeight;
+                        const extensionsMaxHeight = windowHeight - currentExhibitHeight - graphMinHeight;
                         
                         // Normal resize with maximum constraint
                         const newExtensionsHeight = Math.max(
@@ -798,8 +790,8 @@
                         );
                         const newGraphHeight = Math.max(graphMinHeight, startGraphHeight + deltaY);
                         
-                        const graphFlex = newGraphHeight / containerHeight * 4;
-                        const extensionsFlex = newExtensionsHeight / containerHeight * 4;
+                        const graphFlex = newGraphHeight / windowHeight * 4;
+                        const extensionsFlex = newExtensionsHeight / windowHeight * 4;
                         
                         graphSection.style.flex = `${graphFlex} 1 0`;
                         extensionsSection.style.flex = `${extensionsFlex} 1 0`;
@@ -848,6 +840,16 @@
         });
     }
 
+    const windowHeight = document.body.getBoundingClientRect().height - 50;
+    const handle1 = document.getElementById('resize-handle-1');
+    const handle2 = document.getElementById('resize-handle-2');
+    const exhibitSection = document.getElementById('exhibit-section');
+    const graphSection = document.getElementById('graph-section');
+    const extensionsSection = document.getElementById('extensions-section');
+    const exhibitContent = document.getElementById('exhibit-content');
+    const extensionsContent = document.getElementById('extensions-content');
+
+    initializeSectionHeight();    
     initializeGraph();
     setupResizeHandles();
 {% endtemplate %}
