@@ -151,7 +151,6 @@
 {% endtemplate %}
 
 {% template script_funcs %}
-
     // Initialize resize handle visibility
     function hideElementById(eid){
         const elem = document.getElementById(eid);
@@ -696,14 +695,9 @@
             currentHandle = handle;
             startY = e.clientY;
             
-            // Get current flex-basis values or compute them
-            const exhibitRect = exhibitSection.getBoundingClientRect();
-            const graphRect = graphSection.getBoundingClientRect();
-            const extensionsRect = extensionsSection.getBoundingClientRect();
-            
-            startExhibitHeight = exhibitRect.height;
-            startGraphHeight = graphRect.height;
-            startExtensionsHeight = extensionsRect.height;
+            startExhibitHeight = exhibitSection.getBoundingClientRect().height;
+            startGraphHeight = graphSection.getBoundingClientRect().height;
+            startExtensionsHeight = extensionsSection.getBoundingClientRect().height;
             
             document.body.style.cursor = 'row-resize';
             document.body.style.userSelect = 'none';
@@ -726,9 +720,8 @@
             // Threshold for auto-collapse (slightly above minimum to trigger collapse)
             const collapseThreshold = 20;
             
-            // Get current heights for maximum calculations
-            const currentExhibitHeight = exhibitSection.getBoundingClientRect().height;
-            const currentExtensionsHeight = extensionsSection.getBoundingClientRect().height;
+            // Check if extensions section is currently visible
+            const extensionsVisible = currentStep > maxStep;
             
             if (currentHandle === handle1) {
                 // Check if exhibit section is collapsed
@@ -743,21 +736,41 @@
                         // Auto-collapse when getting close to minimum
                         toggleSection('exhibit');
                     } else {
-                        // Calculate maximum height for exhibit: total window size - current extensions height - minimum graph size
-                        const exhibitMaxHeight = windowHeight - currentExtensionsHeight - graphMinHeight;
-                        
-                        // Normal resize with maximum constraint
-                        const newExhibitHeight = Math.max(
-                            exhibitMinHeight + collapseThreshold, 
-                            Math.min(exhibitMaxHeight, targetExhibitHeight)
-                        );
-                        const newGraphHeight = Math.max(graphMinHeight, startGraphHeight - deltaY);
-                        
-                        const exhibitFlex = newExhibitHeight / windowHeight * 4;
-                        const graphFlex = newGraphHeight / windowHeight * 4;
-                        
-                        exhibitSection.style.flex = `${exhibitFlex} 1 0`;
-                        graphSection.style.flex = `${graphFlex} 1 0`;
+                        if (extensionsVisible) {
+                            // Extensions is visible - keep extensions height FIXED
+                            const availableForExhibitAndGraph = windowHeight - startExtensionsHeight;
+                            
+                            // Calculate new exhibit height with constraints
+                            const maxExhibitHeight = availableForExhibitAndGraph - graphMinHeight;
+                            const newExhibitHeight = Math.max(
+                                exhibitMinHeight + collapseThreshold, 
+                                Math.min(maxExhibitHeight, targetExhibitHeight)
+                            );
+                            
+                            // Graph gets whatever space is left
+                            const newGraphHeight = availableForExhibitAndGraph - newExhibitHeight;
+                            
+                            // Apply the changes
+                            exhibitSection.style.flex = `0 0 ${newExhibitHeight}px`;
+                            graphSection.style.flex = `1 1 0`; // Takes remaining space
+                            extensionsSection.style.flex = `0 0 ${startExtensionsHeight}px`; // FIXED
+                        } else {
+                            // Extensions is hidden - only exhibit and graph
+                            const maxExhibitHeight = windowHeight - graphMinHeight;
+                            const newExhibitHeight = Math.max(
+                                exhibitMinHeight + collapseThreshold,
+                                Math.min(maxExhibitHeight, targetExhibitHeight)
+                            );
+                            
+                            const newGraphHeight = windowHeight - newExhibitHeight;
+                            
+                            // Use ratios for 2-section layout
+                            const exhibitRatio = newExhibitHeight / windowHeight;
+                            const graphRatio = newGraphHeight / windowHeight;
+                            
+                            exhibitSection.style.flex = `${exhibitRatio} 1 0`;
+                            graphSection.style.flex = `${graphRatio} 1 0`;
+                        }
                     }
                 } else {
                     // Exhibit is currently collapsed
@@ -768,6 +781,9 @@
                 }
                 
             } else if (currentHandle === handle2) {
+                // Handle2 only works when extensions is visible
+                if (!extensionsVisible) return;
+                
                 // Check if extensions section is collapsed
                 const extensionsCollapsed = extensionsContent && extensionsContent.classList.contains('collapsed');
                 
@@ -780,21 +796,23 @@
                         // Auto-collapse when getting close to minimum
                         toggleSection('extensions');
                     } else {
-                        // Calculate maximum height for extensions: total window size - current exhibit height - minimum graph size
-                        const extensionsMaxHeight = windowHeight - currentExhibitHeight - graphMinHeight;
+                        // Keep exhibit height FIXED during handle2 resize
+                        const availableForGraphAndExtensions = windowHeight - startExhibitHeight;
                         
-                        // Normal resize with maximum constraint
+                        // Calculate new extensions height with constraints
+                        const maxExtensionsHeight = availableForGraphAndExtensions - graphMinHeight;
                         const newExtensionsHeight = Math.max(
                             extensionsMinHeight + collapseThreshold, 
-                            Math.min(extensionsMaxHeight, targetExtensionsHeight)
+                            Math.min(maxExtensionsHeight, targetExtensionsHeight)
                         );
-                        const newGraphHeight = Math.max(graphMinHeight, startGraphHeight + deltaY);
                         
-                        const graphFlex = newGraphHeight / windowHeight * 4;
-                        const extensionsFlex = newExtensionsHeight / windowHeight * 4;
+                        // Graph gets whatever space is left
+                        const newGraphHeight = availableForGraphAndExtensions - newExtensionsHeight;
                         
-                        graphSection.style.flex = `${graphFlex} 1 0`;
-                        extensionsSection.style.flex = `${extensionsFlex} 1 0`;
+                        // Apply the changes
+                        exhibitSection.style.flex = `0 0 ${startExhibitHeight}px`; // FIXED
+                        graphSection.style.flex = `1 1 0`; // Takes remaining space
+                        extensionsSection.style.flex = `0 0 ${newExtensionsHeight}px`;
                     }
                 } else {
                     // Extensions is currently collapsed
