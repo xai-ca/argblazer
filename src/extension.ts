@@ -181,10 +181,11 @@ async function generateAndUpdateReport(yamlContent: string, panel: vscode.Webvie
 import json
 from geist import report
 import networkx as nx
+import os
 
 def generate_report(af4ext, af4graph, exhibit):
     expanded_report = report(
-        inputfile='${templatePath}/af.geist', 
+        inputfile=os.path.join('${templatePath}', 'af.geist'), 
         isinputpath=True,
         args={
             'af4ext': af4ext,
@@ -195,12 +196,43 @@ def generate_report(af4ext, af4graph, exhibit):
     )
     return expanded_report
 
+def compute_rank(G, root, first, last, isTop=True):
+    if not root:
+        if (isTop and (not first)) or ((not isTop) and (not last)):
+            return {}
+        elif isTop and first:
+            root = [first]
+        elif (not isTop) and last:
+            root = [last]
+    if len(root) == 1:
+        return nx.single_source_shortest_path_length(G, root[0]) if root[0] in G else {}
+    else:
+        rank = {node: 0 for node in root}
+        for node in root:
+            shortest_path = nx.single_source_shortest_path_length(G, node) if node in G else {}
+            for k, v in shortest_path.items():
+                rank[k] = min(rank.get(k, v), v)
+        return rank
+
+first = None
+top, bottom = [], []
+
 # Read JSON string
 json_data = json.loads('''${escapedJson}''')
 # process nodes (args) with missing text
 for idx in range(len(json_data['arguments'])):
     if type(json_data['arguments'][idx]) == str:
+        first = json_data['arguments'][idx] if idx == 0 else first
         json_data['arguments'][idx] = {json_data['arguments'][idx]: ''}
+    else:
+        for k, v in json_data['arguments'][idx].items():
+            first = k if idx == 0 else first
+            for item in v:
+                if item == 'top':
+                    top.append(k)
+                elif item == 'bottom':
+                    bottom.append(k)
+last = list(json_data['arguments'][-1].keys())[0] if first else None
 
 af4ext = ''
 edges = []
@@ -212,7 +244,8 @@ if edges:
     # Compute shortest distance as rank
     G = nx.Graph()
     G.add_edges_from(edges)
-    json_data['rank']=nx.single_source_shortest_path_length(G, 'a')
+    json_data['rank_top']=compute_rank(G, top, first, last, isTop=True)
+    json_data['rank_bottom']=compute_rank(G, bottom, first, last, isTop=False)
 
 af4graph = json.dumps(json_data)
 html_output = generate_report(af4ext, af4graph, json_data['exhibit'] if 'exhibit' in json_data else '[Not provided]')

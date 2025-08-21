@@ -232,14 +232,17 @@
 
     // Filter subgraphs based on rank field for current step
     function generateSubgraphs(step) {
-        if (!argumentationData.rank) return '';
+        // Get the selected rank direction
+        const rankDirection = document.getElementById('rank-direction').value;
+        const rankData = rankDirection === 'top' ? argumentationData.rank_top : argumentationData.rank_bottom;
+        if (!rankData) return '';
         
         const filteredArguments = getFilteredArguments(step);
         const visibleArgIds = new Set(filteredArguments.map(arg => Object.keys(arg)[0]));
         
         // Group arguments by rank, only including visible ones
         const rankGroups = {};
-        Object.entries(argumentationData.rank).forEach(([argId, rank]) => {
+        Object.entries(rankData).forEach(([argId, rank]) => {
             if (visibleArgIds.has(argId)) {
                 if (!rankGroups[rank]) {
                     rankGroups[rank] = [];
@@ -248,8 +251,10 @@
             }
         });
         
-        // Sort ranks in descending order (largest rank first)
-        const sortedRanks = Object.keys(rankGroups).map(Number).sort((a, b) => b - a);
+        // Sort ranks in descending order (largest rank first for top; smallest rank first for bottom)
+        const sortedRanks = Object.keys(rankGroups).map(Number).sort((a, b) => {
+            return rankDirection === 'top' ? b - a : a - b;
+        });
         
         let subgraphString = '';
         const subgraphIds = [];
@@ -270,7 +275,7 @@
             subgraphString += `  classDef ghost fill:transparent,stroke:none,color:transparent;\n`;
             subgraphString += `  class ${subgraphIds.join(',')} ghost\n`;
         }
-        
+
         return subgraphString;
     }
     
@@ -551,6 +556,19 @@
         const displayModeSelect = document.getElementById('argument-display-mode');
         if (displayModeSelect) {
             displayModeSelect.addEventListener('change', updateGraphDisplayMode);
+        }
+
+        // Setup rank direction dropdown
+        const rankDirectionSelect = document.getElementById('rank-direction');
+        if (rankDirectionSelect) {
+            rankDirectionSelect.addEventListener('change', () => {
+                // Reset panzoom instance so it will be recreated with new scale
+                if (panzoomInstance) {
+                    panzoomInstance.destroy();
+                    panzoomInstance = null;
+                }
+                render();
+            });
         }
 
         // Setup toggle buttons

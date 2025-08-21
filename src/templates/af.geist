@@ -26,12 +26,19 @@
         <div class="section-header">
             <h3>Graph</h3>
             <div class="header-controls">
+                <div class="display-controls">
+                    <label for="rank-direction">Rank from:</label>
+                    <select id="rank-direction" class="display-dropdown">
+                        <option value="top" selected>Top</option>
+                        <option value="bottom">Bottom</option>
+                    </select>
+                </div>
                 <div class="step-navigation">
-                    <button id="start-step" class="nav-btn">start</button>
+                    <button id="start-step" class="nav-btn">ǀ&lt;</button>
                     <button id="prev-step" class="nav-btn" disabled>&lt;</button>
                     <span id="step-indicator">Step 1</span>
                     <button id="next-step" class="nav-btn">&gt;</button>
-                    <button id="end-step" class="nav-btn">end</button>
+                    <button id="end-step" class="nav-btn">&gt;ǀ</button>
                 </div>
                 <div class="display-controls">
                     <label for="argument-display-mode">Display:</label>

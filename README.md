@@ -13,18 +13,31 @@ A VS Code extension that uses Geist to generate HTML reports from argumentation 
 
 ## Requirements
 
-- Python environment with the `geist` package installed
+- Python environment with the `geist` and `networkx` packages installed
+```bash
+# venv: create your virtual env
+python -m venv your_venv
+# activate your virtual env
+source your_venv/bin/activate  # On macOS/Linux
+your_venv\Scripts\activate     # On Windows
+
+# install geist
+pip install git+https://github.com/CIRSS/geist-p.git@develop
+
+# install networkx
+pip install networkx
+```
 - A YAML file that represents an argumentation framework using the "exhibit" (optional), the "arguments" and the "attacks" (optional) keys
 
 ## Configuration
 
 ### Python Interpreter Setup (Required)
 
-You must configure the Python interpreter path that has the `geist` package installed:
+You must configure the Python interpreter path that has the `geist` and `networkx` packages installed:
 
 1. Open VS Code Settings (`Cmd/Ctrl + ,`)
 2. Search for "ArgFrame Python Interpreter"
-3. Set the full path to your Python executable (e.g., `/path/to/your/conda/envs/your_env/bin/python`)
+3. Set the full path to your Python executable (e.g., `/path/to/your_env/bin/python` for MacOS and `\path\to\your_env\Scripts\python.exe` for Windows)
 
 Alternatively, add this to your VS Code settings.json:
 ```json
@@ -36,18 +49,7 @@ Alternatively, add this to your VS Code settings.json:
 #### Finding Your Python Path
 
 To find the correct Python path:
-
-**For conda environments:**
 ```bash
-conda activate your_env
-which python  # On macOS/Linux
-where python  # On Windows
-```
-
-**For virtual environments:**
-```bash
-source your_venv/bin/activate  # On macOS/Linux
-your_venv\Scripts\activate     # On Windows
 which python  # On macOS/Linux
 where python  # On Windows
 ```
@@ -109,13 +111,11 @@ If you encounter errors about the Python interpreter or geist package:
 ### Common Error Messages
 
 - **"Python interpreter path not configured"**: Set the Python interpreter path in VS Code settings
-- **"Configured Python interpreter is invalid"**: Check that the Python path exists and has geist installed
-- **"Python error: ModuleNotFoundError: No module named 'geist'"**: Install the geist package in your Python environment
+- **"Configured Python interpreter is invalid"**: Check that the Python path exists and has geist and networkx packages installed
 
 ## Known Issues
 
 - Requires manual Python interpreter path configuration
-- The argumentation framework graph may continuously spin/move due to physics simulation. To stop the movement, click on any blank area of the graph (not on nodes or edges). Click again on blank area to restart physics if needed.
 
 ## Release Notes
 
