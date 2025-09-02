@@ -365,23 +365,37 @@
             if (detailsItem && detailsItem.details) {
                 const details = detailsItem.details;
                 
-                let formattedDetails = ``
-                const ruleItem = details.find(item => item.rule);
-                if (ruleItem && ruleItem.rule) {
-                    formattedDetails += `<li><i>rule</i>: ${ruleItem.rule}</li>`;
+                let formattedDetails = ``;
+                let isListFormat = false;
+
+                if (typeof details === 'string') {
+                    formattedDetails = details;
+                } else if (Array.isArray(details)) {
+                    details.forEach(item => {
+                        isListFormat = true;
+                        if (typeof item === 'string') {
+                            formattedDetails += `<li>${item}</li>`;
+                        } else if (typeof item === 'object' && item !== null) {
+                            const allKeys = new Set();
+                            Object.keys(item).forEach(key => allKeys.add(key));
+                            
+                            console.log(allKeys);
+                            allKeys.forEach(key => {
+                                if (item[key]) {
+                                    formattedDetails += `<li><i>${key}</i>: ${item[key]}</li>`;
+                                } else {
+                                    formattedDetails += `<li>${key}</li>`;
+                                }
+                            });
+                        }
+                    });
                 }
-                
-                const evidenceItem = details.find(item => item.evidence);
-                if (evidenceItem && evidenceItem.evidence) {
-                    formattedDetails += `<li><i>evidence</i>: ${evidenceItem.evidence}</li>`;
-                }
-                
-                const conclusionItem = details.find(item => item.conclusion);
-                if (conclusionItem && conclusionItem.conclusion) {
-                    formattedDetails += `<li><i>conclusion</i>: ${conclusionItem.conclusion}</li>`;
-                }
-                if (formattedDetails){
-                    formattedText += `${separator}<ul style="margin:0; text-align:left;">${formattedDetails}</ul>`
+                if (formattedDetails) {
+                    if (isListFormat) {
+                        formattedText += `${separator}<ul style="margin:0; text-align:left;">${formattedDetails}</ul>`;
+                    } else {
+                        formattedText += `${separator}${formattedDetails}`;
+                    }
                 }
             }
         }
