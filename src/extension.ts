@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 import * as yaml from 'js-yaml';
 
 const execAsync = promisify(exec);
@@ -168,30 +170,30 @@ async function generateAndUpdateReport(yamlContent: string, panel: vscode.Webvie
             
             // Call the Python package - escape JSON properly for shell
             const escapedJson = jsonContent
-                .replace(/\\/g, '\\\\\\')  // Escape backslashes first
-                .replace(/"/g, '\\"')    // Escape double quotes
-                .replace(/'/g, "\\'")    // Escape single quotes
-                .replace(/\n/g, '\\n')   // Escape newlines
-                .replace(/  /g, '&ensp;');  // Escape two spaces
+                .replace(/\\/g, '\\\\')        // Escape backslashes
+                .replace(/'/g, "\\'")          // Escape single quotes  
+                .replace(/\n/g, '\\n')         // Escape newlines
+                .replace(/\r/g, '\\r')         // Escape carriage returns
+                .replace(/\t/g, '\\t');        // Escape tabs
             
             // Get the extension's template file path
             const templatePath = vscode.Uri.joinPath(context.extensionUri, 'src', 'templates').fsPath;
-            
-            const pythonCommand = `${pythonPath} -c "
-import json
+
+            const tempFile = path.join(os.tmpdir(), `script_${Date.now()}.py`);
+            const pythonCode = `
 from geist import report
 import networkx as nx
-import os
+import json, os, sys
 
 def generate_report(af4ext, af4graph, exhibit):
     expanded_report = report(
-        inputfile=os.path.join('${templatePath}', 'af.geist'), 
+        inputfile=os.path.join(r'${templatePath}', 'af.geist'), 
         isinputpath=True,
         args={
             'af4ext': af4ext,
             'af4graph': af4graph,
             'exhibit': exhibit,
-            'tp': '${templatePath}'
+            'tp': r'${templatePath}'
         }
     )
     return expanded_report
@@ -249,13 +251,28 @@ if edges:
 
 af4graph = json.dumps(json_data)
 html_output = generate_report(af4ext, af4graph, json_data['exhibit'] if 'exhibit' in json_data else '[Not provided]')
-print(html_output)
-"`;
+sys.stdout.write(html_output)
+sys.stdout.flush()
 
+# Immediate exit to avoid cleanup crash
+if sys.platform == 'win32':
+    os._exit(0)  # Skip cleanup entirely on Windows
+else:
+    sys.exit(0)  # Normal exit on other platforms
+            `;
+            // Write and execute
+            await fs.promises.writeFile(tempFile, pythonCode, 'utf8');
+            const pythonCommand = process.platform === 'win32' 
+                ? `"${pythonPath}" "${tempFile}"`    // Windows
+                : `${pythonPath} "${tempFile}"`;     // macOS/Linux
+            
             const { stdout, stderr } = await execAsync(pythonCommand);
             
             console.log('Python stdout:', stdout);
             console.log('Python stderr:', stderr);
+
+            // Cleanup
+            await fs.promises.unlink(tempFile);
             
             if (stderr) {
                 console.error('Python stderr:', stderr);
@@ -275,6 +292,8 @@ print(html_output)
             console.error('Full error details:', error);
             console.error('Error message:', error.message);
             console.error('Error stack:', error.stack);
+            console.error('Error stdout:', error.stdout);
+            console.error('Error stderr:', error.stderr);
             
             // Show helpful error message based on common issues
             let errorMsg = `Failed to generate report: ${error.message}`;

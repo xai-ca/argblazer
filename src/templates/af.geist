@@ -13,7 +13,7 @@
     <div class="exhibit-section" id="exhibit-section">
         <div class="section-header" onclick="toggleSection('exhibit')">
             <h3>Exhibit</h3>
-            <span class="section-toggle" id="exhibit-toggle">▼</span>
+            <span class="section-toggle" id="exhibit-toggle"><span style="font-family: Arial;">&#9660;</span></span>
         </div>
         <div class="section-content" id="exhibit-content">
             <pre class="line-numbers"><code class="language-python">{{ exhibit }}</code></pre>
@@ -34,11 +34,11 @@
                     </select>
                 </div>
                 <div class="step-navigation">
-                    <button id="start-step" class="nav-btn">ǀ&lt;</button>
+                    <button id="start-step" class="nav-btn">&#448;&lt;</button>
                     <button id="prev-step" class="nav-btn" disabled>&lt;</button>
                     <span id="step-indicator">Step 1</span>
                     <button id="next-step" class="nav-btn">&gt;</button>
-                    <button id="end-step" class="nav-btn">&gt;ǀ</button>
+                    <button id="end-step" class="nav-btn">&gt;&#448;</button>
                 </div>
                 <div class="display-controls">
                     <label for="argument-display-mode">Display:</label>
@@ -62,7 +62,7 @@
     <div class="extensions-section" id="extensions-section">
         <div class="section-header" onclick="toggleSection('extensions')">
             <h3>Extensions</h3>
-            <span class="section-toggle" id="extensions-toggle">▼</span>
+            <span class="section-toggle" id="extensions-toggle"><span style="font-family: Arial;">&#9660;</span></span>
         </div>
         <div class="section-content" id="extensions-content">
             <div class="extensions-header">
