@@ -1,12 +1,12 @@
 {
-  "name": "argframe",
-  "displayName": "ArgFrame",
+  "name": "argblaze",
+  "displayName": "ArgBlaze",
   "description": "Convert YAML files representing argumentation frameworks into HTML reports using Geist",
   "publisher": "CIRSS",
   "version": "0.0.1",
   "repository": {
     "type": "git",
-    "url": "https://github.com/xai-ca/argframe-vscode.git"
+    "url": "https://github.com/xai-ca/argblaze-vscode.git"
   },
   "icon": "media/icon.png",
   "engines": {
@@ -28,29 +28,29 @@
   "contributes": {
     "commands": [
       {
-        "command": "argFrame.generateReport",
+        "command": "argBlaze.generateReport",
         "title": "Generate HTML Report",
         "icon": "$(preview)"
       },
       {
-        "command": "argFrame.refreshPythonInterpreter",
+        "command": "argBlaze.refreshPythonInterpreter",
         "title": "Refresh Python Interpreter",
-        "category": "ArgFrame"
+        "category": "ArgBlaze"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "argFrame.generateReport",
+          "command": "argBlaze.generateReport",
           "when": "resourceExtname == .yaml || resourceExtname == .yml",
           "group": "navigation"
         }
       ]
     },
     "configuration": {
-      "title": "ArgFrame",
+      "title": "ArgBlaze",
       "properties": {
-        "argFrame.pythonInterpreter": {
+        "argBlaze.pythonInterpreter": {
           "type": "string",
           "default": "",
           "description": "Path to Python interpreter with geist package installed (required)."

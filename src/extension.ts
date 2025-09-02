@@ -12,7 +12,7 @@ const execAsync = promisify(exec);
 const activeReportPanels = new Map<string, vscode.WebviewPanel>();
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('ArgFrame extension is now active!');
+    console.log('ArgBlaze extension is now active!');
 
     // Set up file system watcher for YAML files
     const yamlWatcher = vscode.workspace.createFileSystemWatcher('**/*.{yaml,yml}');
@@ -23,7 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
         await handleYamlFileChange(uri, context);
     });
 
-    const generateReportCommand = vscode.commands.registerCommand('argFrame.generateReport', async () => {
+    const generateReportCommand = vscode.commands.registerCommand('argBlaze.generateReport', async () => {
         const activeEditor = vscode.window.activeTextEditor;
         
         if (!activeEditor) {
@@ -60,7 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
                 // Create new panel
                 panel = vscode.window.createWebviewPanel(
                     'afReport',
-                    `ArgFrame Report - ${path.basename(fileUri.fsPath)}`,
+                    `ArgBlaze Report - ${path.basename(fileUri.fsPath)}`,
                     vscode.ViewColumn.Beside,
                     {
                         enableScripts: true,
@@ -88,7 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    const refreshPythonCommand = vscode.commands.registerCommand('argFrame.refreshPythonInterpreter', async () => {
+    const refreshPythonCommand = vscode.commands.registerCommand('argBlaze.refreshPythonInterpreter', async () => {
         vscode.window.showInformationMessage('Python interpreter configuration will be re-read on next report generation.');
     });
 
@@ -142,13 +142,13 @@ async function generateAndUpdateReport(yamlContent: string, panel: vscode.Webvie
     const updateReport = async () => {
         try {
             // Get Python interpreter path from configuration
-            const config = vscode.workspace.getConfiguration('argFrame');
+            const config = vscode.workspace.getConfiguration('argBlaze');
             const pythonPath = config.get<string>('pythonInterpreter');
             
             if (!pythonPath || pythonPath.trim() === '') {
                 vscode.window.showErrorMessage('Python interpreter path not configured. Please set it in settings.', 'Open Settings').then(selection => {
                     if (selection === 'Open Settings') {
-                        vscode.commands.executeCommand('workbench.action.openSettings', 'argFrame.pythonInterpreter');
+                        vscode.commands.executeCommand('workbench.action.openSettings', 'argBlaze.pythonInterpreter');
                     }
                 });
                 return;
@@ -305,7 +305,7 @@ else:
             
             vscode.window.showErrorMessage(errorMsg, 'Open Settings').then(selection => {
                 if (selection === 'Open Settings') {
-                    vscode.commands.executeCommand('workbench.action.openSettings', 'argFrame.pythonInterpreter');
+                    vscode.commands.executeCommand('workbench.action.openSettings', 'argBlaze.pythonInterpreter');
                 }
             });
         }

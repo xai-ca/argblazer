@@ -1,6 +1,6 @@
 <div align="center">
-    <img src="./media/icon.png" alt="argFrame Icon" width="200">
-    <h1 align="center">ArgFrame</h1>
+    <img src="./media/icon.png" alt="argBlaze Icon" width="160">
+    <h1 align="center">ArgBlaze</h1>
 </div>
 
 A VS Code extension that uses Geist to generate HTML reports from argumentation frameworks represented by YAML files.
@@ -8,7 +8,7 @@ A VS Code extension that uses Geist to generate HTML reports from argumentation 
 ## Features
 
 - Generate HTML reports from argumentation frameworks represented by YAML files.
-- Automatically updates reports when YAML files are saved.
+- Automatically updates the report when the modifications of a YAML file is saved.
 - Side-by-side webview display of the generated report, showing the graph alongside its conflict-free, admissible, complete, preferred, grounded, and stable extensions.
 
 ## Requirements
@@ -36,13 +36,13 @@ pip install networkx
 You must configure the Python interpreter path that has the `geist` and `networkx` packages installed:
 
 1. Open VS Code Settings (`Cmd/Ctrl + ,`)
-2. Search for "ArgFrame Python Interpreter"
+2. Search for "ArgBlaze Python Interpreter"
 3. Set the full path to your Python executable (e.g., `/path/to/your_env/bin/python` for MacOS and `\path\to\your_env\Scripts\python.exe` for Windows)
 
 Alternatively, add this to your VS Code settings.json:
 ```json
 {
-    "argFrame.pythonInterpreter": "/path/to/your/python"
+    "argBlaze.pythonInterpreter": "/path/to/your/python"
 }
 ```
 
@@ -59,7 +59,7 @@ where python  # On Windows
 If you change your Python environment configuration:
 
 1. Open the Command Palette (`Cmd/Ctrl + Shift + P`)
-2. Run "ArgFrame: Refresh Python Interpreter"
+2. Run "ArgBlaze: Refresh Python Interpreter"
 
 ## Usage
 
@@ -101,21 +101,8 @@ attacks:
 
 ### Python Environment Issues
 
-If you encounter errors about the Python interpreter or geist package:
-
-1. Ensure you have Python with the `geist` packages installed
+1. Ensure you have Python with the `geist` and `networkx` packages installed
 2. Configure the correct Python interpreter path in VS Code settings
-3. Use the "Refresh Python Interpreter" command after changing your configuration
-4. Verify your Python path by running the commands shown in the "Finding Your Python Path" section
-
-### Common Error Messages
-
-- **"Python interpreter path not configured"**: Set the Python interpreter path in VS Code settings
-- **"Configured Python interpreter is invalid"**: Check that the Python path exists and has geist and networkx packages installed
-
-## Known Issues
-
-- Requires manual Python interpreter path configuration
 
 ## Release Notes
 
