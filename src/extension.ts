@@ -332,7 +332,7 @@ else:
         // Show progress indicator for manual generation
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: "Generating HTML report...",
+            title: "Generating an HTML report with ArgBlaze v0.0.1+ad696b8...",
             cancellable: false
         }, updateReport);
     } else {
