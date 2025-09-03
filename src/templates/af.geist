@@ -10,7 +10,7 @@
 <html lang="en">
 {% head %}
 <body>
-    <div class="exhibit-section" id="exhibit-section">
+    <div class="exhibit-section" id="exhibit-section" {% if exhibit and exhibit == '[Not provided]' %}style="display: none;"{% endif %}>
         <div class="section-header" onclick="toggleSection('exhibit')">
             <h3>Exhibit</h3>
             <span class="section-toggle" id="exhibit-toggle"><span style="font-family: Arial;">&#9660;</span></span>
@@ -20,7 +20,7 @@
         </div>
     </div>
     
-    <div class="resize-handle" id="resize-handle-1"></div>
+    <div class="resize-handle" id="resize-handle-1" {% if exhibit and exhibit == '[Not provided]' %}style="display: none;"{% endif %}></div>
     
     <div class="main-content" id="graph-section">
         <div class="section-header">

@@ -151,11 +151,26 @@
 {% endtemplate %}
 
 {% template script_funcs %}
-    // Initialize resize handle visibility
-    function hideElementById(eid){
-        const elem = document.getElementById(eid);
-        if (elem) {
-            elem.style.display = currentStepIndex <= maxStepIndex ? 'none' : 'flex';
+    // Initialize resize handle visibility based on section visibility
+    function updateResizeHandleVisibility(){
+        const handle1 = document.getElementById('resize-handle-1');
+        const handle2 = document.getElementById('resize-handle-2');
+        const exhibitSection = document.getElementById('exhibit-section');
+        const extensionsSection = document.getElementById('extensions-section');
+        
+        if (handle1 && exhibitSection) {
+            // Hide handle1 if exhibit section is hidden (check both computed style and inline style)
+            const exhibitStyle = window.getComputedStyle(exhibitSection);
+            const exhibitHidden = exhibitStyle.display === 'none';
+            handle1.style.display = exhibitHidden ? 'none' : 'flex';
+        }
+        
+        if (handle2 && extensionsSection) {
+            // Hide handle2 if extensions section is hidden or during steps
+            const extensionsStyle = window.getComputedStyle(extensionsSection);
+            const extensionsHidden = extensionsStyle.display === 'none';
+            const duringSteps = currentStepIndex <= maxStepIndex;
+            handle2.style.display = (extensionsHidden || duringSteps) ? 'none' : 'flex';
         }
     }
 
@@ -192,7 +207,7 @@
         // Set currentStepIndex to show "End" by default (beyond last step)
         currentStepIndex = maxStepIndex + 1;
         updateStepIndicator();
-        hideElementById('resize-handle-2');
+        updateResizeHandleVisibility();
     }
 
     // Get filtered arguments for current step
@@ -332,7 +347,7 @@
                 resetExtensionSelection();
                 updateStepIndicator();
                 updateGraphDisplayMode();
-                hideElementById('resize-handle-2');
+                updateResizeHandleVisibility();
             }
         });
         
@@ -341,7 +356,7 @@
                 currentStepIndex++;
                 updateStepIndicator();
                 updateGraphDisplayMode();
-                hideElementById('resize-handle-2');
+                updateResizeHandleVisibility();
             }
         });
 
@@ -352,7 +367,7 @@
                 resetExtensionSelection();
                 updateStepIndicator();
                 updateGraphDisplayMode();
-                hideElementById('resize-handle-2');
+                updateResizeHandleVisibility();
             }
         });
         
@@ -362,7 +377,7 @@
                 currentStepIndex = maxStepIndex + 1;
                 updateStepIndicator();
                 updateGraphDisplayMode();
-                hideElementById('resize-handle-2');
+                updateResizeHandleVisibility();
             }
         });
     }
@@ -775,7 +790,7 @@
             const collapseThreshold = 20;
             
             // Check if extensions section is currently visible
-            const extensionsVisible = currentStep > maxStep;
+            const extensionsVisible = currentStepIndex > maxStepIndex;
             
             if (currentHandle === handle1) {
                 // Check if exhibit section is collapsed
@@ -924,4 +939,5 @@
     initializeSectionHeight();    
     initializeGraph();
     setupResizeHandles();
+    updateResizeHandleVisibility();
 {% endtemplate %}
