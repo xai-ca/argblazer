@@ -153,8 +153,9 @@
 <script>
     const argumentationData = {{ af4graph }};
     let panzoomInstance = null;
-    let currentStep = 1;
-    let maxStep = 1;
+    let currentStepIndex = 0;
+    let maxStepIndex = 0;
+    let actualSteps = [];
     let nodeData, colors;
     {% script_funcs %}
 </script>

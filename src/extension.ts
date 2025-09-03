@@ -216,7 +216,7 @@ def compute_rank(G, root, first, last, isTop=True):
                 rank[k] = min(rank.get(k, v), v)
         return rank
 
-first = None
+first,hasStep = None, False
 top, bottom = [], []
 
 # Read JSON string
@@ -230,11 +230,28 @@ for idx in range(len(json_data['arguments'])):
         for k, v in json_data['arguments'][idx].items():
             first = k if idx == 0 else first
             for item in v:
+                if type(item) == dict and 'step' in item:
+                    hasStep = True
                 if item == 'top':
                     top.append(k)
                 elif item == 'bottom':
                     bottom.append(k)
 last = list(json_data['arguments'][-1].keys())[0] if first else None
+
+# Handle missing steps
+prev_step = 0
+for idx in range(len(json_data['arguments'])):
+    for k, v in json_data['arguments'][idx].items():
+        if hasStep:
+            currStep = False
+            for item in v:
+                if 'step' in item:
+                    prev_step = item['step']
+                    currStep = True
+            if not currStep:
+                v.append({'step': prev_step})
+        else:
+            v.append({'step': idx + 1})
 
 af4ext = ''
 edges = []

@@ -155,7 +155,7 @@
     function hideElementById(eid){
         const elem = document.getElementById(eid);
         if (elem) {
-            elem.style.display = currentStep <= maxStep ? 'none' : 'flex';
+            elem.style.display = currentStepIndex <= maxStepIndex ? 'none' : 'flex';
         }
     }
 
@@ -175,52 +175,73 @@
 
     // Initialize step data
     function initializeSteps() {
+        // Collect all actual step numbers from the data
+        const stepSet = new Set();
         if (argumentationData.arguments) {
-            // Find maximum step number
-            maxStep = Math.max(...argumentationData.arguments.map(arg => {
+            argumentationData.arguments.forEach(arg => {
                 const argData = Object.values(arg)[0];
-                // Look for step field in the array
                 const stepItem = argData.find(item => item.step !== undefined);
-                return stepItem ? stepItem.step : 1;
-            }));
+                stepSet.add(stepItem.step);
+            });
         }
-        // Set currentStep to show "End" by default (maxStep + 1)
-        currentStep = maxStep + 1;
+        
+        // Convert to sorted array of actual steps
+        actualSteps = Array.from(stepSet).sort((a, b) => a - b);
+        maxStepIndex = actualSteps.length - 1;
+        
+        // Set currentStepIndex to show "End" by default (beyond last step)
+        currentStepIndex = maxStepIndex + 1;
         updateStepIndicator();
         hideElementById('resize-handle-2');
     }
 
     // Get filtered arguments for current step
-    function getFilteredArguments(step) {
+    function getFilteredArguments(stepIndex) {
         if (!argumentationData.arguments) return [];
+        
+        // If stepIndex is beyond available steps, show all arguments
+        if (stepIndex > maxStepIndex) {
+            return argumentationData.arguments;
+        }
+        
+        // Get the actual step value for this index
+        const currentActualStep = actualSteps[stepIndex];
+        
         return argumentationData.arguments.filter(arg => {
             const argData = Object.values(arg)[0];
-            // Look for step field in the array
             const stepItem = argData.find(item => item.step !== undefined);
-            const argStep = stepItem ? stepItem.step : 1;
-            return argStep <= step;
+            const argStep = stepItem.step;
+            return argStep <= currentActualStep;
         });
     }
     
     // Get newly added arguments for a specific step
-    function getNewArgumentsForStep(step) {
+    function getNewArgumentsForStep(stepIndex) {
         if (!argumentationData.arguments) return [];
+        
+        // If stepIndex is beyond available steps, return empty
+        if (stepIndex > maxStepIndex) {
+            return [];
+        }
+        
+        // Get the actual step value for this index
+        const currentActualStep = actualSteps[stepIndex];
+        
         return argumentationData.arguments.filter(arg => {
             const argData = Object.values(arg)[0];
-            // Look for step field in the array
             const stepItem = argData.find(item => item.step !== undefined);
-            const argStep = stepItem ? stepItem.step : 1;
-            return argStep === step;
+            const argStep = stepItem.step;
+            return argStep === currentActualStep;
         });
     }
     
     // Get filtered attacks for current step
-    function getFilteredAttacks(step) {
+    function getFilteredAttacks(stepIndex) {
         if (!argumentationData.attacks) return [];
         
         // Get argument IDs that should be visible in current step
         const visibleArgIds = new Set();
-        getFilteredArguments(step).forEach(arg => {
+        getFilteredArguments(stepIndex).forEach(arg => {
             visibleArgIds.add(Object.keys(arg)[0]);
         });
         
@@ -231,13 +252,13 @@
     }
 
     // Filter subgraphs based on rank field for current step
-    function generateSubgraphs(step) {
+    function generateSubgraphs(stepIndex) {
         // Get the selected rank direction
         const rankDirection = document.getElementById('rank-direction').value;
         const rankData = rankDirection === 'top' ? argumentationData.rank_top : argumentationData.rank_bottom;
         if (!rankData) return '';
         
-        const filteredArguments = getFilteredArguments(step);
+        const filteredArguments = getFilteredArguments(stepIndex);
         const visibleArgIds = new Set(filteredArguments.map(arg => Object.keys(arg)[0]));
         
         // Group arguments by rank, only including visible ones
@@ -282,8 +303,9 @@
     // Update step indicator and button states
     function updateStepIndicator() {
         
-        if (currentStep <= maxStep){
-            document.getElementById('step-indicator').textContent = `Step ${currentStep}`;
+        if (currentStepIndex <= maxStepIndex){
+            const actualStep = actualSteps[currentStepIndex];
+            document.getElementById('step-indicator').textContent = `Step ${actualStep}`;
             // Hide extensions section during steps
             if (extensionsSection) {
                 extensionsSection.style.display = 'none';
@@ -296,17 +318,17 @@
             }
         }
         
-        document.getElementById('prev-step').disabled = currentStep <= 1;
-        document.getElementById('next-step').disabled = currentStep > maxStep;
-        document.getElementById('start-step').disabled = currentStep <= 1;
-        document.getElementById('end-step').disabled = currentStep > maxStep;
+        document.getElementById('prev-step').disabled = currentStepIndex <= 0;
+        document.getElementById('next-step').disabled = currentStepIndex > maxStepIndex;
+        document.getElementById('start-step').disabled = currentStepIndex <= 0;
+        document.getElementById('end-step').disabled = currentStepIndex > maxStepIndex;
     }
     
     // Setup step navigation
     function setupStepNavigation() {
         document.getElementById('prev-step').addEventListener('click', () => {
-            if (currentStep > 1) {
-                currentStep--;
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
                 resetExtensionSelection();
                 updateStepIndicator();
                 updateGraphDisplayMode();
@@ -315,8 +337,8 @@
         });
         
         document.getElementById('next-step').addEventListener('click', () => {
-            if (currentStep <= maxStep) {
-                currentStep++;
+            if (currentStepIndex <= maxStepIndex) {
+                currentStepIndex++;
                 updateStepIndicator();
                 updateGraphDisplayMode();
                 hideElementById('resize-handle-2');
@@ -325,8 +347,8 @@
 
         // Quick navigation to the first step
         document.getElementById('start-step').addEventListener('click', () => {
-            if (currentStep > 1) {
-                currentStep = 1;
+            if (currentStepIndex > 0) {
+                currentStepIndex = 0;
                 resetExtensionSelection();
                 updateStepIndicator();
                 updateGraphDisplayMode();
@@ -336,8 +358,8 @@
         
         // Quick navigation to the final stage
         document.getElementById('end-step').addEventListener('click', () => {
-            if (currentStep <= maxStep) {
-                currentStep = maxStep + 1;
+            if (currentStepIndex <= maxStepIndex) {
+                currentStepIndex = maxStepIndex + 1;
                 updateStepIndicator();
                 updateGraphDisplayMode();
                 hideElementById('resize-handle-2');
@@ -432,10 +454,10 @@
         graph += `  classDef select fill:#FFE6CC,stroke:#D79B00\n`
         
         // Add subgraphs
-        graph += generateSubgraphs(currentStep);
+        graph += generateSubgraphs(currentStepIndex);
         
-        // Get newly added nodes for current step (only highlight if step > 1)
-        const newNodes = currentStep > 1 ? getNewArgumentsForStep(currentStep) : [];
+        // Get newly added nodes for current step (only highlight if stepIndex > 0)
+        const newNodes = currentStepIndex > 0 ? getNewArgumentsForStep(currentStepIndex) : [];
         const newNodeIds = new Set(newNodes.map(arg => Object.keys(arg)[0]));
         
         nodeData.forEach(node => {
@@ -460,7 +482,7 @@
             if (selectedNodes) graph += `  class ${selectedNodes} select\n`;
         });
         // Add attack relationships - use filtered attacks for current step
-        const filteredAttacks = getFilteredAttacks(currentStep);
+        const filteredAttacks = getFilteredAttacks(currentStepIndex);
         filteredAttacks.forEach(attack => {
             graph += `    ${attack[0]} --> ${attack[1]}\n`;
         });
@@ -542,7 +564,7 @@
     }
 
     function fetchNodeData(displayMode) {
-        const filteredArguments = getFilteredArguments(currentStep);
+        const filteredArguments = getFilteredArguments(currentStepIndex);
         return filteredArguments.map(arg => {
             const key = Object.keys(arg)[0];
             const argData = arg[key];
