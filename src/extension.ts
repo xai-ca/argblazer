@@ -10,6 +10,8 @@ const execAsync = promisify(exec);
 
 // Track active report panels and their associated YAML file URIs
 const activeReportPanels = new Map<string, vscode.WebviewPanel>();
+// Store HTML content for each panel to enable export
+const panelHtmlContent = new Map<string, string>();
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('ArgBlaze extension is now active!');
@@ -75,6 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
                 // Set up disposal tracking
                 panel.onDidDispose(() => {
                     activeReportPanels.delete(fileKey);
+                    panelHtmlContent.delete(fileKey);
                     console.log(`Panel disposed for: ${fileKey}`);
                 });
             }
@@ -92,7 +95,11 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage('Python interpreter configuration will be re-read on next report generation.');
     });
 
-    context.subscriptions.push(generateReportCommand, refreshPythonCommand, yamlWatcher);
+    const exportHtmlCommand = vscode.commands.registerCommand('argBlaze.exportHtml', async () => {
+        await exportActiveHtml();
+    });
+
+    context.subscriptions.push(generateReportCommand, refreshPythonCommand, exportHtmlCommand, yamlWatcher);
 }
 
 async function handleYamlFileChange(uri: vscode.Uri, context: vscode.ExtensionContext) {
@@ -300,6 +307,12 @@ else:
                 }
             }
 
+            // Store the HTML content for export
+            const fileKey = Object.keys(Object.fromEntries(activeReportPanels)).find(key => activeReportPanels.get(key) === panel);
+            if (fileKey) {
+                panelHtmlContent.set(fileKey, stdout);
+            }
+            
             // Update the webview content
             panel.webview.html = stdout;
             // For debug
@@ -341,7 +354,43 @@ else:
     }
 }
 
+async function exportActiveHtml() {
+    // Find active panel and its content
+    const activePanel = Array.from(activeReportPanels.entries()).find(([_, panel]) => panel.active);
+    if (!activePanel) {
+        vscode.window.showErrorMessage('No active ArgBlaze report panel found');
+        return;
+    }
+    
+    const [fileKey] = activePanel;
+    const htmlContent = panelHtmlContent.get(fileKey);
+    if (!htmlContent) {
+        vscode.window.showErrorMessage('No HTML content available for export');
+        return;
+    }
+    
+    // Get filename and show save dialog
+    const fileName = path.basename(vscode.Uri.parse(fileKey).fsPath);
+    const defaultFileName = fileName.replace(/\.(yaml|yml)$/, '') + '_report.html';
+    const downloadsPath = path.join(os.homedir(), 'Downloads', defaultFileName);
+    
+    const saveUri = await vscode.window.showSaveDialog({
+        defaultUri: vscode.Uri.file(downloadsPath),
+        filters: { 'HTML Files': ['html'] }
+    });
+    
+    if (saveUri) {
+        try {
+            await fs.promises.writeFile(saveUri.fsPath, htmlContent, 'utf8');
+            vscode.window.showInformationMessage(`HTML report exported to ${saveUri.fsPath}`);
+        } catch (error: any) {
+            vscode.window.showErrorMessage(`Failed to export HTML: ${error.message}`);
+        }
+    }
+}
+
 export function deactivate() {
     // Clean up all tracked panels
     activeReportPanels.clear();
+    panelHtmlContent.clear();
 } 

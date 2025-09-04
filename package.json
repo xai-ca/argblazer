@@ -36,6 +36,11 @@
         "command": "argBlaze.refreshPythonInterpreter",
         "title": "Refresh Python Interpreter",
         "category": "ArgBlaze"
+      },
+      {
+        "command": "argBlaze.exportHtml",
+        "title": "Export as HTML",
+        "category": "ArgBlaze"
       }
     ],
     "menus": {
@@ -43,6 +48,13 @@
         {
           "command": "argBlaze.generateReport",
           "when": "resourceExtname == .yaml || resourceExtname == .yml",
+          "group": "navigation"
+        }
+      ],
+      "webview/context": [
+        {
+          "command": "argBlaze.exportHtml",
+          "when": "webviewId == afReport",
           "group": "navigation"
         }
       ]
