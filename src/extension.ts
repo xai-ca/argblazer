@@ -193,15 +193,15 @@ async function generateAndUpdateReport(yamlContent: string, panel: vscode.Webvie
             const pythonCode = `
 from geist import report
 import networkx as nx
-import json, os, sys
+import json, os, sys, ast
 
-def generate_report(af4ext, af4graph, exhibit):
+def generate_report(template, af4ext, af4graph=None, exhibit=None):
     expanded_report = report(
-        inputfile=os.path.join(r'${templatePath}', 'af.geist'), 
+        inputfile=os.path.join(r'${templatePath}', template), 
         isinputpath=True,
         args={
-            'af4ext': af4ext,
             'af4graph': af4graph,
+            'af4ext': af4ext,
             'exhibit': exhibit,
             'tp': r'${templatePath}'
         }
@@ -250,6 +250,7 @@ last = list(json_data['arguments'][-1].keys())[0] if first else None
 
 # Handle missing steps
 prev_step = 0
+step2args = {}
 for idx in range(len(json_data['arguments'])):
     for k, v in json_data['arguments'][idx].items():
         if hasStep:
@@ -261,23 +262,36 @@ for idx in range(len(json_data['arguments'])):
             if not currStep:
                 v.append({'step': prev_step})
         else:
-            v.append({'step': idx + 1})
+            v.append({'step': prev_step + 1})
+            prev_step = prev_step + 1
+        step2args[prev_step] = step2args.get(prev_step, []) + [k] 
 
-af4ext = ''
-edges = []
+step2edges, step2ext = {}, {}
 if 'attacks' in json_data:
     for attack in json_data['attacks']:
-        af4ext = af4ext + 'attacks({arg1}, {arg2}).\\n'.format(arg1=attack[0], arg2=attack[1])
-        edges.append((attack[0], attack[1]))
-if edges:
+        prev_args = []
+        for step in sorted(step2args.keys()):
+            argsInStep = step2args[step]
+            attacker, attackee = attack[0], attack[1]
+            if (attacker in argsInStep + prev_args) and (attackee in argsInStep + prev_args):
+                step2ext[step] = step2ext.get(step, '') + f'attacks({attacker}, {attackee}).\\n'
+                step2edges[step] = step2edges.get(step, []) + [(attacker, attackee)]
+            prev_args = prev_args + argsInStep
+
+json_data['steps'] = {'rank_top':[], 'rank_bottom': []}
+step_extensions = []
+for step in sorted(step2ext.keys()):
     # Compute shortest distance as rank
     G = nx.Graph()
-    G.add_edges_from(edges)
-    json_data['rank_top']=compute_rank(G, top, first, last, isTop=True)
-    json_data['rank_bottom']=compute_rank(G, bottom, first, last, isTop=False)
-
+    G.add_edges_from(step2edges[step])
+    json_data['steps']['rank_top'].append(compute_rank(G, top, first, last, isTop=True))
+    json_data['steps']['rank_bottom'].append(compute_rank(G, bottom, first, last, isTop=False))
+    # Compute extensions
+    extensions = ast.literal_eval('{' + generate_report('ext.geist', step2ext[step]).strip() + '}')
+    step_extensions.append(extensions)
 af4graph = json.dumps(json_data)
-html_output = generate_report(af4ext, af4graph, json_data['exhibit'] if 'exhibit' in json_data else '[Not provided]')
+af4ext = json.dumps(step_extensions)
+html_output = generate_report('report.geist', af4ext, af4graph, json_data['exhibit'] if 'exhibit' in json_data else '[Not provided]')
 sys.stdout.write(html_output)
 sys.stdout.flush()
 

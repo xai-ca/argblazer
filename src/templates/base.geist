@@ -5,9 +5,11 @@
 
 {% template list_arguments_raw data %}
 {%- set sorted_data = data | clingo_list_arguments %}
+[
 {%- for args in sorted_data %}
-    <span class="extension-set" data-set="{ {%- for arg in args %}{{ arg }}{% if not loop.last %}, {% endif %}{% endfor %}}">{ {%- for arg in args %}{{ arg }}{% if not loop.last %}, {% endif %}{% endfor %}}</span>
+    [{%- for arg in args %}'{{ arg }}'{% if not loop.last %}, {% endif %}{% endfor %}],
 {% endfor %}
+]
 {% endtemplate %}
 
 {% template rule_conflict_free_extensions %}
@@ -163,14 +165,6 @@
             const exhibitStyle = window.getComputedStyle(exhibitSection);
             const exhibitHidden = exhibitStyle.display === 'none';
             handle1.style.display = exhibitHidden ? 'none' : 'flex';
-        }
-        
-        if (handle2 && extensionsSection) {
-            // Hide handle2 if extensions section is hidden or during steps
-            const extensionsStyle = window.getComputedStyle(extensionsSection);
-            const extensionsHidden = extensionsStyle.display === 'none';
-            const duringSteps = currentStepIndex <= maxStepIndex;
-            handle2.style.display = (extensionsHidden || duringSteps) ? 'none' : 'flex';
         }
     }
 
@@ -337,22 +331,22 @@
         if (currentStepIndex <= maxStepIndex){
             const actualStep = actualSteps[currentStepIndex];
             document.getElementById('step-indicator').textContent = `Step ${actualStep}`;
-            // Hide extensions section during steps
-            if (extensionsSection) {
-                extensionsSection.style.display = 'none';
-            }
         } else {
             document.getElementById('step-indicator').textContent = `End`;
-            // Show extensions section at the end
-            if (extensionsSection) {
-                extensionsSection.style.display = 'flex';
-            }
+        }
+        
+        // Always show extensions section
+        if (extensionsSection) {
+            extensionsSection.style.display = 'flex';
         }
         
         document.getElementById('prev-step').disabled = currentStepIndex <= 0;
         document.getElementById('next-step').disabled = currentStepIndex > maxStepIndex;
         document.getElementById('start-step').disabled = currentStepIndex <= 0;
         document.getElementById('end-step').disabled = currentStepIndex > maxStepIndex;
+        
+        // Update extensions display when step changes
+        updateExtensionsDisplay();
     }
     
     // Setup step navigation
@@ -370,6 +364,7 @@
         document.getElementById('next-step').addEventListener('click', () => {
             if (currentStepIndex <= maxStepIndex) {
                 currentStepIndex++;
+                resetExtensionSelection();
                 updateStepIndicator();
                 updateGraphDisplayMode();
                 updateResizeHandleVisibility();
@@ -391,6 +386,7 @@
         document.getElementById('end-step').addEventListener('click', () => {
             if (currentStepIndex <= maxStepIndex) {
                 currentStepIndex = maxStepIndex + 1;
+                resetExtensionSelection();
                 updateStepIndicator();
                 updateGraphDisplayMode();
                 updateResizeHandleVisibility();
@@ -643,31 +639,35 @@
         // Setup toggle buttons
         const conflictFreeBtn = document.getElementById('toggle-conflict-free');
         const admissibleBtn = document.getElementById('toggle-admissible');
-        const conflictFreeItem = document.getElementById('conflict-free-item');
-        const admissibleItem = document.getElementById('admissible-item');
 
-        if (conflictFreeBtn && conflictFreeItem) {
+        if (conflictFreeBtn) {
             conflictFreeBtn.addEventListener('click', () => {
-                conflictFreeBtn.classList.toggle('active');
-                if (conflictFreeBtn.classList.contains('active')) {
-                    conflictFreeItem.style.display = 'none';
-                    conflictFreeBtn.textContent = 'Show Conflict-free';
-                } else {
-                    conflictFreeItem.style.display = 'flex';
-                    conflictFreeBtn.textContent = 'Hide Conflict-free';
+                const conflictFreeItem = document.getElementById('conflict-free-item');
+                if (conflictFreeItem) {
+                    conflictFreeBtn.classList.toggle('active');
+                    if (conflictFreeBtn.classList.contains('active')) {
+                        conflictFreeItem.style.display = 'none';
+                        conflictFreeBtn.textContent = 'Show Conflict-free';
+                    } else {
+                        conflictFreeItem.style.display = 'flex';
+                        conflictFreeBtn.textContent = 'Hide Conflict-free';
+                    }
                 }
             });
         }
 
-        if (admissibleBtn && admissibleItem) {
+        if (admissibleBtn) {
             admissibleBtn.addEventListener('click', () => {
-                admissibleBtn.classList.toggle('active');
-                if (admissibleBtn.classList.contains('active')) {
-                    admissibleItem.style.display = 'none';
-                    admissibleBtn.textContent = 'Show Admissible';
-                } else {
-                    admissibleItem.style.display = 'flex';
-                    admissibleBtn.textContent = 'Hide Admissible';
+                const admissibleItem = document.getElementById('admissible-item');
+                if (admissibleItem) {
+                    admissibleBtn.classList.toggle('active');
+                    if (admissibleBtn.classList.contains('active')) {
+                        admissibleItem.style.display = 'none';
+                        admissibleBtn.textContent = 'Show Admissible';
+                    } else {
+                        admissibleItem.style.display = 'flex';
+                        admissibleBtn.textContent = 'Hide Admissible';
+                    }
                 }
             });
         }
@@ -756,6 +756,85 @@
         }, 300);
     }
     
+    // Get extensions for a given step from the provided extension data
+    function getExtensionsForStep(stepIndex) {
+        const effectiveStepIndex = Math.max(0, Math.min(stepIndex, maxStepIndex));
+        return extensionData[effectiveStepIndex];
+    }
+
+    // Update extensions display based on current step
+    function updateExtensionsDisplay() {
+        const extensionsGrid = document.getElementById('extensions-grid');
+
+        // Clear existing content
+        extensionsGrid.innerHTML = '';
+
+        // Get extensions for the current step        
+        const extensions = getExtensionsForStep(currentStepIndex);
+
+        // Create extension items
+        const extensionTypes = [
+            { key: 'conflict_free', label: 'Conflict-free', id: 'conflict-free-item', hidden: true },
+            { key: 'admissible', label: 'Admissible', id: 'admissible-item', hidden: true },
+            { key: 'complete', label: 'Complete', id: 'complete-item', hidden: false },
+            { key: 'preferred', label: 'Preferred', id: 'preferred-item', hidden: false },
+            { key: 'grounded', label: 'Grounded', id: 'grounded-item', hidden: false },
+            { key: 'stable', label: 'Stable', id: 'stable-item', hidden: false }
+        ];
+
+        extensionTypes.forEach(type => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'extension-item';
+            itemDiv.id = type.id;
+            
+            // Check if this extension type should be hidden based on toggle button state
+            let shouldHide = type.hidden;
+            if (type.key === 'conflict_free') {
+                const conflictFreeBtn = document.getElementById('toggle-conflict-free');
+                shouldHide = conflictFreeBtn && conflictFreeBtn.classList.contains('active');
+            } else if (type.key === 'admissible') {
+                const admissibleBtn = document.getElementById('toggle-admissible');
+                shouldHide = admissibleBtn && admissibleBtn.classList.contains('active');
+            }
+            
+            if (shouldHide) {
+                itemDiv.style.display = 'none';
+            }
+
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'extension-label';
+            labelSpan.textContent = type.label + ':';
+
+            const valuesSpan = document.createElement('span');
+            valuesSpan.className = 'extension-values';
+
+            // Format extensions as clickable sets
+            const extensionSets = extensions[type.key] || [];
+            
+            extensionSets.forEach((ext, index) => {
+                const setSpan = document.createElement('span');
+                setSpan.className = 'extension-set';
+                // Handle both array format and string format
+                let setString;
+                if (Array.isArray(ext)) {
+                    setString = '{' + ext.join(', ') + '}';
+                } else {
+                    setString = ext.toString();
+                }
+                setSpan.setAttribute('data-set', setString);
+                setSpan.textContent = setString;
+                valuesSpan.appendChild(setSpan);
+            });
+
+            itemDiv.appendChild(labelSpan);
+            itemDiv.appendChild(valuesSpan);
+            extensionsGrid.appendChild(itemDiv);
+        });
+
+        // Re-setup click handlers for new extension sets
+        setupExtensionClickHandlers();
+    }
+
     // Handle window resize
     window.addEventListener('resize', () => {
         if (panzoomInstance) {
@@ -808,9 +887,6 @@
             // Threshold for auto-collapse (slightly above minimum to trigger collapse)
             const collapseThreshold = 20;
             
-            // Check if extensions section is currently visible
-            const extensionsVisible = currentStepIndex > maxStepIndex;
-            
             if (currentHandle === handle1) {
                 // Check if exhibit section is collapsed
                 const exhibitCollapsed = exhibitContent && exhibitContent.classList.contains('collapsed');
@@ -824,41 +900,23 @@
                         // Auto-collapse when getting close to minimum
                         toggleSection('exhibit');
                     } else {
-                        if (extensionsVisible) {
-                            // Extensions is visible - keep extensions height FIXED
-                            const availableForExhibitAndGraph = windowHeight - startExtensionsHeight;
-                            
-                            // Calculate new exhibit height with constraints
-                            const maxExhibitHeight = availableForExhibitAndGraph - graphMinHeight;
-                            const newExhibitHeight = Math.max(
-                                exhibitMinHeight + collapseThreshold, 
-                                Math.min(maxExhibitHeight, targetExhibitHeight)
-                            );
-                            
-                            // Graph gets whatever space is left
-                            const newGraphHeight = availableForExhibitAndGraph - newExhibitHeight;
-                            
-                            // Apply the changes
-                            exhibitSection.style.flex = `0 0 ${newExhibitHeight}px`;
-                            graphSection.style.flex = `1 1 0`; // Takes remaining space
-                            extensionsSection.style.flex = `0 0 ${startExtensionsHeight}px`; // FIXED
-                        } else {
-                            // Extensions is hidden - only exhibit and graph
-                            const maxExhibitHeight = windowHeight - graphMinHeight;
-                            const newExhibitHeight = Math.max(
-                                exhibitMinHeight + collapseThreshold,
-                                Math.min(maxExhibitHeight, targetExhibitHeight)
-                            );
-                            
-                            const newGraphHeight = windowHeight - newExhibitHeight;
-                            
-                            // Use ratios for 2-section layout
-                            const exhibitRatio = newExhibitHeight / windowHeight;
-                            const graphRatio = newGraphHeight / windowHeight;
-                            
-                            exhibitSection.style.flex = `${exhibitRatio} 1 0`;
-                            graphSection.style.flex = `${graphRatio} 1 0`;
-                        }
+                        // keep extensions height FIXED
+                        const availableForExhibitAndGraph = windowHeight - startExtensionsHeight;
+                        
+                        // Calculate new exhibit height with constraints
+                        const maxExhibitHeight = availableForExhibitAndGraph - graphMinHeight;
+                        const newExhibitHeight = Math.max(
+                            exhibitMinHeight + collapseThreshold, 
+                            Math.min(maxExhibitHeight, targetExhibitHeight)
+                        );
+                        
+                        // Graph gets whatever space is left
+                        const newGraphHeight = availableForExhibitAndGraph - newExhibitHeight;
+                        
+                        // Apply the changes
+                        exhibitSection.style.flex = `0 0 ${newExhibitHeight}px`;
+                        graphSection.style.flex = `1 1 0`; // Takes remaining space
+                        extensionsSection.style.flex = `0 0 ${startExtensionsHeight}px`; // FIXED
                     }
                 } else {
                     // Exhibit is currently collapsed
@@ -869,9 +927,6 @@
                 }
                 
             } else if (currentHandle === handle2) {
-                // Handle2 only works when extensions is visible
-                if (!extensionsVisible) return;
-                
                 // Check if extensions section is collapsed
                 const extensionsCollapsed = extensionsContent && extensionsContent.classList.contains('collapsed');
                 
