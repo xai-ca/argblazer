@@ -80,6 +80,9 @@ export function activate(context: vscode.ExtensionContext) {
                     panelHtmlContent.delete(fileKey);
                     console.log(`Panel disposed for: ${fileKey}`);
                 });
+            } else {
+                // Bring existing panel to the front
+                panel.reveal(panel.viewColumn);
             }
 
             // Generate and update the report

@@ -204,8 +204,16 @@
         actualSteps = Array.from(stepSet).sort((a, b) => a - b);
         maxStepIndex = actualSteps.length - 1;
         
-        // Set currentStepIndex to show "End" by default (beyond last step)
-        currentStepIndex = maxStepIndex + 1;
+        // Keep track of the actual step value to preserve state
+        const stored = sessionStorage.getItem('sessionCurrentStepValue') ?? 'End';
+        let preservedStepValue = stored === 'End' ? 'End' : parseInt(stored, 10);
+        
+        if (preservedStepValue === 'End' || preservedStepValue == null) {
+            currentStepIndex = maxStepIndex + 1;
+        } else {
+            currentStepIndex = actualSteps.indexOf(preservedStepValue);
+        }
+        
         updateStepIndicator();
         updateResizeHandleVisibility();
     }
@@ -269,7 +277,8 @@
     // Filter subgraphs based on rank field for current step
     function generateSubgraphs(stepIndex) {
         // Get the selected rank direction
-        const rankDirection = document.getElementById('rank-direction').value;
+        const rankDirection = sessionStorage.getItem('sessionRankDirection') ?? document.getElementById('rank-direction').value;
+        document.getElementById('rank-direction').value = rankDirection;
         const rankData = rankDirection === 'top' ? argumentationData.rank_top : argumentationData.rank_bottom;
         if (!rankData) return '';
         
@@ -317,6 +326,13 @@
     
     // Update step indicator and button states
     function updateStepIndicator() {
+        // Save current step value to sessionStorage for preservation across updates
+        if (currentStepIndex <= maxStepIndex) {
+            const actualStep = actualSteps[currentStepIndex];
+            sessionStorage.setItem('sessionCurrentStepValue', actualStep.toString());
+        } else {
+            sessionStorage.setItem('sessionCurrentStepValue', 'End');
+        }
         
         if (currentStepIndex <= maxStepIndex){
             const actualStep = actualSteps[currentStepIndex];
@@ -592,6 +608,7 @@
 
     function updateGraphDisplayMode() {
         const displayMode = document.getElementById('argument-display-mode').value;
+        sessionStorage.setItem('sessionDisplayMode', displayMode);
         // Update nodeData with new labels
         nodeData = fetchNodeData(displayMode);
         // Reset panzoom instance so it will be recreated with new scale
@@ -613,6 +630,7 @@
         const rankDirectionSelect = document.getElementById('rank-direction');
         if (rankDirectionSelect) {
             rankDirectionSelect.addEventListener('change', () => {
+                sessionStorage.setItem('sessionRankDirection', rankDirectionSelect.value);
                 // Reset panzoom instance so it will be recreated with new scale
                 if (panzoomInstance) {
                     panzoomInstance.destroy();
@@ -673,7 +691,8 @@
     }
 
     function initializeGraph() {
-        const displayMode = document.getElementById('argument-display-mode').value;
+        const displayMode = sessionStorage.getItem('sessionDisplayMode') ?? document.getElementById('argument-display-mode').value;
+        document.getElementById('argument-display-mode').value = displayMode;
         
         // Initialize step navigation
         initializeSteps();
