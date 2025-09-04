@@ -348,7 +348,7 @@ else:
         // Show progress indicator for manual generation
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: "Generating an HTML report with ArgBlaze v0.0.1+ad696b8...",
+            title: "Generating an HTML report with ArgBlaze v0.0.1+22a1a82...",
             cancellable: false
         }, updateReport);
     } else {
@@ -374,7 +374,7 @@ async function exportActiveHtml() {
     
     // Get filename and show save dialog
     const fileName = path.basename(vscode.Uri.parse(fileKey).fsPath);
-    const defaultFileName = fileName.replace(/\.(yaml|yml)$/, '') + '_report.html';
+    const defaultFileName = fileName.replace(/\.(yaml|yml)$/, '') + '_argBlazeReport.html';
     const downloadsPath = path.join(os.homedir(), 'Downloads', defaultFileName);
     
     const saveUri = await vscode.window.showSaveDialog({
