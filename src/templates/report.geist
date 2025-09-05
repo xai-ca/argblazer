@@ -87,6 +87,7 @@
 <script>
     const argumentationData = {{ af4graph }};
     const extensionData = {{ af4ext }};
+    const fileKey = '{{ file_key }}';
     let panzoomInstance = null;
     let currentStepIndex = 0;
     let maxStepIndex = 0;

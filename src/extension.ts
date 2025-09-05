@@ -14,7 +14,7 @@ const activeReportPanels = new Map<string, vscode.WebviewPanel>();
 const panelHtmlContent = new Map<string, string>();
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('ArgBlaze extension is now active!');
+    console.log('ArgBlazer extension is now active!');
 
     // Set up file system watcher for YAML files
     const yamlWatcher = vscode.workspace.createFileSystemWatcher('**/*.{yaml,yml}');
@@ -25,7 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
         await handleYamlFileChange(uri, context);
     });
 
-    const generateReportCommand = vscode.commands.registerCommand('argBlaze.generateReport', async () => {
+    const generateReportCommand = vscode.commands.registerCommand('argBlazer.generateReport', async () => {
         const activeEditor = vscode.window.activeTextEditor;
         
         if (!activeEditor) {
@@ -62,7 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
                 // Create new panel
                 panel = vscode.window.createWebviewPanel(
                     'afReport',
-                    `ArgBlaze Report - ${path.basename(fileUri.fsPath)}`,
+                    `ArgBlazer Report - ${path.basename(fileUri.fsPath)}`,
                     vscode.ViewColumn.Beside,
                     {
                         enableScripts: true,
@@ -86,7 +86,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             // Generate and update the report
-            await generateAndUpdateReport(yamlContent, panel, context, isNewPanel);
+            await generateAndUpdateReport(yamlContent, panel, context, isNewPanel, fileKey);
 
         } catch (error: any) {
             console.error('Outer error details:', error);
@@ -94,15 +94,15 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    const refreshPythonCommand = vscode.commands.registerCommand('argBlaze.refreshPythonInterpreter', async () => {
+    const refreshPythonCommand = vscode.commands.registerCommand('argBlazer.refreshPythonInterpreter', async () => {
         vscode.window.showInformationMessage('Python interpreter configuration will be re-read on next report generation.');
     });
 
-    const exportHtmlCommand = vscode.commands.registerCommand('argBlaze.exportHtml', async () => {
+    const exportHtmlCommand = vscode.commands.registerCommand('argBlazer.exportHtml', async () => {
         await exportActiveHtml();
     });
 
-    const aboutCommand = vscode.commands.registerCommand('argBlaze.about', async () => {
+    const aboutCommand = vscode.commands.registerCommand('argBlazer.about', async () => {
         const packageJson = require('../package.json');
         const version = packageJson.version;
         const displayName = packageJson.displayName;
@@ -120,7 +120,7 @@ export function activate(context: vscode.ExtensionContext) {
         let pythonVersion = 'Not available';
         
         try {
-            const config = vscode.workspace.getConfiguration('argBlaze');
+            const config = vscode.workspace.getConfiguration('argBlazer');
             const pythonPath = config.get<string>('pythonInterpreter');
             
             if (pythonPath && pythonPath.trim() !== '') {
@@ -137,7 +137,7 @@ export function activate(context: vscode.ExtensionContext) {
             console.log('Could not retrieve Python version:', error);
         }
         
-        const aboutMessage = `${displayName} v${version}+1a5fa01
+        const aboutMessage = `${displayName} v${version}+240cd36
 Publisher: ${publisher}
 
 • ${osType} ${osRelease} (${osArch})
@@ -176,7 +176,7 @@ async function handleYamlFileChange(uri: vscode.Uri, context: vscode.ExtensionCo
         console.log(`Auto-updating report for: ${uri.fsPath}`);
         
         // Update the existing panel with new content
-        await generateAndUpdateReport(yamlContent, panel, context, false);
+        await generateAndUpdateReport(yamlContent, panel, context, false, fileKey);
         
         // Bring the corresponding panel to the front
         try {
@@ -194,17 +194,17 @@ async function handleYamlFileChange(uri: vscode.Uri, context: vscode.ExtensionCo
     }
 }
 
-async function generateAndUpdateReport(yamlContent: string, panel: vscode.WebviewPanel, context: vscode.ExtensionContext, showProgress: boolean = true) {
+async function generateAndUpdateReport(yamlContent: string, panel: vscode.WebviewPanel, context: vscode.ExtensionContext, showProgress: boolean = true, fileKey: string) {
     const updateReport = async () => {
         try {
             // Get Python interpreter path from configuration
-            const config = vscode.workspace.getConfiguration('argBlaze');
+            const config = vscode.workspace.getConfiguration('argBlazer');
             const pythonPath = config.get<string>('pythonInterpreter');
             
             if (!pythonPath || pythonPath.trim() === '') {
                 vscode.window.showErrorMessage('Python interpreter path not configured. Please set it in settings.', 'Open Settings').then(selection => {
                     if (selection === 'Open Settings') {
-                        vscode.commands.executeCommand('workbench.action.openSettings', 'argBlaze.pythonInterpreter');
+                        vscode.commands.executeCommand('workbench.action.openSettings', 'argBlazer.pythonInterpreter');
                     }
                 });
                 return;
@@ -236,6 +236,7 @@ async function generateAndUpdateReport(yamlContent: string, panel: vscode.Webvie
             const templatePath = vscode.Uri.joinPath(context.extensionUri, 'src', 'templates').fsPath;
 
             const tempFile = path.join(os.tmpdir(), `script_${Date.now()}.py`);
+            console.log('fileKey being passed to template:', fileKey);
             const pythonCode = `
 from geist import report
 import networkx as nx
@@ -249,7 +250,8 @@ def generate_report(template, af4ext, af4graph=None, exhibit=None):
             'af4graph': af4graph,
             'af4ext': af4ext,
             'exhibit': exhibit,
-            'tp': r'${templatePath}'
+            'tp': r'${templatePath}',
+            'file_key': r'${fileKey}'
         }
     )
     return expanded_report
@@ -323,13 +325,16 @@ if 'attacks' in json_data:
                 step2ext[step] = step2ext.get(step, '') + f'attacks({attacker}, {attackee}).\\n'
                 step2edges[step] = step2edges.get(step, []) + [(attacker, attackee)]
             prev_args = prev_args + argsInStep
+            for arg in prev_args:
+                step2ext[step] = step2ext.get(step, '') + f'arg({arg}).\\n'
 
 json_data['steps'] = {'rank_top':[], 'rank_bottom': []}
 step_extensions = []
 for step in sorted(step2ext.keys()):
     # Compute shortest distance as rank
     G = nx.Graph()
-    G.add_edges_from(step2edges[step])
+    if step in step2edges:
+        G.add_edges_from(step2edges[step])
     json_data['steps']['rank_top'].append(compute_rank(G, top, first, last, isTop=True))
     json_data['steps']['rank_bottom'].append(compute_rank(G, bottom, first, last, isTop=False))
     # Compute extensions
@@ -371,10 +376,7 @@ else:
             }
 
             // Store the HTML content for export
-            const fileKey = Object.keys(Object.fromEntries(activeReportPanels)).find(key => activeReportPanels.get(key) === panel);
-            if (fileKey) {
-                panelHtmlContent.set(fileKey, stdout);
-            }
+            panelHtmlContent.set(fileKey, stdout);
             
             // Update the webview content
             panel.webview.html = stdout;
@@ -398,7 +400,7 @@ else:
             
             vscode.window.showErrorMessage(errorMsg, 'Open Settings').then(selection => {
                 if (selection === 'Open Settings') {
-                    vscode.commands.executeCommand('workbench.action.openSettings', 'argBlaze.pythonInterpreter');
+                    vscode.commands.executeCommand('workbench.action.openSettings', 'argBlazer.pythonInterpreter');
                 }
             });
         }
@@ -421,7 +423,7 @@ async function exportActiveHtml() {
     // Find active panel and its content
     const activePanel = Array.from(activeReportPanels.entries()).find(([_, panel]) => panel.active);
     if (!activePanel) {
-        vscode.window.showErrorMessage('No active ArgBlaze report panel found');
+        vscode.window.showErrorMessage('No active argBlazer report panel found');
         return;
     }
     
@@ -434,7 +436,7 @@ async function exportActiveHtml() {
     
     // Get filename and show save dialog
     const fileName = path.basename(vscode.Uri.parse(fileKey).fsPath);
-    const defaultFileName = fileName.replace(/\.(yaml|yml)$/, '') + '_argBlazeReport.html';
+    const defaultFileName = fileName.replace(/\.(yaml|yml)$/, '') + '_argBlazerReport.html';
     const downloadsPath = path.join(os.homedir(), 'Downloads', defaultFileName);
     
     const saveUri = await vscode.window.showSaveDialog({

@@ -2,9 +2,6 @@
 {%- create ":memory:af", datastore="clingo", isfilepath=False %}
     {{ af4ext }}
 {% endcreate %}
-{%- load ":memory:af", datastore="clingo", isfilepath=False %}
-    {% rule_expand_args %}
-{% endload %}
 
 'conflict_free':
     {% query ":memory:af", datastore="clingo", rformat="dict", predicate="in", isfilepath=False as conflict_free %}

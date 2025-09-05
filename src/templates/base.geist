@@ -76,7 +76,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ArgBlaze Report</title>
+        <title>ArgBlazer Report</title>
         <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
         <!-- Prism.js CSS for code snippet with line numbers-->
         <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
@@ -196,16 +196,17 @@
         
         // Convert to sorted array of actual steps
         actualSteps = Array.from(stepSet).sort((a, b) => a - b);
-        maxStepIndex = actualSteps.length - 1;
+        maxStepIndex = actualSteps.length - 1;        
         
         // Keep track of the actual step value to preserve state
-        const stored = sessionStorage.getItem('sessionCurrentStepValue') ?? 'End';
+        const stored = getFileSpecificStorage('sessionCurrentStepValue', 'End');
         let preservedStepValue = stored === 'End' ? 'End' : parseInt(stored, 10);
         
         if (preservedStepValue === 'End' || preservedStepValue == null) {
             currentStepIndex = maxStepIndex + 1;
         } else {
             currentStepIndex = actualSteps.indexOf(preservedStepValue);
+            currentStepIndex = currentStepIndex === -1 ? maxStepIndex + 1 : currentStepIndex;
         }
         
         updateStepIndicator();
@@ -271,7 +272,7 @@
     // Filter subgraphs based on rank field for current step
     function generateSubgraphs(stepIndex) {
         // Get the selected rank direction
-        const rankDirection = sessionStorage.getItem('sessionRankDirection') ?? document.getElementById('rank-direction').value;
+        const rankDirection = getFileSpecificStorage('sessionRankDirection', document.getElementById('rank-direction').value);
         document.getElementById('rank-direction').value = rankDirection;
         const rankData = rankDirection === 'top' ? argumentationData.rank_top : argumentationData.rank_bottom;
         if (!rankData) return '';
@@ -321,17 +322,12 @@
     // Update step indicator and button states
     function updateStepIndicator() {
         // Save current step value to sessionStorage for preservation across updates
-        if (currentStepIndex <= maxStepIndex) {
+        if (currentStepIndex <= maxStepIndex && currentStepIndex >= 0) {
             const actualStep = actualSteps[currentStepIndex];
-            sessionStorage.setItem('sessionCurrentStepValue', actualStep.toString());
-        } else {
-            sessionStorage.setItem('sessionCurrentStepValue', 'End');
-        }
-        
-        if (currentStepIndex <= maxStepIndex){
-            const actualStep = actualSteps[currentStepIndex];
+            setFileSpecificStorage('sessionCurrentStepValue', actualStep.toString());
             document.getElementById('step-indicator').textContent = `Step ${actualStep}`;
         } else {
+            setFileSpecificStorage('sessionCurrentStepValue', 'End');
             document.getElementById('step-indicator').textContent = `End`;
         }
         
@@ -354,9 +350,9 @@
         document.getElementById('prev-step').addEventListener('click', () => {
             if (currentStepIndex > 0) {
                 currentStepIndex--;
-                resetExtensionSelection();
                 updateStepIndicator();
-                updateGraphDisplayMode();
+                updateGraph(flag='StepNavigation');
+                resetExtensionSelection(); // Reset AFTER DOM updates
                 updateResizeHandleVisibility();
             }
         });
@@ -364,9 +360,9 @@
         document.getElementById('next-step').addEventListener('click', () => {
             if (currentStepIndex <= maxStepIndex) {
                 currentStepIndex++;
-                resetExtensionSelection();
                 updateStepIndicator();
-                updateGraphDisplayMode();
+                updateGraph(flag='StepNavigation');
+                resetExtensionSelection(); // Reset AFTER DOM updates
                 updateResizeHandleVisibility();
             }
         });
@@ -375,9 +371,9 @@
         document.getElementById('start-step').addEventListener('click', () => {
             if (currentStepIndex > 0) {
                 currentStepIndex = 0;
-                resetExtensionSelection();
                 updateStepIndicator();
-                updateGraphDisplayMode();
+                updateGraph(flag='StepNavigation');
+                resetExtensionSelection(); // Reset AFTER DOM updates
                 updateResizeHandleVisibility();
             }
         });
@@ -386,9 +382,9 @@
         document.getElementById('end-step').addEventListener('click', () => {
             if (currentStepIndex <= maxStepIndex) {
                 currentStepIndex = maxStepIndex + 1;
-                resetExtensionSelection();
                 updateStepIndicator();
-                updateGraphDisplayMode();
+                updateGraph(flag='StepNavigation');
+                resetExtensionSelection(); // Reset AFTER DOM updates
                 updateResizeHandleVisibility();
             }
         });
@@ -468,7 +464,7 @@
 
     // Get theme colors based on selected theme
     function getThemeColors() {
-        const theme = sessionStorage.getItem('sessionTheme') ?? document.getElementById('theme-selector').value;
+        const theme = getFileSpecificStorage('sessionTheme', document.getElementById('theme-selector').value);
         document.getElementById('theme-selector').value = theme;
         
         switch (theme) {
@@ -537,12 +533,13 @@
         const newNodes = currentStepIndex > 0 ? getNewArgumentsForStep(currentStepIndex) : [];
         const newNodeIds = new Set(newNodes.map(arg => Object.keys(arg)[0]));
         
+        // Collect nodes by category first
+        let defaultNodes='', addedNodes='', selectedNodes='', selectedAddNodes='';
+        
         nodeData.forEach(node => {
             graph += `  ${node.id}[\"${node.label}\"]\n`;
             
             // Determine node color based on state
-            let defaultNodes='', addedNodes='', selectedNodes='', selectedAddNodes='';
-
             if (colors[node.id] !== null) {
                 // Node is highlighted (selected)
                 if (newNodeIds.has(node.id)){
@@ -557,12 +554,13 @@
                 // Default node color
                 defaultNodes += defaultNodes ? `,${node.id}` : node.id;
             }
-            
-            if (defaultNodes) graph += `  class ${defaultNodes} default\n`;
-            if (addedNodes) graph += `  class ${addedNodes} add\n`;
-            if (selectedNodes) graph += `  class ${selectedNodes} select\n`;
-            if (selectedAddNodes) graph += `  class ${selectedAddNodes} selectadd\n`;
         });
+        
+        // Apply CSS classes after collecting all nodes
+        if (defaultNodes) graph += `  class ${defaultNodes} default\n`;
+        if (addedNodes) graph += `  class ${addedNodes} add\n`;
+        if (selectedNodes) graph += `  class ${selectedNodes} select\n`;
+        if (selectedAddNodes) graph += `  class ${selectedAddNodes} selectadd\n`;
         // Add attack relationships - use filtered attacks for current step
         const filteredAttacks = getFilteredAttacks(currentStepIndex);
         filteredAttacks.forEach(attack => {
@@ -660,14 +658,25 @@
         });
     }
 
-    function updateGraphDisplayMode() {
+    function updateGraph(flag = 'DisplayMode') {
         const displayMode = document.getElementById('argument-display-mode').value;
-        sessionStorage.setItem('sessionDisplayMode', displayMode);
+        setFileSpecificStorage('sessionDisplayMode', displayMode);
         // Update nodeData with new labels
         nodeData = fetchNodeData(displayMode);
-        // Rebuild colors object for new nodeData
-        colors = {};
-        nodeData.forEach(node => colors[node.id] = null);
+        if (flag === 'DisplayMode') {
+            // Preserve existing highlighting when display mode changes
+            const oldColors = colors || {};
+            colors = {};
+            nodeData.forEach(node => {
+                // Preserve existing color state if node existed before, otherwise set to null
+                colors[node.id] = oldColors[node.id] || null;
+            });
+        } else {
+            // Reset all highlighting when navigating steps
+            colors = {};
+            nodeData.forEach(node => colors[node.id] = null);
+        }
+        
         // Reset panzoom instance so it will be recreated with new scale
         if (panzoomInstance) {
             panzoomInstance.destroy();
@@ -681,7 +690,7 @@
         const themeSelector = document.getElementById('theme-selector');
         if (themeSelector) {
             themeSelector.addEventListener('change', () => {
-                sessionStorage.setItem('sessionTheme', themeSelector.value);
+                setFileSpecificStorage('sessionTheme', themeSelector.value);
                 // Update extension styling for new theme
                 updateExtensionStyling();
                 // Reset panzoom instance so it will be recreated with new scale
@@ -696,14 +705,14 @@
         // Setup display dropdown
         const displayModeSelect = document.getElementById('argument-display-mode');
         if (displayModeSelect) {
-            displayModeSelect.addEventListener('change', updateGraphDisplayMode);
+            displayModeSelect.addEventListener('change', () => updateGraph('DisplayMode'));
         }
 
         // Setup rank direction dropdown
         const rankDirectionSelect = document.getElementById('rank-direction');
         if (rankDirectionSelect) {
             rankDirectionSelect.addEventListener('change', () => {
-                sessionStorage.setItem('sessionRankDirection', rankDirectionSelect.value);
+                setFileSpecificStorage('sessionRankDirection', rankDirectionSelect.value);
                 // Reset panzoom instance so it will be recreated with new scale
                 if (panzoomInstance) {
                     panzoomInstance.destroy();
@@ -768,10 +777,10 @@
     }
 
     function initializeGraph() {
-        const displayMode = sessionStorage.getItem('sessionDisplayMode') ?? document.getElementById('argument-display-mode').value;
+        const displayMode = getFileSpecificStorage('sessionDisplayMode', document.getElementById('argument-display-mode').value);
         document.getElementById('argument-display-mode').value = displayMode;
         
-        const theme = sessionStorage.getItem('sessionTheme') ?? document.getElementById('theme-selector').value;
+        const theme = getFileSpecificStorage('sessionTheme', document.getElementById('theme-selector').value);
         document.getElementById('theme-selector').value = theme;
         
         // Initialize step navigation
@@ -1081,7 +1090,20 @@
             if (isResizing) e.preventDefault();
         });
     }
-
+        
+    // Helper functions for file-specific sessionStorage
+    function getFileSpecificKey(key) {
+        return `argblaze_${fileKey}_${key}`;
+    }
+    
+    function getFileSpecificStorage(key, defaultValue) {
+        return sessionStorage.getItem(getFileSpecificKey(key)) ?? defaultValue;
+    }
+    
+    function setFileSpecificStorage(key, value) {
+        sessionStorage.setItem(getFileSpecificKey(key), value);
+    }
+    
     const windowHeight = document.body.getBoundingClientRect().height - 50;
     const handle1 = document.getElementById('resize-handle-1');
     const handle2 = document.getElementById('resize-handle-2');

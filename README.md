@@ -1,6 +1,6 @@
 <div align="center">
-    <img src="./media/icon.png" alt="argBlaze Icon" width="160">
-    <h1 align="center">ArgBlaze</h1>
+    <img src="./media/icon.png" alt="ArgBlazer Icon" width="160">
+    <h1 align="center">ArgBlazer</h1>
 </div>
 
 A VS Code extension that uses Geist to generate HTML reports from argumentation frameworks represented by YAML files.
@@ -36,13 +36,13 @@ pip install networkx
 You must configure the Python interpreter path that has the `geist` and `networkx` packages installed:
 
 1. Open VS Code Settings (`Cmd/Ctrl + ,`)
-2. Search for "ArgBlaze Python Interpreter"
+2. Search for "ArgBlazer Python Interpreter"
 3. Set the full path to your Python executable (e.g., `/path/to/your_env/bin/python` for MacOS and `\path\to\your_env\Scripts\python.exe` for Windows)
 
 Alternatively, add this to your VS Code settings.json:
 ```json
 {
-    "argBlaze.pythonInterpreter": "/path/to/your/python"
+    "argBlazer.pythonInterpreter": "/path/to/your/python"
 }
 ```
 
@@ -59,7 +59,7 @@ where python  # On Windows
 If you change your Python environment configuration:
 
 1. Open the Command Palette (`Cmd/Ctrl + Shift + P`)
-2. Run "ArgBlaze: Refresh Python Interpreter"
+2. Run "ArgBlazer: Refresh Python Interpreter"
 
 ## Usage
 

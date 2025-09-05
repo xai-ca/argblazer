@@ -1,12 +1,12 @@
 {
-  "name": "argblaze",
-  "displayName": "ArgBlaze",
+  "name": "argblazer",
+  "displayName": "ArgBlazer",
   "description": "Convert YAML files representing argumentation frameworks into HTML reports using Geist",
   "publisher": "CIRSS",
   "version": "0.0.1",
   "repository": {
     "type": "git",
-    "url": "https://github.com/xai-ca/argblaze.git"
+    "url": "https://github.com/xai-ca/argblazer.git"
   },
   "icon": "media/icon.png",
   "engines": {
@@ -28,51 +28,51 @@
   "contributes": {
     "commands": [
       {
-        "command": "argBlaze.generateReport",
+        "command": "argBlazer.generateReport",
         "title": "Generate HTML Report",
         "icon": "$(preview)"
       },
       {
-        "command": "argBlaze.refreshPythonInterpreter",
+        "command": "argBlazer.refreshPythonInterpreter",
         "title": "Refresh Python Interpreter",
-        "category": "ArgBlaze"
+        "category": "ArgBlazer"
       },
       {
-        "command": "argBlaze.exportHtml",
+        "command": "argBlazer.exportHtml",
         "title": "Export as HTML",
-        "category": "ArgBlaze"
+        "category": "ArgBlazer"
       },
       {
-        "command": "argBlaze.about",
-        "title": "About ArgBlaze",
-        "category": "ArgBlaze"
+        "command": "argBlazer.about",
+        "title": "About ArgBlazer",
+        "category": "ArgBlazer"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "argBlaze.generateReport",
+          "command": "argBlazer.generateReport",
           "when": "resourceExtname == .yaml || resourceExtname == .yml",
           "group": "navigation"
         }
       ],
       "webview/context": [
         {
-          "command": "argBlaze.exportHtml",
+          "command": "argBlazer.exportHtml",
           "when": "webviewId == afReport",
           "group": "navigation"
         },
         {
-          "command": "argBlaze.about",
+          "command": "argBlazer.about",
           "when": "webviewId == afReport",
           "group": "about"
         }
       ]
     },
     "configuration": {
-      "title": "ArgBlaze",
+      "title": "ArgBlazer",
       "properties": {
-        "argBlaze.pythonInterpreter": {
+        "argBlazer.pythonInterpreter": {
           "type": "string",
           "default": "",
           "description": "Path to Python interpreter with geist package installed (required)."
