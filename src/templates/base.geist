@@ -424,7 +424,6 @@
                             const allKeys = new Set();
                             Object.keys(item).forEach(key => allKeys.add(key));
                             
-                            console.log(allKeys);
                             allKeys.forEach(key => {
                                 if (item[key]) {
                                     formattedDetails += `<li><i>${key}</i>: ${item[key]}</li>`;
@@ -727,6 +726,12 @@
         const admissibleBtn = document.getElementById('toggle-admissible');
 
         if (conflictFreeBtn) {
+            if (getFileSpecificStorage('sessionConflictFreeHide', 'true') === 'false') {
+                const conflictFreeItem = document.getElementById('conflict-free-item');
+                conflictFreeBtn.classList.toggle('active');
+                conflictFreeItem.style.display = 'flex';
+                conflictFreeBtn.textContent = 'Hide Conflict-free';
+            }
             conflictFreeBtn.addEventListener('click', () => {
                 const conflictFreeItem = document.getElementById('conflict-free-item');
                 if (conflictFreeItem) {
@@ -734,15 +739,23 @@
                     if (conflictFreeBtn.classList.contains('active')) {
                         conflictFreeItem.style.display = 'none';
                         conflictFreeBtn.textContent = 'Show Conflict-free';
+                        setFileSpecificStorage('sessionConflictFreeHide', 'true');
                     } else {
                         conflictFreeItem.style.display = 'flex';
                         conflictFreeBtn.textContent = 'Hide Conflict-free';
+                        setFileSpecificStorage('sessionConflictFreeHide', 'false');
                     }
                 }
             });
         }
 
         if (admissibleBtn) {
+            if (getFileSpecificStorage('sessionAdmissibleHide', 'true') === 'false') {
+                const admissibleItem = document.getElementById('admissible-item');
+                admissibleBtn.classList.toggle('active');
+                admissibleItem.style.display = 'flex';
+                admissibleBtn.textContent = 'Hide Admissible';
+            }
             admissibleBtn.addEventListener('click', () => {
                 const admissibleItem = document.getElementById('admissible-item');
                 if (admissibleItem) {
@@ -750,9 +763,11 @@
                     if (admissibleBtn.classList.contains('active')) {
                         admissibleItem.style.display = 'none';
                         admissibleBtn.textContent = 'Show Admissible';
+                        setFileSpecificStorage('sessionAdmissibleHide', true);
                     } else {
                         admissibleItem.style.display = 'flex';
                         admissibleBtn.textContent = 'Hide Admissible';
+                        setFileSpecificStorage('sessionAdmissibleHide', false);
                     }
                 }
             });
@@ -769,10 +784,30 @@
 
         const exhibitDesiredHeight = Math.min(exhibitHeaderHeight + exhibitContentHeight, maxSectionHeight);
         const extensionsDesiredHeight = Math.min(extensionsHeaderHeight + extensionsContentHeight, maxSectionHeight);
-        const graphDesiredHeight = windowHeight - exhibitDesiredHeight - extensionsDesiredHeight;
-        
-        exhibitSection.style.flex = `0 0 ${exhibitDesiredHeight}px`;
-        extensionsSection.style.flex = `0 0 ${extensionsDesiredHeight}px`;
+
+        let exhibitDesiredHeightCheckedSession = getFileSpecificStorage('sessionExhibitHeight', exhibitDesiredHeight);
+        let extensionsDesiredHeightCheckedSession = getFileSpecificStorage('sessionExtensionsHeight', extensionsDesiredHeight);
+
+        if (exhibitDesiredHeightCheckedSession === 'collapsed') {
+            toggleSection('exhibit');
+            exhibitDesiredHeightCheckedSession = 0;
+        } else {
+            if (exhibitDesiredHeightCheckedSession === 'expanded') {
+                exhibitDesiredHeightCheckedSession = exhibitDesiredHeight;
+            }
+            exhibitSection.style.flex = `0 0 ${exhibitDesiredHeightCheckedSession}px`;
+        }
+
+        if (extensionsDesiredHeightCheckedSession === 'collapsed') {
+            toggleSection('extensions');
+            extensionsDesiredHeightCheckedSession = 0;
+        } else {
+            if (extensionsDesiredHeightCheckedSession === 'expanded') {
+                extensionsDesiredHeightCheckedSession = extensionsDesiredHeight;
+            }
+            extensionsSection.style.flex = `0 0 ${extensionsDesiredHeightCheckedSession}px`;
+        }
+        const graphDesiredHeight = windowHeight - exhibitDesiredHeightCheckedSession - extensionsDesiredHeightCheckedSession;
         graphSection.style.flex = `1 1 ${graphDesiredHeight}px`;
     }
 
@@ -823,6 +858,11 @@
                 totalHeight = Math.min(totalHeight, windowHeight / 4);
                 section.style.flex = `0 1 ${totalHeight}px`;
             }
+            if (sectionName === 'exhibit') {
+                setFileSpecificStorage('sessionExhibitHeight', 'expanded');
+            } else if (sectionName === 'extensions') {
+                setFileSpecificStorage('sessionExtensionsHeight', 'expanded');
+            }
         } else {
             // Collapse
             content.classList.add('collapsed');
@@ -830,6 +870,11 @@
             content.style.maxHeight = '0';
             if (section) {
                 section.style.flex = '0 0 auto';
+            }
+            if (sectionName === 'exhibit') {
+                setFileSpecificStorage('sessionExhibitHeight', 'collapsed');
+            } else if (sectionName === 'extensions') {
+                setFileSpecificStorage('sessionExtensionsHeight', 'collapsed');
             }
         }
         
@@ -1007,6 +1052,10 @@
                         exhibitSection.style.flex = `0 0 ${newExhibitHeight}px`;
                         graphSection.style.flex = `1 1 0`; // Takes remaining space
                         extensionsSection.style.flex = `0 0 ${startExtensionsHeight}px`; // FIXED
+                        
+                        // Save the new heights to sessionStorage
+                        setFileSpecificStorage('sessionExhibitHeight', newExhibitHeight.toString());
+                        setFileSpecificStorage('sessionExtensionsHeight', startExtensionsHeight.toString());
                     }
                 } else {
                     // Exhibit is currently collapsed
@@ -1046,6 +1095,10 @@
                         exhibitSection.style.flex = `0 0 ${startExhibitHeight}px`; // FIXED
                         graphSection.style.flex = `1 1 0`; // Takes remaining space
                         extensionsSection.style.flex = `0 0 ${newExtensionsHeight}px`;
+                        
+                        // Save the new heights to sessionStorage
+                        setFileSpecificStorage('sessionExhibitHeight', startExhibitHeight.toString());
+                        setFileSpecificStorage('sessionExtensionsHeight', newExtensionsHeight.toString());
                     }
                 } else {
                     // Extensions is currently collapsed
