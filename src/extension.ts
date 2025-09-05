@@ -102,7 +102,53 @@ export function activate(context: vscode.ExtensionContext) {
         await exportActiveHtml();
     });
 
-    context.subscriptions.push(generateReportCommand, refreshPythonCommand, exportHtmlCommand, yamlWatcher);
+    const aboutCommand = vscode.commands.registerCommand('argBlaze.about', async () => {
+        const packageJson = require('../package.json');
+        const version = packageJson.version;
+        const displayName = packageJson.displayName;
+        const publisher = packageJson.publisher;
+        
+        // Get environment information
+        const os = require('os');
+        const osType = os.type();
+        const osRelease = os.release();
+        const osArch = os.arch();
+        const vscodeVersion = vscode.version;
+        const nodeVersion = process.version;
+        
+        // Get Python version information
+        let pythonVersion = 'Not available';
+        
+        try {
+            const config = vscode.workspace.getConfiguration('argBlaze');
+            const pythonPath = config.get<string>('pythonInterpreter');
+            
+            if (pythonPath && pythonPath.trim() !== '') {
+                // Get Python version
+                const pythonCommand = process.platform === 'win32' 
+                    ? `"${pythonPath}" --version`    // Windows
+                    : `${pythonPath} --version`;     // macOS/Linux
+                
+                const { stdout: pythonStdout } = await execAsync(pythonCommand);
+                pythonVersion = pythonStdout.trim();
+            }
+        } catch (error) {
+            // If we can't get Python version, keep the default "Not available"
+            console.log('Could not retrieve Python version:', error);
+        }
+        
+        const aboutMessage = `${displayName} v${version}+1a5fa01
+Publisher: ${publisher}
+
+• ${osType} ${osRelease} (${osArch})
+• VS Code ${vscodeVersion}
+• Node.js ${nodeVersion}
+• ${pythonVersion}`;
+        
+        vscode.window.showInformationMessage(aboutMessage, { modal: true });
+    });
+
+    context.subscriptions.push(generateReportCommand, refreshPythonCommand, exportHtmlCommand, aboutCommand, yamlWatcher);
 }
 
 async function handleYamlFileChange(uri: vscode.Uri, context: vscode.ExtensionContext) {
@@ -362,7 +408,7 @@ else:
         // Show progress indicator for manual generation
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: "Generating an HTML report with ArgBlaze v0.0.1+22a1a82...",
+            title: "Generating an HTML report...",
             cancellable: false
         }, updateReport);
     } else {

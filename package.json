@@ -41,6 +41,11 @@
         "command": "argBlaze.exportHtml",
         "title": "Export as HTML",
         "category": "ArgBlaze"
+      },
+      {
+        "command": "argBlaze.about",
+        "title": "About ArgBlaze",
+        "category": "ArgBlaze"
       }
     ],
     "menus": {
@@ -56,6 +61,11 @@
           "command": "argBlaze.exportHtml",
           "when": "webviewId == afReport",
           "group": "navigation"
+        },
+        {
+          "command": "argBlaze.about",
+          "when": "webviewId == afReport",
+          "group": "about"
         }
       ]
     },

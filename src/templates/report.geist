@@ -21,6 +21,14 @@
             <h3>Graph</h3>
             <div class="header-controls">
                 <div class="display-controls">
+                    <label for="theme-selector">Theme:</label>
+                    <select id="theme-selector" class="display-dropdown">
+                        <option value="default" selected>Default</option>
+                        <option value="green">Green</option>
+                        <option value="xray">XRAY</option>
+                    </select>
+                </div>
+                <div class="display-controls">
                     <label for="rank-direction">Rank from:</label>
                     <select id="rank-direction" class="display-dropdown">
                         <option value="top" selected>Top</option>
@@ -79,7 +87,6 @@
 <script>
     const argumentationData = {{ af4graph }};
     const extensionData = {{ af4ext }};
-    console.log(extensionData);
     let panzoomInstance = null;
     let currentStepIndex = 0;
     let maxStepIndex = 0;

@@ -131,7 +131,7 @@
             .extension-values{color:#555;flex:1;display:flex;flex-wrap:wrap;gap:4px}
             /* Ensure each set can wrap its own content if it gets too long */
             .extension-set{border:1px solid #d0d0d0;background:#f0f0f0;box-shadow:0 1px 2px rgba(0,0,0,.1);max-width:100%;word-break:break-word;white-space:normal}
-            .extension-set:hover,.extension-set.selected{background:#FFE6CC;border-color:#D79B00;box-shadow:0 2px 4px rgba(0,0,0,.15)}
+            .extension-set:hover,.extension-set.selected{background:var(--extension-hover-bg);border-color:var(--extension-hover-border);color:var(--extension-hover-text);box-shadow:0 2px 4px rgba(0,0,0,.15)}
             .extension-set.selected{font-weight:600}
             /* Responsive */
             @media(max-width:600px){
@@ -466,6 +466,54 @@
         });
     }
 
+    // Get theme colors based on selected theme
+    function getThemeColors() {
+        const theme = sessionStorage.getItem('sessionTheme') ?? document.getElementById('theme-selector').value;
+        document.getElementById('theme-selector').value = theme;
+        
+        switch (theme) {
+            default: // default theme
+                return {
+                    default: 'fill:#D9E7D6,stroke:#8CB26F',
+                    add: 'fill:#D9E7D6,stroke:#8CB26F,stroke-width:2px,font-weight:bold',
+                    select: 'fill:#FFE6CC,stroke:#D79B00',
+                    selectadd: 'fill:#FFE6CC,stroke:#D79B00,stroke-width:2px,font-weight:bold'
+                };
+            case 'green':
+                return {
+                    default: 'fill:#D5E8D4,stroke:#8CB26F',
+                    add: 'fill:#D5E8D4,stroke:#8CB26F,stroke-width:2px,font-weight:bold',
+                    select: 'fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff',
+                    selectadd: 'fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff,stroke-width:2px,font-weight:bold'
+                };
+            case 'xray':
+                return {
+                    default: 'fill:#F4BA71,stroke:#000000',
+                    add: 'fill:#F4BA71,stroke:#000000,stroke-width:2px,font-weight:bold',
+                    select: 'fill:#6DCCFA,stroke:#000000',
+                    selectadd: 'fill:#6DCCFA,stroke:#000000,stroke-width:2px,font-weight:bold'
+                };
+        }
+    }
+
+    // Update extension-set styling based on current theme
+    function updateExtensionStyling() {
+        const themeColors = getThemeColors();
+        const root = document.documentElement;
+        
+        // Extract colors from select field
+        const selectColors = themeColors.select;
+        const fillMatch = selectColors.match(/fill:([^,]+)/);
+        const strokeMatch = selectColors.match(/stroke:([^,]+)/);
+        const colorMatch = selectColors.match(/color:([^,]+)/);
+        
+        if (fillMatch && strokeMatch) {
+            root.style.setProperty('--extension-hover-bg', fillMatch[1]);
+            root.style.setProperty('--extension-hover-border', strokeMatch[1]);
+            root.style.setProperty('--extension-hover-text', colorMatch ? colorMatch[1] : 'inherit');
+        }
+    }
+
     async function render() {
 
         // Zoom/pan state shared across renders
@@ -476,9 +524,11 @@
         mermaidContainer.innerHTML = '';
 
         let graph = `graph BT\n`;
-        graph += `  classDef default fill:#D9E7D6,stroke:#8CB26F\n`
-        graph += `  classDef add fill:#DAE8FC,stroke:#6C8EBF\n`
-        graph += `  classDef select fill:#FFE6CC,stroke:#D79B00\n`
+        const themeColors = getThemeColors();
+        graph += `  classDef default ${themeColors.default}\n`
+        graph += `  classDef add ${themeColors.add}\n`
+        graph += `  classDef select ${themeColors.select}\n`
+        graph += `  classDef selectadd ${themeColors.selectadd}\n`
         
         // Add subgraphs
         graph += generateSubgraphs(currentStepIndex);
@@ -491,11 +541,15 @@
             graph += `  ${node.id}[\"${node.label}\"]\n`;
             
             // Determine node color based on state
-            let defaultNodes='', addedNodes='', selectedNodes='';
+            let defaultNodes='', addedNodes='', selectedNodes='', selectedAddNodes='';
 
-            if (colors[node.id] === '#FFE6CC') {
-                // Extension selected - keep the selected highlighting
-                selectedNodes += selectedNodes ? `,${node.id}` : node.id;
+            if (colors[node.id] !== null) {
+                // Node is highlighted (selected)
+                if (newNodeIds.has(node.id)){
+                    selectedAddNodes += selectedAddNodes ? `,${node.id}` : node.id;
+                } else {
+                    selectedNodes += selectedNodes ? `,${node.id}` : node.id;
+                }
             } else if (newNodeIds.has(node.id)) {
                 // Newly added node in current step
                 addedNodes += addedNodes ? `,${node.id}` : node.id;
@@ -507,6 +561,7 @@
             if (defaultNodes) graph += `  class ${defaultNodes} default\n`;
             if (addedNodes) graph += `  class ${addedNodes} add\n`;
             if (selectedNodes) graph += `  class ${selectedNodes} select\n`;
+            if (selectedAddNodes) graph += `  class ${selectedAddNodes} selectadd\n`;
         });
         // Add attack relationships - use filtered attacks for current step
         const filteredAttacks = getFilteredAttacks(currentStepIndex);
@@ -567,7 +622,7 @@
             // Update colors object for highlighted nodes
             colors = {};
             nodeData.forEach(node => {
-                colors[node.id] = nodeIds.includes(node.id) ? '#FFE6CC' : null;
+                colors[node.id] = nodeIds.includes(node.id) ? 'selected' : null;
             });
         }
         // Re-render the graph with updated colors
@@ -577,7 +632,10 @@
     function resetNodeHighlighting() {
         // Reset all colors to null
         colors = {};
-        nodeData.forEach(node => colors[node.id] = null);
+        // Rebuild colors object for current nodeData
+        if (nodeData) {
+            nodeData.forEach(node => colors[node.id] = null);
+        }
     }
 
     function resetExtensionSelection() {
@@ -607,6 +665,9 @@
         sessionStorage.setItem('sessionDisplayMode', displayMode);
         // Update nodeData with new labels
         nodeData = fetchNodeData(displayMode);
+        // Rebuild colors object for new nodeData
+        colors = {};
+        nodeData.forEach(node => colors[node.id] = null);
         // Reset panzoom instance so it will be recreated with new scale
         if (panzoomInstance) {
             panzoomInstance.destroy();
@@ -616,6 +677,22 @@
     }
 
     function setupControls() {
+        // Setup theme dropdown
+        const themeSelector = document.getElementById('theme-selector');
+        if (themeSelector) {
+            themeSelector.addEventListener('change', () => {
+                sessionStorage.setItem('sessionTheme', themeSelector.value);
+                // Update extension styling for new theme
+                updateExtensionStyling();
+                // Reset panzoom instance so it will be recreated with new scale
+                if (panzoomInstance) {
+                    panzoomInstance.destroy();
+                    panzoomInstance = null;
+                }
+                render();
+            });
+        }
+
         // Setup display dropdown
         const displayModeSelect = document.getElementById('argument-display-mode');
         if (displayModeSelect) {
@@ -694,6 +771,9 @@
         const displayMode = sessionStorage.getItem('sessionDisplayMode') ?? document.getElementById('argument-display-mode').value;
         document.getElementById('argument-display-mode').value = displayMode;
         
+        const theme = sessionStorage.getItem('sessionTheme') ?? document.getElementById('theme-selector').value;
+        document.getElementById('theme-selector').value = theme;
+        
         // Initialize step navigation
         initializeSteps();
         setupStepNavigation();
@@ -713,6 +793,7 @@
         render();
         setupExtensionClickHandlers();
         setupControls();
+        updateExtensionStyling();
     }
 
     // Function to toggle section collapse/expand
