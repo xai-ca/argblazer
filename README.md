@@ -9,7 +9,7 @@ A VS Code extension that uses Geist to generate HTML reports from argumentation 
 
 - Generate HTML reports from argumentation frameworks represented by YAML files.
 - Automatically updates the report when the modifications of a YAML file is saved.
-- Side-by-side webview display of the generated report, showing the graph alongside its conflict-free, admissible, complete, preferred, grounded, and stable extensions.
+- Side-by-side webview display of the generated report, showing the graph alongside its conflict-free, admissible, complete, preferred, grounded, and stable extensions. Whenever opened, the webview creates a new tab to the right of the active editor. The webview always opens in a new tab to the right of the active editor&mdash;either directly beside an existing tab or as a new tab if none exists.
 
 ## Requirements
 

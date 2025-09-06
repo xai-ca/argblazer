@@ -206,7 +206,11 @@
             currentStepIndex = maxStepIndex + 1;
         } else {
             currentStepIndex = actualSteps.indexOf(preservedStepValue);
-            currentStepIndex = currentStepIndex === -1 ? maxStepIndex + 1 : currentStepIndex;
+            if (currentStepIndex === -1) {
+                // Find the next available step value greater than preservedStepValue
+                const nextStep = actualSteps.find(step => step > preservedStepValue);
+                currentStepIndex = nextStep !== undefined ? actualSteps.indexOf(nextStep) : maxStepIndex + 1;
+            }
         }
         
         updateStepIndicator();
@@ -470,23 +474,23 @@
             default: // default theme
                 return {
                     default: 'fill:#D9E7D6,stroke:#8CB26F',
-                    add: 'fill:#D9E7D6,stroke:#8CB26F,stroke-width:2px,font-weight:bold',
+                    add: 'fill:#D9E7D6,stroke:#000000,stroke-width:4px',
                     select: 'fill:#FFE6CC,stroke:#D79B00',
-                    selectadd: 'fill:#FFE6CC,stroke:#D79B00,stroke-width:2px,font-weight:bold'
+                    selectadd: 'fill:#FFE6CC,stroke:#000000,stroke-width:4px'
                 };
             case 'green':
                 return {
-                    default: 'fill:#D5E8D4,stroke:#8CB26F',
-                    add: 'fill:#D5E8D4,stroke:#8CB26F,stroke-width:2px,font-weight:bold',
+                    default: 'fill:#D5E8D4,stroke:#004d00',
+                    add: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px',
                     select: 'fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff',
-                    selectadd: 'fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff,stroke-width:2px,font-weight:bold'
+                    selectadd: 'fill:#0F7C0F,stroke:#004d00,color:#ffffff,stroke-width:4px'
                 };
             case 'xray':
                 return {
                     default: 'fill:#F4BA71,stroke:#000000',
-                    add: 'fill:#F4BA71,stroke:#000000,stroke-width:2px,font-weight:bold',
+                    add: 'fill:#F4BA71,stroke:#000000,stroke-width:4px',
                     select: 'fill:#6DCCFA,stroke:#000000',
-                    selectadd: 'fill:#6DCCFA,stroke:#000000,stroke-width:2px,font-weight:bold'
+                    selectadd: 'fill:#6DCCFA,stroke:#000000,stroke-width:4px'
                 };
         }
     }
@@ -563,14 +567,16 @@
         // Add attack relationships - use filtered attacks for current step
         const filteredAttacks = getFilteredAttacks(currentStepIndex);
         filteredAttacks.forEach(attack => {
-            graph += `    ${attack[0]} --> ${attack[1]}\n`;
+            const isNewAttack = newNodeIds.has(attack[0]) || newNodeIds.has(attack[1]);
+            const arrowType = isNewAttack ? '==>' : '-->';
+            graph += `    ${attack[0]} ${arrowType} ${attack[1]}\n`;
         });
         try {
             const { svg } = await mermaid.render('diagram-id', graph);
             mermaidContainer.innerHTML = svg;
             
-        if (!panzoomInstance) {
-            initializePanzoom(wrapper, mermaidContainer);
+            if (!panzoomInstance) {
+                initializePanzoom(wrapper, mermaidContainer);
         }
         } catch (error) {
             console.error('Error rendering mermaid diagram:', error);
@@ -909,12 +915,12 @@
 
         // Create extension items
         const extensionTypes = [
-            { key: 'conflict_free', label: 'Conflict-free', id: 'conflict-free-item', hidden: true },
-            { key: 'admissible', label: 'Admissible', id: 'admissible-item', hidden: true },
+            { key: 'grounded', label: 'Grounded', id: 'grounded-item', hidden: false },
+            { key: 'stable', label: 'Stable', id: 'stable-item', hidden: false },
             { key: 'complete', label: 'Complete', id: 'complete-item', hidden: false },
             { key: 'preferred', label: 'Preferred', id: 'preferred-item', hidden: false },
-            { key: 'grounded', label: 'Grounded', id: 'grounded-item', hidden: false },
-            { key: 'stable', label: 'Stable', id: 'stable-item', hidden: false }
+            { key: 'conflict_free', label: 'Conflict-free', id: 'conflict-free-item', hidden: true },
+            { key: 'admissible', label: 'Admissible', id: 'admissible-item', hidden: true }
         ];
 
         extensionTypes.forEach(type => {
@@ -1146,7 +1152,7 @@
         
     // Helper functions for file-specific sessionStorage
     function getFileSpecificKey(key) {
-        return `argblaze_${fileKey}_${key}`;
+        return `argblazer_${fileKey}_${key}`;
     }
     
     function getFileSpecificStorage(key, defaultValue) {
@@ -1166,8 +1172,8 @@
     const exhibitContent = document.getElementById('exhibit-content');
     const extensionsContent = document.getElementById('extensions-content');
 
-    initializeSectionHeight();    
     initializeGraph();
+    initializeSectionHeight();
     setupResizeHandles();
     updateResizeHandleVisibility();
 {% endtemplate %}

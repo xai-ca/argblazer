@@ -29,8 +29,8 @@
     "commands": [
       {
         "command": "argBlazer.generateReport",
-        "title": "Generate HTML Report",
-        "icon": "$(preview)"
+        "title": "Generate ArgBlazer Report to the right",
+        "icon": "./media/icon.png"
       },
       {
         "command": "argBlazer.refreshPythonInterpreter",
