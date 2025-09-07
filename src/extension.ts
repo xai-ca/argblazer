@@ -48,7 +48,17 @@ export function activate(context: vscode.ExtensionContext) {
             
             // Validate YAML
             try {
-                yaml.load(yamlContent);
+                const yamlData = yaml.load(yamlContent) as any;
+                // Check if 'arguments' keyword exists
+                if (!yamlData || !yamlData.hasOwnProperty('arguments')) {
+                    vscode.window.showErrorMessage('YAML file must contain an "arguments" keyword');
+                    return;
+                }
+                // Check if 'arguments' is a non-empty list
+                if (!Array.isArray(yamlData.arguments) || yamlData.arguments.length === 0) {
+                    vscode.window.showErrorMessage('The "arguments" field must be a non-empty list');
+                    return;
+                }
             } catch (error) {
                 vscode.window.showErrorMessage('Invalid YAML format');
                 return;
@@ -283,7 +293,7 @@ json_data = json.loads('''${escapedJson}''')
 for idx in range(len(json_data['arguments'])):
     if type(json_data['arguments'][idx]) == str:
         first = json_data['arguments'][idx] if idx == 0 else first
-        json_data['arguments'][idx] = {json_data['arguments'][idx]: ''}
+        json_data['arguments'][idx] = {json_data['arguments'][idx]: []}
     else:
         for k, v in json_data['arguments'][idx].items():
             first = k if idx == 0 else first
@@ -394,8 +404,10 @@ else:
             let errorMsg = `Failed to generate report: ${error.message}`;
             if (error.message.includes('ENOENT') || error.message.includes('not found')) {
                 errorMsg = 'Python interpreter not found. Please check your Python interpreter path in settings.';
-            } else if (error.message.includes('geist')) {
-                errorMsg = 'Geist package not found. Please ensure geist is installed in your Python environment.';
+            } else if (error.message.includes('line 44, in <module>')) {
+                errorMsg = 'The YAML file must contain an "arguments" keyword, which must be a non-empty list.';
+            } else if (error.message.includes('line 80, in <module>') || error.message.includes('line 84, in <module>')) {
+                errorMsg = 'The "attacks" field must be a non-empty list of lists, where each inner list has at least two elements and the first attacks the second.';
             }
             
             vscode.window.showErrorMessage(errorMsg, 'Open Settings').then(selection => {

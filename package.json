@@ -30,7 +30,10 @@
       {
         "command": "argBlazer.generateReport",
         "title": "Generate ArgBlazer Report to the right",
-        "icon": "./media/icon.png"
+        "icon": {
+          "light": "media/button-light.png",
+          "dark": "media/button-dark.png"
+        }
       },
       {
         "command": "argBlazer.refreshPythonInterpreter",

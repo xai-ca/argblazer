@@ -114,7 +114,14 @@
             /* Main content wrapper */
             .main-content{display:flex;flex-direction:column;min-height:0}
             /* Graph container */
-            #graph-container{width:calc(100% - 2px);margin-left:0;margin-right:0;flex:1;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;background:#f8f9fa;box-shadow:0 2px 4px rgba(0,0,0,.05)}
+            #graph-container{width:calc(100% - 2px);margin-left:0;margin-right:0;flex:1;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;background:#f8f9fa;box-shadow:0 2px 4px rgba(0,0,0,.05);position:relative}
+            /* Zoom controls */
+            .zoom-controls{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:4px;z-index:1000}
+            .zoom-btn{width:32px;height:32px;padding:0;font-size:16px;font-weight:600;font-family:'JetBrains Mono',monospace;background:#fff;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.1)}
+            .zoom-btn:hover{background:#f0f0f0;border-color:#bbb;box-shadow:0 3px 6px rgba(0,0,0,.15)}
+            .zoom-btn:active{background:#e0e0e0;border-color:#999;transform:translateY(1px)}
+            .zoom-btn:disabled{background:#f8f8f8;border-color:#e0e0e0;color:#ccc;cursor:not-allowed;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+            .zoom-btn:disabled:hover{background:#f8f8f8;border-color:#e0e0e0;transform:none}
             .diagram-wrapper{display:flex;justify-content:center;align-items:center;height:100%;transform-origin: center;font-size:16px;color:#666}
             .error{color:#555;text-align:center;padding:20px}
             /* Extension list */
@@ -451,10 +458,11 @@
     }
 
     function initializePanzoom(wrapper, mermaidContainer) {
-        // Create new panzoom instance with fit-to-screen scale
+        
+        // Create new panzoom instance
         panzoomInstance = Panzoom(mermaidContainer, { 
             canvas: true, 
-            startScale: getFitScale(wrapper, mermaidContainer),
+            startScale: savedZoomLevel ?? getFitScale(wrapper, mermaidContainer),
             minScale: 0.1,  // Minimum zoom level (10%)
             maxScale: 5.0   // Maximum zoom level (500%)
         });
@@ -463,6 +471,38 @@
             if (!event.shiftKey) return;
             panzoomInstance.zoomWithWheel(event);
         });
+    }
+
+    // Zoom control functions
+    function zoomIn() {
+        if (panzoomInstance) {
+            panzoomInstance.zoomIn();
+            // Save zoom level for step navigation
+            savedZoomLevel = panzoomInstance.getScale();
+        }
+    }
+
+    function zoomOut() {
+        if (panzoomInstance) {
+            panzoomInstance.zoomOut();
+            // Save zoom level for step navigation
+            savedZoomLevel = panzoomInstance.getScale();
+        }
+    }
+
+    function fitToScreen() {
+        if (panzoomInstance) {
+            const mermaidContainer = document.getElementById('mermaid-diagram');
+            const wrapper = document.getElementById('wrapper');
+            if (mermaidContainer && wrapper) {
+                const fitScale = getFitScale(wrapper, mermaidContainer);
+                // Reset to center and fit scale
+                panzoomInstance.zoom(fitScale, { animate: true });
+                panzoomInstance.pan(0, 0, { animate: true });
+                // Clear saved zoom level to return to auto-fit
+                savedZoomLevel = null;
+            }
+        }
     }
 
     // Get theme colors based on selected theme
@@ -682,7 +722,12 @@
             nodeData.forEach(node => colors[node.id] = null);
         }
         
-        // Reset panzoom instance so it will be recreated with new scale
+        // Save zoom level only during step navigation, but not if we're in auto-fit mode
+        if (panzoomInstance && flag === 'StepNavigation' && savedZoomLevel !== null) {
+            savedZoomLevel = panzoomInstance.getScale();
+        }
+        
+        // Reset panzoom instance so it will be recreated
         if (panzoomInstance) {
             panzoomInstance.destroy();
             panzoomInstance = null;
@@ -691,6 +736,21 @@
     }
 
     function setupControls() {
+        // Setup zoom controls
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const zoomFitBtn = document.getElementById('zoom-fit-btn');
+
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', zoomIn);
+        }
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', zoomOut);
+        }
+        if (zoomFitBtn) {
+            zoomFitBtn.addEventListener('click', fitToScreen);
+        }
+
         // Setup theme dropdown
         const themeSelector = document.getElementById('theme-selector');
         if (themeSelector) {
