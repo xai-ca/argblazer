@@ -507,7 +507,8 @@
 
     // Get theme colors based on selected theme
     function getThemeColors() {
-        const theme = getFileSpecificStorage('sessionTheme', document.getElementById('theme-selector').value);
+        // Use global storage for theme so it applies to all YAML files
+        const theme = sessionStorage.getItem('argblazer_global_sessionTheme') ?? document.getElementById('theme-selector').value;
         document.getElementById('theme-selector').value = theme;
         
         switch (theme) {
@@ -755,7 +756,8 @@
         const themeSelector = document.getElementById('theme-selector');
         if (themeSelector) {
             themeSelector.addEventListener('change', () => {
-                setFileSpecificStorage('sessionTheme', themeSelector.value);
+                // Use global storage for theme so it applies to all YAML files
+                sessionStorage.setItem('argblazer_global_sessionTheme', themeSelector.value);
                 // Update extension styling for new theme
                 updateExtensionStyling();
                 // Reset panzoom instance so it will be recreated with new scale
@@ -881,7 +883,8 @@
         const displayMode = getFileSpecificStorage('sessionDisplayMode', document.getElementById('argument-display-mode').value);
         document.getElementById('argument-display-mode').value = displayMode;
         
-        const theme = getFileSpecificStorage('sessionTheme', document.getElementById('theme-selector').value);
+        // Use global storage for theme so it applies to all YAML files
+        const theme = sessionStorage.getItem('argblazer_global_sessionTheme') ?? document.getElementById('theme-selector').value;
         document.getElementById('theme-selector').value = theme;
         
         // Initialize step navigation

@@ -147,7 +147,7 @@ export function activate(context: vscode.ExtensionContext) {
             console.log('Could not retrieve Python version:', error);
         }
         
-        const aboutMessage = `${displayName} v${version}+d838e67
+        const aboutMessage = `${displayName} v${version}+17d6bda
 Publisher: ${publisher}
 
 • ${osType} ${osRelease} (${osArch})
