@@ -1,12 +1,10 @@
 import * as vscode from 'vscode';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as yaml from 'js-yaml';
-
-const execAsync = promisify(exec);
+import { preprocessAndCompute } from './preprocessor';
+import { renderHtml } from './htmlRenderer';
 
 // Track active report panels and their associated YAML file URIs
 const activeReportPanels = new Map<string, vscode.WebviewPanel>();
@@ -18,16 +16,16 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Set up file system watcher for YAML files
     const yamlWatcher = vscode.workspace.createFileSystemWatcher('**/*.{yaml,yml}');
-    
+
     // Watch for file changes (save events)
     yamlWatcher.onDidChange(async (uri) => {
         console.log(`YAML file changed: ${uri.fsPath}`);
-        await handleYamlFileChange(uri, context);
+        await handleYamlFileChange(uri);
     });
 
     const generateReportCommand = vscode.commands.registerCommand('argBlazer.generateReport', async () => {
         const activeEditor = vscode.window.activeTextEditor;
-        
+
         if (!activeEditor) {
             vscode.window.showErrorMessage('No active editor found');
             return;
@@ -45,7 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
         try {
             // Get the YAML content
             const yamlContent = document.getText();
-            
+
             // Validate YAML
             try {
                 const yamlData = yaml.load(yamlContent) as any;
@@ -79,7 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
                         retainContextWhenHidden: true
                     }
                 );
-                
+
                 // Track the panel
                 activeReportPanels.set(fileKey, panel);
                 isNewPanel = true;
@@ -96,16 +94,12 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             // Generate and update the report
-            await generateAndUpdateReport(yamlContent, panel, context, isNewPanel, fileKey);
+            await generateAndUpdateReport(yamlContent, panel, isNewPanel, fileKey);
 
         } catch (error: any) {
             console.error('Outer error details:', error);
             vscode.window.showErrorMessage(`Error: ${error.message}`);
         }
-    });
-
-    const refreshPythonCommand = vscode.commands.registerCommand('argBlazer.refreshPythonInterpreter', async () => {
-        vscode.window.showInformationMessage('Python interpreter configuration will be re-read on next report generation.');
     });
 
     const exportHtmlCommand = vscode.commands.registerCommand('argBlazer.exportHtml', async () => {
@@ -117,54 +111,32 @@ export function activate(context: vscode.ExtensionContext) {
         const version = packageJson.version;
         const displayName = packageJson.displayName;
         const publisher = packageJson.publisher;
-        
+
         // Get environment information
-        const os = require('os');
-        const osType = os.type();
-        const osRelease = os.release();
-        const osArch = os.arch();
+        const osInfo = require('os');
+        const osType = osInfo.type();
+        const osRelease = osInfo.release();
+        const osArch = osInfo.arch();
         const vscodeVersion = vscode.version;
         const nodeVersion = process.version;
-        
-        // Get Python version information
-        let pythonVersion = 'Not available';
-        
-        try {
-            const config = vscode.workspace.getConfiguration('argBlazer');
-            const pythonPath = config.get<string>('pythonInterpreter');
-            
-            if (pythonPath && pythonPath.trim() !== '') {
-                // Get Python version
-                const pythonCommand = process.platform === 'win32' 
-                    ? `"${pythonPath}" --version`    // Windows
-                    : `${pythonPath} --version`;     // macOS/Linux
-                
-                const { stdout: pythonStdout } = await execAsync(pythonCommand);
-                pythonVersion = pythonStdout.trim();
-            }
-        } catch (error) {
-            // If we can't get Python version, keep the default "Not available"
-            console.log('Could not retrieve Python version:', error);
-        }
-        
-        const aboutMessage = `${displayName} v${version}+17d6bda
+
+        const aboutMessage = `${displayName} v${version}
 Publisher: ${publisher}
 
 • ${osType} ${osRelease} (${osArch})
 • VS Code ${vscodeVersion}
-• Node.js ${nodeVersion}
-• ${pythonVersion}`;
-        
+• Node.js ${nodeVersion}`;
+
         vscode.window.showInformationMessage(aboutMessage, { modal: true });
     });
 
-    context.subscriptions.push(generateReportCommand, refreshPythonCommand, exportHtmlCommand, aboutCommand, yamlWatcher);
+    context.subscriptions.push(generateReportCommand, exportHtmlCommand, aboutCommand, yamlWatcher);
 }
 
-async function handleYamlFileChange(uri: vscode.Uri, context: vscode.ExtensionContext) {
+async function handleYamlFileChange(uri: vscode.Uri) {
     const fileKey = uri.toString();
     const panel = activeReportPanels.get(fileKey);
-    
+
     if (!panel) {
         // No active panel for this file, nothing to update
         return;
@@ -174,7 +146,7 @@ async function handleYamlFileChange(uri: vscode.Uri, context: vscode.ExtensionCo
         // Read the updated file content
         const document = await vscode.workspace.openTextDocument(uri);
         const yamlContent = document.getText();
-        
+
         // Validate YAML
         try {
             yaml.load(yamlContent);
@@ -184,10 +156,10 @@ async function handleYamlFileChange(uri: vscode.Uri, context: vscode.ExtensionCo
         }
 
         console.log(`Auto-updating report for: ${uri.fsPath}`);
-        
+
         // Update the existing panel with new content
-        await generateAndUpdateReport(yamlContent, panel, context, false, fileKey);
-        
+        await generateAndUpdateReport(yamlContent, panel, false, fileKey);
+
         // Bring the corresponding panel to the front
         try {
             panel.reveal(panel.viewColumn);
@@ -195,8 +167,8 @@ async function handleYamlFileChange(uri: vscode.Uri, context: vscode.ExtensionCo
             console.warn(`Failed to reveal panel for ${uri.fsPath}:`, revealError);
         }
 
-        // Show a brief notification that the report was updated
-        vscode.window.showInformationMessage(`Report updated for ${path.basename(uri.fsPath)}`, { modal: false });
+        // Show a brief auto-closing notification that the report was updated
+        void showBriefNotification(`Report updated for ${path.basename(uri.fsPath)}`);
 
     } catch (error: any) {
         console.error(`Error auto-updating report for ${uri.fsPath}:`, error);
@@ -204,25 +176,12 @@ async function handleYamlFileChange(uri: vscode.Uri, context: vscode.ExtensionCo
     }
 }
 
-async function generateAndUpdateReport(yamlContent: string, panel: vscode.WebviewPanel, context: vscode.ExtensionContext, showProgress: boolean = true, fileKey: string) {
+async function generateAndUpdateReport(yamlContent: string, panel: vscode.WebviewPanel, showProgress: boolean = true, fileKey: string) {
     const updateReport = async () => {
         try {
-            // Get Python interpreter path from configuration
-            const config = vscode.workspace.getConfiguration('argBlazer');
-            const pythonPath = config.get<string>('pythonInterpreter');
-            
-            if (!pythonPath || pythonPath.trim() === '') {
-                vscode.window.showErrorMessage('Python interpreter path not configured. Please set it in settings.', 'Open Settings').then(selection => {
-                    if (selection === 'Open Settings') {
-                        vscode.commands.executeCommand('workbench.action.openSettings', 'argBlazer.pythonInterpreter');
-                    }
-                });
-                return;
-            }
-            
-            // Convert YAML to JSON for Python processing
+            // Parse YAML
             const yamlData = yaml.load(yamlContent) as any;
-            
+
             // Convert arguments from YAML object format to JSON array format
             if (yamlData.arguments && typeof yamlData.arguments === 'object' && !Array.isArray(yamlData.arguments)) {
                 const argumentsArray = [];
@@ -231,190 +190,34 @@ async function generateAndUpdateReport(yamlContent: string, panel: vscode.Webvie
                 }
                 yamlData.arguments = argumentsArray;
             }
-            
-            const jsonContent = JSON.stringify(yamlData);
-            
-            // Call the Python package - escape JSON properly for shell
-            const escapedJson = jsonContent
-                .replace(/\\/g, '\\\\')        // Escape backslashes
-                .replace(/'/g, "\\'")          // Escape single quotes  
-                .replace(/\n/g, '\\n')         // Escape newlines
-                .replace(/\r/g, '\\r')         // Escape carriage returns
-                .replace(/\t/g, '\\t');        // Escape tabs
-            
-            // Get the extension's template file path
-            const templatePath = vscode.Uri.joinPath(context.extensionUri, 'src', 'templates').fsPath;
 
-            const tempFile = path.join(os.tmpdir(), `script_${Date.now()}.py`);
-            console.log('fileKey being passed to template:', fileKey);
-            const pythonCode = `
-from geist import report
-import networkx as nx
-import json, os, sys, ast
+            // Process data and compute extensions
+            const { jsonData, stepExtensions } = preprocessAndCompute(yamlData);
 
-def generate_report(template, af4ext, af4graph=None, exhibit=None):
-    expanded_report = report(
-        inputfile=os.path.join(r'${templatePath}', template), 
-        isinputpath=True,
-        args={
-            'af4graph': af4graph,
-            'af4ext': af4ext,
-            'exhibit': exhibit,
-            'tp': r'${templatePath}',
-            'file_key': r'${fileKey}'
-        }
-    )
-    return expanded_report
-
-def compute_rank(G, root, first, last, isTop=True):
-    if not root:
-        if (isTop and (not first)) or ((not isTop) and (not last)):
-            return {}
-        elif isTop and first:
-            root = [first]
-        elif (not isTop) and last:
-            root = [last]
-    if len(root) == 1:
-        return nx.single_source_shortest_path_length(G, root[0]) if root[0] in G else {}
-    else:
-        rank = {node: 0 for node in root}
-        for node in root:
-            shortest_path = nx.single_source_shortest_path_length(G, node) if node in G else {}
-            for k, v in shortest_path.items():
-                rank[k] = min(rank.get(k, v), v)
-        return rank
-
-first,hasStep = None, False
-top, bottom = [], []
-
-# Read JSON string
-json_data = json.loads('''${escapedJson}''')
-# process nodes (args) with missing text
-for idx in range(len(json_data['arguments'])):
-    if type(json_data['arguments'][idx]) == str:
-        first = json_data['arguments'][idx] if idx == 0 else first
-        json_data['arguments'][idx] = {json_data['arguments'][idx]: []}
-    else:
-        for k, v in json_data['arguments'][idx].items():
-            first = k if idx == 0 else first
-            for item in v:
-                if type(item) == dict and 'step' in item:
-                    hasStep = True
-                if item == 'top':
-                    top.append(k)
-                elif item == 'bottom':
-                    bottom.append(k)
-last = list(json_data['arguments'][-1].keys())[0] if first else None
-
-# Handle missing steps
-prev_step = 0
-step2args = {}
-for idx in range(len(json_data['arguments'])):
-    for k, v in json_data['arguments'][idx].items():
-        if hasStep:
-            currStep = False
-            for item in v:
-                if 'step' in item:
-                    prev_step = item['step']
-                    currStep = True
-            if not currStep:
-                v.append({'step': prev_step})
-        else:
-            v.append({'step': prev_step + 1})
-            prev_step = prev_step + 1
-        step2args[prev_step] = step2args.get(prev_step, []) + [k] 
-
-step2edges, step2ext = {}, {}
-if 'attacks' in json_data:
-    for attack in json_data['attacks']:
-        prev_args = []
-        for step in sorted(step2args.keys()):
-            argsInStep = step2args[step]
-            attacker, attackee = attack[0], attack[1]
-            if (attacker in argsInStep + prev_args) and (attackee in argsInStep + prev_args):
-                step2ext[step] = step2ext.get(step, '') + f'attacks({attacker}, {attackee}).\\n'
-                step2edges[step] = step2edges.get(step, []) + [(attacker, attackee)]
-            prev_args = prev_args + argsInStep
-            for arg in prev_args:
-                step2ext[step] = step2ext.get(step, '') + f'arg({arg}).\\n'
-
-json_data['steps'] = {'rank_top':[], 'rank_bottom': []}
-step_extensions = []
-for step in sorted(step2ext.keys()):
-    # Compute shortest distance as rank
-    G = nx.Graph()
-    if step in step2edges:
-        G.add_edges_from(step2edges[step])
-    json_data['steps']['rank_top'].append(compute_rank(G, top, first, last, isTop=True))
-    json_data['steps']['rank_bottom'].append(compute_rank(G, bottom, first, last, isTop=False))
-    # Compute extensions
-    extensions = ast.literal_eval('{' + generate_report('ext.geist', step2ext[step]).strip() + '}')
-    step_extensions.append(extensions)
-af4graph = json.dumps(json_data)
-af4ext = json.dumps(step_extensions)
-html_output = generate_report('report.geist', af4ext, af4graph, json_data['exhibit'] if 'exhibit' in json_data else '[Not provided]')
-sys.stdout.write(html_output)
-sys.stdout.flush()
-
-# Immediate exit to avoid cleanup crash
-if sys.platform == 'win32':
-    os._exit(0)  # Skip cleanup entirely on Windows
-else:
-    sys.exit(0)  # Normal exit on other platforms
-            `;
-            // Write and execute
-            await fs.promises.writeFile(tempFile, pythonCode, 'utf8');
-            const pythonCommand = process.platform === 'win32' 
-                ? `"${pythonPath}" "${tempFile}"`    // Windows
-                : `${pythonPath} "${tempFile}"`;     // macOS/Linux
-            
-            const { stdout, stderr } = await execAsync(pythonCommand);
-            
-            console.log('Python stdout:', stdout);
-            console.log('Python stderr:', stderr);
-
-            // Cleanup
-            await fs.promises.unlink(tempFile);
-            
-            if (stderr) {
-                console.error('Python stderr:', stderr);
-                // Only show error if there's no stdout (some warnings might go to stderr)
-                if (!stdout) {
-                    vscode.window.showErrorMessage(`Python error: ${stderr}`);
-                    return;
-                }
-            }
+            // Generate HTML report
+            const af4graph = JSON.stringify(jsonData);
+            const af4ext = JSON.stringify(stepExtensions);
+            // Extract exhibit from raw YAML to preserve comments and newlines
+            const exhibit = extractRawExhibit(yamlContent) || '[Not provided]';
+            const htmlOutput = renderHtml({ af4graph, af4ext, exhibit, fileKey });
 
             // Store the HTML content for export
-            panelHtmlContent.set(fileKey, stdout);
-            
+            panelHtmlContent.set(fileKey, htmlOutput);
+
             // Update the webview content
-            panel.webview.html = stdout;
-            // For debug
-            //panel.webview.html = `<pre>${stdout.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`;
+            panel.webview.html = htmlOutput;
 
         } catch (error: any) {
-            console.error('Full error details:', error);
-            console.error('Error message:', error.message);
-            console.error('Error stack:', error.stack);
-            console.error('Error stdout:', error.stdout);
-            console.error('Error stderr:', error.stderr);
-            
-            // Show helpful error message based on common issues
+            console.error('Error generating report:', error);
+
             let errorMsg = `Failed to generate report: ${error.message}`;
-            if (error.message.includes('ENOENT') || error.message.includes('not found')) {
-                errorMsg = 'Python interpreter not found. Please check your Python interpreter path in settings.';
-            } else if (error.message.includes('line 44, in <module>')) {
+            if (error.message.includes('arguments')) {
                 errorMsg = 'The YAML file must contain an "arguments" keyword, which must be a non-empty list.';
-            } else if (error.message.includes('line 80, in <module>') || error.message.includes('line 84, in <module>')) {
+            } else if (error.message.includes('attacks')) {
                 errorMsg = 'The "attacks" field must be a non-empty list of lists, where each inner list has at least two elements and the first attacks the second.';
             }
-            
-            vscode.window.showErrorMessage(errorMsg, 'Open Settings').then(selection => {
-                if (selection === 'Open Settings') {
-                    vscode.commands.executeCommand('workbench.action.openSettings', 'argBlazer.pythonInterpreter');
-                }
-            });
+
+            vscode.window.showErrorMessage(errorMsg);
         }
     };
 
@@ -438,24 +241,24 @@ async function exportActiveHtml() {
         vscode.window.showErrorMessage('No active argBlazer report panel found');
         return;
     }
-    
+
     const [fileKey] = activePanel;
     const htmlContent = panelHtmlContent.get(fileKey);
     if (!htmlContent) {
         vscode.window.showErrorMessage('No HTML content available for export');
         return;
     }
-    
+
     // Get filename and show save dialog
     const fileName = path.basename(vscode.Uri.parse(fileKey).fsPath);
     const defaultFileName = fileName.replace(/\.(yaml|yml)$/, '') + '_argBlazerReport.html';
     const downloadsPath = path.join(os.homedir(), 'Downloads', defaultFileName);
-    
+
     const saveUri = await vscode.window.showSaveDialog({
         defaultUri: vscode.Uri.file(downloadsPath),
         filters: { 'HTML Files': ['html'] }
     });
-    
+
     if (saveUri) {
         try {
             await fs.promises.writeFile(saveUri.fsPath, htmlContent, 'utf8');
@@ -466,8 +269,77 @@ async function exportActiveHtml() {
     }
 }
 
+async function showBriefNotification(title: string, durationMs: number = 1500) {
+    await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title,
+        cancellable: false
+    }, async () => {
+        await new Promise<void>((resolve) => setTimeout(resolve, durationMs));
+    });
+}
+
+/**
+ * Extract exhibit text directly from raw YAML content,
+ * preserving comments (#) and newlines that yaml.load() would strip.
+ */
+function extractRawExhibit(yamlContent: string): string | null {
+    const lines = yamlContent.split('\n');
+    let foundExhibit = false;
+    let blockIndicator = false;
+    const contentLines: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        if (!foundExhibit) {
+            // Look for top-level exhibit key (no leading whitespace)
+            const match = line.match(/^exhibit\s*:\s*(.*)/);
+            if (match) {
+                foundExhibit = true;
+                const rest = match[1].trim();
+                if (rest === '|' || rest === '>' || rest === '|-' || rest === '>-') {
+                    // Block scalar — collect subsequent indented lines
+                    blockIndicator = true;
+                    continue;
+                } else if (rest && !rest.startsWith('#')) {
+                    // Inline value on the same line
+                    return rest;
+                }
+                // Empty or comment after colon — collect subsequent indented lines
+                continue;
+            }
+        } else {
+            // Stop at the next top-level key (non-indented, non-empty, non-comment line)
+            if (line.trim() !== '' && /^\S/.test(line)) {
+                break;
+            }
+            contentLines.push(line);
+        }
+    }
+
+    if (!foundExhibit || contentLines.length === 0) { return null; }
+
+    // Remove common leading indentation
+    const nonEmptyLines = contentLines.filter(l => l.trim() !== '');
+    if (nonEmptyLines.length === 0) { return null; }
+
+    const minIndent = Math.min(...nonEmptyLines.map(l => {
+        const m = l.match(/^(\s*)/);
+        return m ? m[1].length : 0;
+    }));
+    const trimmed = contentLines.map(l => l.length >= minIndent ? l.substring(minIndent) : l);
+
+    // Remove trailing empty lines
+    while (trimmed.length > 0 && trimmed[trimmed.length - 1].trim() === '') {
+        trimmed.pop();
+    }
+
+    return trimmed.length > 0 ? trimmed.join('\n') : null;
+}
+
 export function deactivate() {
     // Clean up all tracked panels
     activeReportPanels.clear();
     panelHtmlContent.clear();
-} 
+}

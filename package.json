@@ -1,9 +1,9 @@
 {
   "name": "argblazer",
   "displayName": "ArgBlazer",
-  "description": "Convert YAML files representing argumentation frameworks into HTML reports using Geist",
+  "description": "Convert YAML files representing argumentation frameworks into interactive HTML reports",
   "publisher": "CIRSS",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/xai-ca/argblazer.git"
@@ -36,11 +36,6 @@
         }
       },
       {
-        "command": "argBlazer.refreshPythonInterpreter",
-        "title": "Refresh Python Interpreter",
-        "category": "ArgBlazer"
-      },
-      {
         "command": "argBlazer.exportHtml",
         "title": "Export as HTML",
         "category": "ArgBlazer"
@@ -71,22 +66,13 @@
           "group": "about"
         }
       ]
-    },
-    "configuration": {
-      "title": "ArgBlazer",
-      "properties": {
-        "argBlazer.pythonInterpreter": {
-          "type": "string",
-          "default": "",
-          "description": "Path to Python interpreter with geist package installed (required)."
-        }
-      }
     }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "test": "tsc --module commonjs --target ES2022 --moduleResolution node --esModuleInterop --outDir out/tests --rootDir . tests/argumentation.test.ts src/argumentation.ts && node out/tests/tests/argumentation.test.js"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"

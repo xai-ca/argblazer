@@ -1,16 +1,6 @@
 Included Dependencies and Licenses
 
-Geist (latest)
-License: MIT
-Source: https://github.com/CIRSS/geist-p
-License available at:https://github.com/CIRSS/geist-p/blob/main/LICENSE
-
-argparse (v2.0.1)
-License: Python Software Foundation License 2.0
-Source: https://github.com/nodeca/argparse
-Redistributed under the Python-2.0 license. See node_modules/argparse/LICENSE for details.
-
-js-yaml (v4.1.0)
+js-yaml (v4.1.1)
 License: MIT
 Source: https://github.com/nodeca/js-yaml
 Author: Vladimir Zapparov dervus.grim@gmail.com
@@ -20,18 +10,27 @@ Prism.js (v1.29.0)
 License: MIT
 Source: https://github.com/PrismJS/prism
 Files used via CDN:
-prism-core.min.js
-prism-python.min.js
-prism-line-numbers.min.js
+  prism.min.css
+  prism-core.min.js
+  prism-python.min.js
+  prism-line-numbers.min.css
+  prism-line-numbers.min.js
 License available at: https://github.com/PrismJS/prism/blob/master/LICENSE
 
-vis-network (v9.x)
+Mermaid (v11.9.0)
 License: MIT
-Source: https://github.com/visjs/vis-network
+Source: https://github.com/mermaid-js/mermaid
 File used via CDN:
-vis-network.min.js
-License available at: https://github.com/visjs/vis-network/blob/master/LICENSE-MIT
+  mermaid.min.js
+License available at: https://github.com/mermaid-js/mermaid/blob/develop/LICENSE
+
+Panzoom (v4.6.0)
+License: MIT
+Source: https://github.com/timmywil/panzoom
+File used via CDN:
+  panzoom.min.js
+License available at: https://github.com/timmywil/panzoom/blob/main/MIT-License.txt
 
 Project License
-This extension (argblazer, version 0.0.1) is licensed under the MIT License.
+This extension (argblazer, version 0.1.0) is licensed under the MIT License.
 Source: https://github.com/xai-ca/argblazer

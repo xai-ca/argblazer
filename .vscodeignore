@@ -1,0 +1,11 @@
+.vscode/**
+.vscode-test/**
+tests/**
+out/tests/**
+src/**
+tsconfig.json
+.gitignore
+.DS_Store
+clean.sh
+**/*.ts
+**/*.map
