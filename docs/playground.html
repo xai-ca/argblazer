@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArgBlazer Playground</title>
+    <meta name="description" content="Try ArgBlazer in your browser: edit YAML argumentation frameworks and see interactive visualizations instantly.">
+    <link rel="icon" type="image/png" sizes="32x32" href="media/favicon-32.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;600;700;800&display=swap");
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; overflow: hidden; font-family: "Space Grotesk", sans-serif; background: #fff; color: #0b0b11; }
+        a { color: inherit; text-decoration: none; }
+
+        .topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 20px; border-bottom: 1px solid #e0e0e0;
+            background: #fff; height: 52px;
+        }
+        .logo {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: "JetBrains Mono", monospace; letter-spacing: 0.08em;
+            text-transform: uppercase; font-size: 0.8rem;
+        }
+        .logo img { height: 30px; width: auto; }
+        .nav { display: flex; align-items: center; gap: 16px; font-weight: 600; font-size: 0.85rem; }
+        .pill {
+            background: #0b0b11; color: #f8f4ee; border: none; padding: 7px 14px;
+            border-radius: 999px; font-family: inherit; font-weight: 800; font-size: 0.8rem;
+            line-height: 1; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .pill:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+
+        #workspace { display: flex; height: calc(100vh - 52px); }
+
+        #editor-panel {
+            display: flex; flex-direction: column; width: 38%; min-width: 220px; background: #fff;
+        }
+        .panel-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 6px 12px; background: #f5f5f5;
+            border-bottom: 1px solid #e0e0e0; height: 36px; flex-shrink: 0;
+        }
+        .panel-label {
+            font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase;
+            color: #8a8a95; font-weight: 600; font-family: "JetBrains Mono", monospace;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .panel-label::before {
+            content: ""; width: 8px; height: 8px; border-radius: 2px; background: #ffc857;
+        }
+        #example-select {
+            font-family: "JetBrains Mono", monospace; font-size: 0.75rem;
+            padding: 3px 8px; border: 1px solid rgba(0,0,0,0.12); border-radius: 6px;
+            background: #f5f5f5; cursor: pointer; color: #333;
+        }
+        #editor-container { flex: 1; overflow: hidden; }
+
+        #divider {
+            width: 5px; background: #e0e0e0; cursor: col-resize;
+            flex-shrink: 0; transition: background 0.15s;
+        }
+        #divider:hover, #divider.active { background: #aaa; }
+
+        #preview-panel {
+            flex: 1; min-width: 220px; display: flex; flex-direction: column; background: #fff;
+        }
+        #error-bar {
+            padding: 10px 16px; background: #fff3f3; color: #c0392b;
+            font-family: "JetBrains Mono", monospace; font-size: 0.8rem;
+            border-bottom: 1px solid #f5c6cb; white-space: pre-wrap;
+        }
+        #preview-frame { flex: 1; border: none; width: 100%; height: 100%; }
+
+        .panel-btn {
+            font-family: "JetBrains Mono", monospace; font-size: 0.7rem; font-weight: 600;
+            padding: 3px 10px; border-radius: 6px; cursor: pointer;
+            border: 1px solid rgba(0,0,0,0.12); transition: all 0.15s; line-height: 1.4;
+        }
+        .run-btn { background: #28a745; color: #fff; border-color: #1e7e34; }
+        .run-btn:hover { background: #1e7e34; }
+        .share-btn { background: #f5f5f5; color: #333; }
+        .share-btn:hover { background: #e5e5e5; }
+
+        .CodeMirror {
+            height: 100%; font-family: 'JetBrains Mono', monospace !important; font-size: 14px;
+            background: #fff;
+        }
+        .CodeMirror-gutters { background: #f5f5f5; border-right: 1px solid #e0e0e0; }
+
+        @media (max-width: 768px) {
+            #workspace { flex-direction: column; }
+            #editor-panel { width: 100% !important; height: 40%; min-width: unset; }
+            #divider { width: 100%; height: 5px; cursor: row-resize; }
+            #preview-panel { min-width: unset; }
+        }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <a href="index.html" class="logo">
+            <img src="media/icon.png" alt="ArgBlazer icon">
+            <span>ArgBlazer</span>
+        </a>
+        <nav class="nav">
+            <a href="https://github.com/xai-ca/argblazer">GitHub</a>
+            <button class="pill" id="installBtn">Install</button>
+        </nav>
+    </header>
+
+    <div id="workspace">
+        <div id="editor-panel">
+            <div class="panel-header">
+                <span class="panel-label">YAML</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <select id="example-select">
+                        <option value="tweety">Tweety Bird</option>
+                        <option value="steps">Step-by-step</option>
+                        <option value="topbottom">Top / Bottom</option>
+                    </select>
+                    <button id="runBtn" class="panel-btn run-btn" title="Run visualization (Ctrl+S / ⌘S)">&#9654; Run</button>
+                    <button id="shareBtn" class="panel-btn share-btn" title="Copy share link to clipboard">Share</button>
+                </div>
+            </div>
+            <div id="editor-container"></div>
+        </div>
+        <div id="divider"></div>
+        <div id="preview-panel">
+            <div id="error-bar" style="display: none;"></div>
+            <iframe id="preview-frame"></iframe>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+    <script>
+    // =====================================================================
+    //  Example YAML content
+    // =====================================================================
+    var EXAMPLES = {
+        tweety: 'exhibit: |\n  Tweety is a bird.\n  Tweety is a penguin.\narguments:\n  - a:\n    - summary: Tweety can fly because birds typically can fly\n    - details:\n      - rule: Birds typically can fly\n      - evidence: Tweety is a bird\n      - conclusion: Tweety can fly\n  - b:\n    - summary: Tweety cannot fly because it is a penguin\n    - details:\n      - rule: Penguins cannot fly\n      - evidence: Tweety is a penguin\n      - conclusion: Tweety cannot fly\nattacks:\n  - [b, a]',
+
+        steps: 'arguments:\n  - a:\n    - step: 1\n  - b:\n    - step: 1\n  - c:\n    - step: 2\n  - d:\n    - step: 3\nattacks:\n  - [b, a]\n  - [c, b]\n  - [d, c]',
+
+        topbottom: 'arguments:\n  - a:\n    - top\n  - b\n  - c\n  - d:\n    - bottom\n  - e:\n    - bottom\nattacks:\n  - [b, a]\n  - [c, b]\n  - [d, c]\n  - [e, b]'
+    };
+
+    // =====================================================================
+    //  Computation engine (ported from TypeScript)
+    // =====================================================================
+
+    // --- bfs.ts ---
+    function buildUndirectedGraph(edges) {
+        var graph = new Map();
+        for (var i = 0; i < edges.length; i++) {
+            var u = edges[i][0], v = edges[i][1];
+            if (!graph.has(u)) graph.set(u, new Set());
+            if (!graph.has(v)) graph.set(v, new Set());
+            graph.get(u).add(v);
+            graph.get(v).add(u);
+        }
+        return graph;
+    }
+
+    function singleSourceShortestPathLength(graph, source) {
+        if (!graph.has(source)) return new Map();
+        var distances = new Map();
+        distances.set(source, 0);
+        var queue = [source];
+        while (queue.length > 0) {
+            var node = queue.shift();
+            var dist = distances.get(node);
+            var neighbors = graph.get(node) || [];
+            for (var nb of neighbors) {
+                if (!distances.has(nb)) {
+                    distances.set(nb, dist + 1);
+                    queue.push(nb);
+                }
+            }
+        }
+        return distances;
+    }
+
+    function computeRank(edges, roots, first, last, isTop) {
+        var effectiveRoots = roots.slice();
+        if (effectiveRoots.length === 0) {
+            if (isTop && first) effectiveRoots = [first];
+            else if (!isTop && last) effectiveRoots = [last];
+            else return {};
+        }
+        var graph = buildUndirectedGraph(edges);
+        if (effectiveRoots.length === 1) {
+            var source = effectiveRoots[0];
+            if (!graph.has(source)) return {};
+            var distances = singleSourceShortestPathLength(graph, source);
+            var result = {};
+            distances.forEach(function(v, k) { result[k] = v; });
+            return result;
+        }
+        var rank = {};
+        for (var ri = 0; ri < effectiveRoots.length; ri++) rank[effectiveRoots[ri]] = 0;
+        for (var ri = 0; ri < effectiveRoots.length; ri++) {
+            var root = effectiveRoots[ri];
+            if (!graph.has(root)) continue;
+            var distances = singleSourceShortestPathLength(graph, root);
+            distances.forEach(function(v, k) {
+                if (rank[k] === undefined) rank[k] = v;
+                else rank[k] = Math.min(rank[k], v);
+            });
+        }
+        return rank;
+    }
+
+    // --- argumentation.ts ---
+    function isConflictFree(subset, attacks) {
+        for (var i = 0; i < attacks.length; i++) {
+            if (subset.has(attacks[i][0]) && subset.has(attacks[i][1])) return false;
+        }
+        return true;
+    }
+
+    function isDefended(arg, subset, attacks) {
+        for (var i = 0; i < attacks.length; i++) {
+            if (attacks[i][1] === arg) {
+                var attacker = attacks[i][0];
+                var defended = false;
+                for (var j = 0; j < attacks.length; j++) {
+                    if (attacks[j][1] === attacker && subset.has(attacks[j][0])) {
+                        defended = true; break;
+                    }
+                }
+                if (!defended) return false;
+            }
+        }
+        return true;
+    }
+
+    function isAdmissible(subset, attacks) {
+        if (!isConflictFree(subset, attacks)) return false;
+        for (var x of subset) {
+            if (!isDefended(x, subset, attacks)) return false;
+        }
+        return true;
+    }
+
+    function isComplete(subset, args, attacks) {
+        if (!isAdmissible(subset, attacks)) return false;
+        for (var i = 0; i < args.length; i++) {
+            if (subset.has(args[i])) continue;
+            if (isDefended(args[i], subset, attacks)) return false;
+        }
+        return true;
+    }
+
+    function isStable(subset, args, attacks) {
+        if (!isConflictFree(subset, attacks)) return false;
+        for (var i = 0; i < args.length; i++) {
+            if (subset.has(args[i])) continue;
+            var attacked = false;
+            for (var j = 0; j < attacks.length; j++) {
+                if (attacks[j][1] === args[i] && subset.has(attacks[j][0])) {
+                    attacked = true; break;
+                }
+            }
+            if (!attacked) return false;
+        }
+        return true;
+    }
+
+    function isProperSuperset(a, b) {
+        if (a.size <= b.size) return false;
+        for (var x of b) { if (!a.has(x)) return false; }
+        return true;
+    }
+
+    function computeGrounded(args, attacks) {
+        var inSet = new Set();
+        var outSet = new Set();
+        var changed = true;
+        while (changed) {
+            changed = false;
+            for (var i = 0; i < args.length; i++) {
+                var x = args[i];
+                if (inSet.has(x) || outSet.has(x)) continue;
+                var attackers = [];
+                for (var j = 0; j < attacks.length; j++) {
+                    if (attacks[j][1] === x) attackers.push(attacks[j][0]);
+                }
+                if (attackers.every(function(y) { return outSet.has(y); })) {
+                    inSet.add(x); changed = true;
+                }
+            }
+            for (var k = 0; k < attacks.length; k++) {
+                if (inSet.has(attacks[k][0]) && !outSet.has(attacks[k][1])) {
+                    outSet.add(attacks[k][1]); changed = true;
+                }
+            }
+        }
+        return inSet;
+    }
+
+    function generatePowerSet(args) {
+        var n = args.length;
+        var total = 1 << n;
+        var result = [];
+        for (var mask = 0; mask < total; mask++) {
+            var subset = new Set();
+            for (var j = 0; j < n; j++) {
+                if (mask & (1 << j)) subset.add(args[j]);
+            }
+            result.push(subset);
+        }
+        return result;
+    }
+
+    function setToSortedArray(s) { return Array.from(s).sort(); }
+
+    function computeExtensions(af) {
+        var args = af.args, attacks = af.attacks;
+        var allSubsets = generatePowerSet(args);
+        var conflictFree = allSubsets.filter(function(s) { return isConflictFree(s, attacks); });
+        var admissible = conflictFree.filter(function(s) { return isAdmissible(s, attacks); });
+        var complete = admissible.filter(function(s) { return isComplete(s, args, attacks); });
+        var preferred = admissible.filter(function(ext) {
+            return !admissible.some(function(other) { return other !== ext && isProperSuperset(other, ext); });
+        });
+        var grounded = computeGrounded(args, attacks);
+        var stable = conflictFree.filter(function(s) { return isStable(s, args, attacks); });
+        return {
+            conflict_free: conflictFree.map(setToSortedArray),
+            admissible: admissible.map(setToSortedArray),
+            complete: complete.map(setToSortedArray),
+            preferred: preferred.map(setToSortedArray),
+            grounded: [setToSortedArray(grounded)],
+            stable: stable.map(setToSortedArray)
+        };
+    }
+
+    // --- preprocessor.ts ---
+    function preprocessAndCompute(yamlData) {
+        var jsonData = JSON.parse(JSON.stringify(yamlData));
+        var first = null;
+        var hasStep = false;
+        var top = [];
+        var bottom = [];
+
+        for (var idx = 0; idx < jsonData.arguments.length; idx++) {
+            var arg = jsonData.arguments[idx];
+            if (typeof arg === 'string') {
+                if (idx === 0) first = arg;
+                var obj = {};
+                obj[arg] = [];
+                jsonData.arguments[idx] = obj;
+            } else {
+                var keys = Object.keys(arg);
+                for (var ki = 0; ki < keys.length; ki++) {
+                    var k = keys[ki];
+                    if (idx === 0) first = k;
+                    var v = arg[k] || [];
+                    for (var vi = 0; vi < v.length; vi++) {
+                        if (typeof v[vi] === 'object' && v[vi] !== null && 'step' in v[vi]) hasStep = true;
+                        if (v[vi] === 'top') top.push(k);
+                        else if (v[vi] === 'bottom') bottom.push(k);
+                    }
+                }
+            }
+        }
+
+        var lastArgObj = jsonData.arguments[jsonData.arguments.length - 1];
+        var last = first ? Object.keys(lastArgObj)[0] : null;
+
+        var prevStep = 0;
+        var step2args = new Map();
+
+        for (var idx = 0; idx < jsonData.arguments.length; idx++) {
+            var arg = jsonData.arguments[idx];
+            var keys = Object.keys(arg);
+            for (var ki = 0; ki < keys.length; ki++) {
+                var k = keys[ki];
+                var v = arg[k] || [];
+                if (hasStep) {
+                    var currStep = false;
+                    for (var vi = 0; vi < v.length; vi++) {
+                        if (typeof v[vi] === 'object' && v[vi] !== null && 'step' in v[vi]) {
+                            prevStep = v[vi].step;
+                            currStep = true;
+                        }
+                    }
+                    if (!currStep) v.push({ step: prevStep });
+                } else {
+                    v.push({ step: prevStep + 1 });
+                    prevStep = prevStep + 1;
+                }
+                var existing = step2args.get(prevStep) || [];
+                existing.push(k);
+                step2args.set(prevStep, existing);
+            }
+        }
+
+        var step2edges = new Map();
+        var step2extFacts = new Map();
+
+        (function() {
+            var prevArgs = [];
+            var sortedSteps = Array.from(step2args.keys()).sort(function(a, b) { return a - b; });
+            for (var si = 0; si < sortedSteps.length; si++) {
+                var step = sortedSteps[si];
+                var argsInStep = step2args.get(step) || [];
+                prevArgs = prevArgs.concat(argsInStep);
+                var af = { args: [], attacks: [] };
+                for (var ai = 0; ai < prevArgs.length; ai++) {
+                    if (!af.args.includes(prevArgs[ai])) af.args.push(prevArgs[ai]);
+                }
+                step2extFacts.set(step, af);
+            }
+        })();
+
+        if (jsonData.attacks) {
+            for (var ati = 0; ati < jsonData.attacks.length; ati++) {
+                var attack = jsonData.attacks[ati];
+                var prevArgs = [];
+                var sortedSteps = Array.from(step2args.keys()).sort(function(a, b) { return a - b; });
+                for (var si = 0; si < sortedSteps.length; si++) {
+                    var step = sortedSteps[si];
+                    var argsInStep = step2args.get(step) || [];
+                    var attacker = attack[0];
+                    var attackee = attack[1];
+                    var allAvailable = argsInStep.concat(prevArgs);
+                    if (allAvailable.includes(attacker) && allAvailable.includes(attackee)) {
+                        var edges = step2edges.get(step) || [];
+                        edges.push([attacker, attackee]);
+                        step2edges.set(step, edges);
+                        var af = step2extFacts.get(step);
+                        af.attacks.push([attacker, attackee]);
+                    }
+                    prevArgs = prevArgs.concat(argsInStep);
+                }
+            }
+        }
+
+        var rankTopArr = [];
+        var rankBottomArr = [];
+        var stepExtensions = [];
+        var sortedSteps = Array.from(step2extFacts.keys()).sort(function(a, b) { return a - b; });
+
+        for (var si = 0; si < sortedSteps.length; si++) {
+            var step = sortedSteps[si];
+            var edges = step2edges.get(step) || [];
+            rankTopArr.push(computeRank(edges, top, first, last, true));
+            rankBottomArr.push(computeRank(edges, bottom, first, last, false));
+            var af = step2extFacts.get(step);
+            stepExtensions.push(computeExtensions({ args: af.args, attacks: af.attacks }));
+        }
+
+        jsonData.steps = { rank_top: rankTopArr, rank_bottom: rankBottomArr };
+        return { jsonData: jsonData, stepExtensions: stepExtensions };
+    }
+
+    // --- extractRawExhibit ---
+    function extractRawExhibit(yamlContent) {
+        var lines = yamlContent.split('\n');
+        var foundExhibit = false;
+        var contentLines = [];
+
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i];
+            if (!foundExhibit) {
+                var match = line.match(/^exhibit\s*:\s*(.*)/);
+                if (match) {
+                    foundExhibit = true;
+                    var rest = match[1].trim();
+                    if (rest === '|' || rest === '>' || rest === '|-' || rest === '>-') continue;
+                    else if (rest && !rest.startsWith('#')) return rest;
+                    continue;
+                }
+            } else {
+                if (line.trim() !== '' && /^\S/.test(line)) break;
+                contentLines.push(line);
+            }
+        }
+
+        if (!foundExhibit || contentLines.length === 0) return null;
+        var nonEmptyLines = contentLines.filter(function(l) { return l.trim() !== ''; });
+        if (nonEmptyLines.length === 0) return null;
+
+        var minIndent = Math.min.apply(null, nonEmptyLines.map(function(l) {
+            var m = l.match(/^(\s*)/);
+            return m ? m[1].length : 0;
+        }));
+        var trimmed = contentLines.map(function(l) { return l.length >= minIndent ? l.substring(minIndent) : l; });
+        while (trimmed.length > 0 && trimmed[trimmed.length - 1].trim() === '') trimmed.pop();
+        return trimmed.length > 0 ? trimmed.join('\n') : null;
+    }
+
+    // =====================================================================
+    //  Report HTML generator
+    // =====================================================================
+
+    function getReportScriptFuncs() {
+        return `
+    function updateResizeHandleVisibility(){
+        var handle1 = document.getElementById('resize-handle-1');
+        var handle2 = document.getElementById('resize-handle-2');
+        var exhibitSection = document.getElementById('exhibit-section');
+
+        if (handle1 && exhibitSection) {
+            var exhibitStyle = window.getComputedStyle(exhibitSection);
+            var exhibitHidden = exhibitStyle.display === 'none';
+            handle1.style.display = exhibitHidden ? 'none' : 'flex';
+        }
+    }
+
+    function getFitScale(container, elem) {
+        var containerWidth = container.clientWidth;
+        var containerHeight = container.clientHeight;
+        var elemWidth = elem.clientWidth;
+        var elemHeight = elem.clientHeight;
+        return Math.min(containerWidth / elemWidth, containerHeight / elemHeight);
+    }
+
+    function initializeSteps() {
+        var stepSet = new Set();
+        if (argumentationData.arguments) {
+            argumentationData.arguments.forEach(function(arg) {
+                var argData = Object.values(arg)[0];
+                var stepItem = argData.find(function(item) { return item.step !== undefined; });
+                stepSet.add(stepItem.step);
+            });
+        }
+
+        actualSteps = Array.from(stepSet).sort(function(a, b) { return a - b; });
+        maxStepIndex = actualSteps.length - 1;
+
+        var stored = getFileSpecificStorage('sessionCurrentStepValue', 'End');
+        var preservedStepValue = stored === 'End' ? 'End' : parseInt(stored, 10);
+
+        if (preservedStepValue === 'End' || preservedStepValue == null) {
+            currentStepIndex = maxStepIndex + 1;
+        } else {
+            currentStepIndex = actualSteps.indexOf(preservedStepValue);
+            if (currentStepIndex === -1) {
+                var nextStep = actualSteps.find(function(step) { return step > preservedStepValue; });
+                currentStepIndex = nextStep !== undefined ? actualSteps.indexOf(nextStep) : maxStepIndex + 1;
+            }
+        }
+
+        updateStepIndicator();
+        updateResizeHandleVisibility();
+    }
+
+    function getFilteredArguments(stepIndex) {
+        if (!argumentationData.arguments) return [];
+
+        if (stepIndex > maxStepIndex) {
+            return argumentationData.arguments;
+        }
+
+        var currentActualStep = actualSteps[stepIndex];
+
+        return argumentationData.arguments.filter(function(arg) {
+            var argData = Object.values(arg)[0];
+            var stepItem = argData.find(function(item) { return item.step !== undefined; });
+            var argStep = stepItem.step;
+            return argStep <= currentActualStep;
+        });
+    }
+
+    function getNewArgumentsForStep(stepIndex) {
+        if (!argumentationData.arguments) return [];
+
+        if (stepIndex > maxStepIndex) {
+            return [];
+        }
+
+        var currentActualStep = actualSteps[stepIndex];
+
+        return argumentationData.arguments.filter(function(arg) {
+            var argData = Object.values(arg)[0];
+            var stepItem = argData.find(function(item) { return item.step !== undefined; });
+            var argStep = stepItem.step;
+            return argStep === currentActualStep;
+        });
+    }
+
+    function getFilteredAttacks(stepIndex) {
+        if (!argumentationData.attacks) return [];
+
+        var visibleArgIds = new Set();
+        getFilteredArguments(stepIndex).forEach(function(arg) {
+            visibleArgIds.add(Object.keys(arg)[0]);
+        });
+
+        return argumentationData.attacks.filter(function(attack) {
+            return visibleArgIds.has(attack[0]) && visibleArgIds.has(attack[1]);
+        });
+    }
+
+    function generateSubgraphs(stepIndex) {
+        var rankDirection = getFileSpecificStorage('sessionRankDirection', document.getElementById('rank-direction').value);
+        document.getElementById('rank-direction').value = rankDirection;
+        var effectiveStepIndex = Math.max(0, Math.min(stepIndex, maxStepIndex));
+        var rankArr = argumentationData.steps ? (rankDirection === 'top' ? argumentationData.steps.rank_top : argumentationData.steps.rank_bottom) : null;
+        var rankData = rankArr ? rankArr[effectiveStepIndex] : null;
+        if (!rankData) return '';
+
+        var filteredArguments = getFilteredArguments(stepIndex);
+        var visibleArgIds = new Set(filteredArguments.map(function(arg) { return Object.keys(arg)[0]; }));
+
+        var rankGroups = {};
+        Object.entries(rankData).forEach(function(entry) {
+            var argId = entry[0], rank = entry[1];
+            if (visibleArgIds.has(argId)) {
+                if (!rankGroups[rank]) {
+                    rankGroups[rank] = [];
+                }
+                rankGroups[rank].push(argId);
+            }
+        });
+
+        var sortedRanks = Object.keys(rankGroups).map(Number).sort(function(a, b) {
+            return rankDirection === 'top' ? b - a : a - b;
+        });
+
+        var subgraphString = '';
+        var subgraphIds = [];
+
+        sortedRanks.forEach(function(rank) {
+            var rankLabel = rank + 1;
+            var subgraphId = 'r' + rankLabel;
+            subgraphIds.push(subgraphId);
+            subgraphString += '  subgraph ' + subgraphId + '[Rank ' + rankLabel + ']\\n';
+            rankGroups[rank].forEach(function(argId) {
+                subgraphString += '    ' + argId + '\\n';
+            });
+            subgraphString += '  end\\n';
+        });
+
+        if (subgraphIds.length > 0) {
+            subgraphString += '  classDef ghost fill:transparent,stroke:none,color:transparent;\\n';
+            subgraphString += '  class ' + subgraphIds.join(',') + ' ghost\\n';
+        }
+
+        return subgraphString;
+    }
+
+    function updateStepIndicator() {
+        if (currentStepIndex <= maxStepIndex && currentStepIndex >= 0) {
+            var actualStep = actualSteps[currentStepIndex];
+            setFileSpecificStorage('sessionCurrentStepValue', actualStep.toString());
+            document.getElementById('step-indicator').textContent = 'Step ' + actualStep;
+        } else {
+            setFileSpecificStorage('sessionCurrentStepValue', 'End');
+            document.getElementById('step-indicator').textContent = 'End';
+        }
+
+        if (extensionsSection) {
+            extensionsSection.style.display = 'flex';
+        }
+
+        document.getElementById('prev-step').disabled = currentStepIndex <= 0;
+        document.getElementById('next-step').disabled = currentStepIndex > maxStepIndex;
+        document.getElementById('start-step').disabled = currentStepIndex <= 0;
+        document.getElementById('end-step').disabled = currentStepIndex > maxStepIndex;
+
+        updateExtensionsDisplay();
+    }
+
+    function setupStepNavigation() {
+        document.getElementById('prev-step').addEventListener('click', function() {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                updateStepIndicator();
+                updateGraph('StepNavigation');
+                resetExtensionSelection();
+                updateResizeHandleVisibility();
+            }
+        });
+
+        document.getElementById('next-step').addEventListener('click', function() {
+            if (currentStepIndex <= maxStepIndex) {
+                currentStepIndex++;
+                updateStepIndicator();
+                updateGraph('StepNavigation');
+                resetExtensionSelection();
+                updateResizeHandleVisibility();
+            }
+        });
+
+        document.getElementById('start-step').addEventListener('click', function() {
+            if (currentStepIndex > 0) {
+                currentStepIndex = 0;
+                updateStepIndicator();
+                updateGraph('StepNavigation');
+                resetExtensionSelection();
+                updateResizeHandleVisibility();
+            }
+        });
+
+        document.getElementById('end-step').addEventListener('click', function() {
+            if (currentStepIndex <= maxStepIndex) {
+                currentStepIndex = maxStepIndex + 1;
+                updateStepIndicator();
+                updateGraph('StepNavigation');
+                resetExtensionSelection();
+                updateResizeHandleVisibility();
+            }
+        });
+    }
+
+    function formatMultiLineLabel(key, argData, displayMode) {
+        displayMode = displayMode || 'label-summary';
+        var separator = "<hr style='border:0;border-top:1px dashed;margin:0;'/>";
+        if (displayMode === 'label' || typeof argData === 'string') {
+            return "<div style='display:flex;align-items:center;justify-content:center;padding:2px 10px;font-size:16px;white-space:nowrap;'>" + key + "</div>";
+        }
+
+        var formattedText = key + "<br>" + separator;
+
+        var summaryItem = argData.find(function(item) { return item.summary; });
+        if (summaryItem && summaryItem.summary) {
+            formattedText += "<span style='padding:4px;'>" + summaryItem.summary + "</span>";
+        }
+
+        if (displayMode === 'label-summary-details') {
+            var detailsItem = argData.find(function(item) { return item.details; });
+            if (detailsItem && detailsItem.details) {
+                var details = detailsItem.details;
+
+                var formattedDetails = '';
+                var isListFormat = false;
+
+                if (typeof details === 'string') {
+                    formattedDetails = details;
+                } else if (Array.isArray(details)) {
+                    details.forEach(function(item) {
+                        isListFormat = true;
+                        if (typeof item === 'string') {
+                            formattedDetails += '<li>' + item + '</li>';
+                        } else if (typeof item === 'object' && item !== null) {
+                            var allKeys = new Set();
+                            Object.keys(item).forEach(function(key) { allKeys.add(key); });
+
+                            allKeys.forEach(function(key) {
+                                if (item[key]) {
+                                    formattedDetails += '<li><i>' + key + '</i>: ' + item[key] + '</li>';
+                                } else {
+                                    formattedDetails += '<li>' + key + '</li>';
+                                }
+                            });
+                        }
+                    });
+                }
+                if (formattedDetails) {
+                    if (isListFormat) {
+                        formattedText += separator + '<ul style="margin:0; text-align:left;">' + formattedDetails + '</ul>';
+                    } else {
+                        formattedText += separator + formattedDetails;
+                    }
+                }
+            }
+        }
+        return "<div style='min-width:150px;max-width:350px;word-wrap:break-word;'>" + formattedText + "</div>";
+    }
+
+    function initializePanzoom(wrapper, mermaidContainer) {
+        panzoomInstance = Panzoom(mermaidContainer, {
+            canvas: true,
+            startScale: savedZoomLevel != null ? savedZoomLevel : getFitScale(wrapper, mermaidContainer),
+            minScale: 0.1,
+            maxScale: 5.0
+        });
+        wrapper.addEventListener('wheel', function(event) {
+            if (!event.shiftKey) return;
+            panzoomInstance.zoomWithWheel(event);
+        });
+    }
+
+    function zoomIn() {
+        if (panzoomInstance) {
+            panzoomInstance.zoomIn();
+            savedZoomLevel = panzoomInstance.getScale();
+        }
+    }
+
+    function zoomOut() {
+        if (panzoomInstance) {
+            panzoomInstance.zoomOut();
+            savedZoomLevel = panzoomInstance.getScale();
+        }
+    }
+
+    function fitToScreen() {
+        if (panzoomInstance) {
+            var mermaidContainer = document.getElementById('mermaid-diagram');
+            var wrapper = document.getElementById('wrapper');
+            if (mermaidContainer && wrapper) {
+                var fitScale = getFitScale(wrapper, mermaidContainer);
+                panzoomInstance.zoom(fitScale, { animate: true });
+                panzoomInstance.pan(0, 0, { animate: true });
+                savedZoomLevel = null;
+            }
+        }
+    }
+
+    function getThemeColors() {
+        var theme = sessionStorage.getItem('argblazer_global_sessionTheme') || document.getElementById('theme-selector').value;
+        document.getElementById('theme-selector').value = theme;
+
+        switch (theme) {
+            case 'green':
+                return {
+                    'default': 'fill:#D5E8D4,stroke:#004d00',
+                    add: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px',
+                    select: 'fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff',
+                    selectadd: 'fill:#0F7C0F,stroke:#004d00,color:#ffffff,stroke-width:4px'
+                };
+            case 'xray':
+                return {
+                    'default': 'fill:#F4BA71,stroke:#000000',
+                    add: 'fill:#F4BA71,stroke:#000000,stroke-width:4px',
+                    select: 'fill:#6DCCFA,stroke:#000000',
+                    selectadd: 'fill:#6DCCFA,stroke:#000000,stroke-width:4px'
+                };
+            default:
+                return {
+                    'default': 'fill:#D9E7D6,stroke:#8CB26F',
+                    add: 'fill:#D9E7D6,stroke:#000000,stroke-width:4px',
+                    select: 'fill:#FFE6CC,stroke:#D79B00',
+                    selectadd: 'fill:#FFE6CC,stroke:#000000,stroke-width:4px'
+                };
+        }
+    }
+
+    function updateExtensionStyling() {
+        var themeColors = getThemeColors();
+        var root = document.documentElement;
+
+        var selectColors = themeColors.select;
+        var fillMatch = selectColors.match(/fill:([^,]+)/);
+        var strokeMatch = selectColors.match(/stroke:([^,]+)/);
+        var colorMatch = selectColors.match(/color:([^,]+)/);
+
+        if (fillMatch && strokeMatch) {
+            root.style.setProperty('--extension-hover-bg', fillMatch[1]);
+            root.style.setProperty('--extension-hover-border', strokeMatch[1]);
+            root.style.setProperty('--extension-hover-text', colorMatch ? colorMatch[1] : 'inherit');
+        }
+    }
+
+    async function render() {
+        var mermaidContainer = document.getElementById('mermaid-diagram')
+        var wrapper = document.getElementById('wrapper');
+
+        mermaidContainer.innerHTML = '';
+
+        var graph = 'graph BT\\n';
+        var themeColors = getThemeColors();
+        graph += '  classDef default ' + themeColors['default'] + '\\n';
+        graph += '  classDef add ' + themeColors.add + '\\n';
+        graph += '  classDef select ' + themeColors.select + '\\n';
+        graph += '  classDef selectadd ' + themeColors.selectadd + '\\n';
+
+        graph += generateSubgraphs(currentStepIndex);
+
+        var newNodes = currentStepIndex > 0 ? getNewArgumentsForStep(currentStepIndex) : [];
+        var newNodeIds = new Set(newNodes.map(function(arg) { return Object.keys(arg)[0]; }));
+
+        var defaultNodes='', addedNodes='', selectedNodes='', selectedAddNodes='';
+
+        nodeData.forEach(function(node) {
+            graph += '  ' + node.id + '["' + node.label + '"]\\n';
+
+            if (colors[node.id] !== null) {
+                if (newNodeIds.has(node.id)){
+                    selectedAddNodes += selectedAddNodes ? ',' + node.id : node.id;
+                } else {
+                    selectedNodes += selectedNodes ? ',' + node.id : node.id;
+                }
+            } else if (newNodeIds.has(node.id)) {
+                addedNodes += addedNodes ? ',' + node.id : node.id;
+            } else {
+                defaultNodes += defaultNodes ? ',' + node.id : node.id;
+            }
+        });
+
+        if (defaultNodes) graph += '  class ' + defaultNodes + ' default\\n';
+        if (addedNodes) graph += '  class ' + addedNodes + ' add\\n';
+        if (selectedNodes) graph += '  class ' + selectedNodes + ' select\\n';
+        if (selectedAddNodes) graph += '  class ' + selectedAddNodes + ' selectadd\\n';
+
+        var filteredAttacks = getFilteredAttacks(currentStepIndex);
+        filteredAttacks.forEach(function(attack) {
+            var isNewAttack = newNodeIds.has(attack[0]) || newNodeIds.has(attack[1]);
+            var arrowType = isNewAttack ? '==>' : '-->';
+            graph += '    ' + attack[0] + ' ' + arrowType + ' ' + attack[1] + '\\n';
+        });
+        try {
+            var result = await mermaid.render('diagram-id', graph);
+            mermaidContainer.innerHTML = result.svg;
+
+            if (!panzoomInstance) {
+                initializePanzoom(wrapper, mermaidContainer);
+            }
+        } catch (error) {
+            console.error('Error rendering mermaid diagram:', error);
+        }
+    }
+
+    function setupExtensionClickHandlers() {
+        var currentlySelected = null;
+
+        document.querySelectorAll('.extension-set').forEach(function(setElement) {
+            setElement.addEventListener('click', function(event) {
+                event.preventDefault();
+
+                if (currentlySelected === setElement) {
+                    resetNodeHighlighting();
+                    setElement.classList.remove('selected');
+                    currentlySelected = null;
+                    render();
+                    return;
+                }
+
+                if (currentlySelected) {
+                    currentlySelected.classList.remove('selected');
+                }
+
+                setElement.classList.add('selected');
+                currentlySelected = setElement;
+
+                var setData = setElement.getAttribute('data-set');
+                var nodeIds = parseExtensionSet(setData);
+                highlightNodes(nodeIds);
+            });
+        });
+    }
+
+    function parseExtensionSet(setString) {
+        if (setString === '{}') return [];
+        var content = setString.slice(1, -1).trim();
+        return content ? content.split(',').map(function(id) { return id.trim(); }) : [];
+    }
+
+    function highlightNodes(nodeIds) {
+        if (nodeIds.length === 0) {
+            resetNodeHighlighting();
+        } else {
+            colors = {};
+            nodeData.forEach(function(node) {
+                colors[node.id] = nodeIds.includes(node.id) ? 'selected' : null;
+            });
+        }
+        render();
+    }
+
+    function resetNodeHighlighting() {
+        colors = {};
+        if (nodeData) {
+            nodeData.forEach(function(node) { colors[node.id] = null; });
+        }
+    }
+
+    function resetExtensionSelection() {
+        resetNodeHighlighting();
+
+        document.querySelectorAll('.extension-set.selected').forEach(function(setElement) {
+            setElement.classList.remove('selected');
+        });
+    }
+
+    function fetchNodeData(displayMode) {
+        var filteredArguments = getFilteredArguments(currentStepIndex);
+        return filteredArguments.map(function(arg) {
+            var key = Object.keys(arg)[0];
+            var argData = arg[key];
+            var hasSummary = Array.isArray(argData) && argData.some(function(item) { return item && item.summary; });
+            return {
+                id: key,
+                label: (hasSummary || displayMode === 'label') ? formatMultiLineLabel(key, argData, displayMode) : "<div style='display:flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;aspect-ratio:1;font-size:18px;'>" + key + "</div>",
+                shape: 'rect'
+            };
+        });
+    }
+
+    function updateGraph(flag) {
+        flag = flag || 'DisplayMode';
+        var displayMode = document.getElementById('argument-display-mode').value;
+        setFileSpecificStorage('sessionDisplayMode', displayMode);
+        nodeData = fetchNodeData(displayMode);
+        if (flag === 'DisplayMode') {
+            var oldColors = colors || {};
+            colors = {};
+            nodeData.forEach(function(node) {
+                colors[node.id] = oldColors[node.id] || null;
+            });
+        } else {
+            colors = {};
+            nodeData.forEach(function(node) { colors[node.id] = null; });
+        }
+
+        if (panzoomInstance && flag === 'StepNavigation' && savedZoomLevel !== null) {
+            savedZoomLevel = panzoomInstance.getScale();
+        }
+
+        if (panzoomInstance) {
+            panzoomInstance.destroy();
+            panzoomInstance = null;
+        }
+        render();
+    }
+
+    function setupControls() {
+        var zoomInBtn = document.getElementById('zoom-in-btn');
+        var zoomOutBtn = document.getElementById('zoom-out-btn');
+        var zoomFitBtn = document.getElementById('zoom-fit-btn');
+
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', zoomIn);
+        }
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', zoomOut);
+        }
+        if (zoomFitBtn) {
+            zoomFitBtn.addEventListener('click', fitToScreen);
+        }
+
+        var themeSelector = document.getElementById('theme-selector');
+        if (themeSelector) {
+            themeSelector.addEventListener('change', function() {
+                sessionStorage.setItem('argblazer_global_sessionTheme', themeSelector.value);
+                updateExtensionStyling();
+                if (panzoomInstance) {
+                    panzoomInstance.destroy();
+                    panzoomInstance = null;
+                }
+                render();
+            });
+        }
+
+        var displayModeSelect = document.getElementById('argument-display-mode');
+        if (displayModeSelect) {
+            displayModeSelect.addEventListener('change', function() { updateGraph('DisplayMode'); });
+        }
+
+        var rankDirectionSelect = document.getElementById('rank-direction');
+        if (rankDirectionSelect) {
+            rankDirectionSelect.addEventListener('change', function() {
+                setFileSpecificStorage('sessionRankDirection', rankDirectionSelect.value);
+                if (panzoomInstance) {
+                    panzoomInstance.destroy();
+                    panzoomInstance = null;
+                }
+                render();
+            });
+        }
+
+        var conflictFreeBtn = document.getElementById('toggle-conflict-free');
+        var admissibleBtn = document.getElementById('toggle-admissible');
+
+        if (conflictFreeBtn) {
+            if (getFileSpecificStorage('sessionConflictFreeHide', 'true') === 'false') {
+                var conflictFreeItem = document.getElementById('conflict-free-item');
+                conflictFreeBtn.classList.toggle('active');
+                conflictFreeItem.style.display = 'flex';
+                conflictFreeBtn.textContent = 'Hide Conflict-free';
+            }
+            conflictFreeBtn.addEventListener('click', function() {
+                var conflictFreeItem = document.getElementById('conflict-free-item');
+                if (conflictFreeItem) {
+                    conflictFreeBtn.classList.toggle('active');
+                    if (conflictFreeBtn.classList.contains('active')) {
+                        conflictFreeItem.style.display = 'none';
+                        conflictFreeBtn.textContent = 'Show Conflict-free';
+                        setFileSpecificStorage('sessionConflictFreeHide', 'true');
+                    } else {
+                        conflictFreeItem.style.display = 'flex';
+                        conflictFreeBtn.textContent = 'Hide Conflict-free';
+                        setFileSpecificStorage('sessionConflictFreeHide', 'false');
+                    }
+                }
+            });
+        }
+
+        if (admissibleBtn) {
+            if (getFileSpecificStorage('sessionAdmissibleHide', 'true') === 'false') {
+                var admissibleItem = document.getElementById('admissible-item');
+                admissibleBtn.classList.toggle('active');
+                admissibleItem.style.display = 'flex';
+                admissibleBtn.textContent = 'Hide Admissible';
+            }
+            admissibleBtn.addEventListener('click', function() {
+                var admissibleItem = document.getElementById('admissible-item');
+                if (admissibleItem) {
+                    admissibleBtn.classList.toggle('active');
+                    if (admissibleBtn.classList.contains('active')) {
+                        admissibleItem.style.display = 'none';
+                        admissibleBtn.textContent = 'Show Admissible';
+                        setFileSpecificStorage('sessionAdmissibleHide', true);
+                    } else {
+                        admissibleItem.style.display = 'flex';
+                        admissibleBtn.textContent = 'Hide Admissible';
+                        setFileSpecificStorage('sessionAdmissibleHide', false);
+                    }
+                }
+            });
+        }
+    }
+
+    function initializeSectionHeight() {
+        var maxSectionHeight = windowHeight / 4;
+
+        var exhibitHeaderHeight = exhibitSection.querySelector('.section-header').offsetHeight;
+        var extensionsHeaderHeight = extensionsSection.querySelector('.section-header').offsetHeight;
+        var exhibitContentHeight = exhibitContent.scrollHeight;
+        var extensionsContentHeight = extensionsContent.scrollHeight;
+
+        var exhibitDesiredHeight = Math.min(exhibitHeaderHeight + exhibitContentHeight, maxSectionHeight);
+        var extensionsDesiredHeight = Math.min(extensionsHeaderHeight + extensionsContentHeight, maxSectionHeight);
+
+        var exhibitDesiredHeightCheckedSession = getFileSpecificStorage('sessionExhibitHeight', exhibitDesiredHeight);
+        var extensionsDesiredHeightCheckedSession = getFileSpecificStorage('sessionExtensionsHeight', extensionsDesiredHeight);
+
+        if (exhibitDesiredHeightCheckedSession === 'collapsed') {
+            toggleSection('exhibit');
+            exhibitDesiredHeightCheckedSession = 0;
+        } else {
+            if (exhibitDesiredHeightCheckedSession === 'expanded') {
+                exhibitDesiredHeightCheckedSession = exhibitDesiredHeight;
+            }
+            exhibitSection.style.flex = '0 0 ' + exhibitDesiredHeightCheckedSession + 'px';
+        }
+
+        if (extensionsDesiredHeightCheckedSession === 'collapsed') {
+            toggleSection('extensions');
+            extensionsDesiredHeightCheckedSession = 0;
+        } else {
+            if (extensionsDesiredHeightCheckedSession === 'expanded') {
+                extensionsDesiredHeightCheckedSession = extensionsDesiredHeight;
+            }
+            extensionsSection.style.flex = '0 0 ' + extensionsDesiredHeightCheckedSession + 'px';
+        }
+        var graphDesiredHeight = windowHeight - exhibitDesiredHeightCheckedSession - extensionsDesiredHeightCheckedSession;
+        graphSection.style.flex = '1 1 ' + graphDesiredHeight + 'px';
+    }
+
+    function initializeGraph() {
+        var displayMode = getFileSpecificStorage('sessionDisplayMode', document.getElementById('argument-display-mode').value);
+        document.getElementById('argument-display-mode').value = displayMode;
+
+        var theme = sessionStorage.getItem('argblazer_global_sessionTheme') || document.getElementById('theme-selector').value;
+        document.getElementById('theme-selector').value = theme;
+
+        initializeSteps();
+        setupStepNavigation();
+
+        mermaid.initialize({
+            startOnLoad: false,
+            flowchart: {
+                padding: 0.01,
+                htmlLabels: true
+            }
+        });
+
+        colors = {};
+        nodeData = fetchNodeData(displayMode);
+        nodeData.forEach(function(node) { colors[node.id] = null; });
+        render();
+        setupExtensionClickHandlers();
+        setupControls();
+        updateExtensionStyling();
+    }
+
+    function toggleSection(sectionName) {
+        var content = document.getElementById(sectionName + '-content');
+        var toggle = document.getElementById(sectionName + '-toggle');
+        var section = document.getElementById(sectionName + '-section');
+
+        if (content.classList.contains('collapsed')) {
+            content.classList.remove('collapsed');
+            toggle.classList.remove('collapsed');
+            content.style.maxHeight = '';
+
+            if (section) {
+                var totalHeight = section.querySelector('.section-header').offsetHeight + content.scrollHeight;
+                totalHeight = Math.min(totalHeight, windowHeight / 4);
+                section.style.flex = '0 1 ' + totalHeight + 'px';
+            }
+            if (sectionName === 'exhibit') {
+                setFileSpecificStorage('sessionExhibitHeight', 'expanded');
+            } else if (sectionName === 'extensions') {
+                setFileSpecificStorage('sessionExtensionsHeight', 'expanded');
+            }
+        } else {
+            content.classList.add('collapsed');
+            toggle.classList.add('collapsed');
+            content.style.maxHeight = '0';
+            if (section) {
+                section.style.flex = '0 0 auto';
+            }
+            if (sectionName === 'exhibit') {
+                setFileSpecificStorage('sessionExhibitHeight', 'collapsed');
+            } else if (sectionName === 'extensions') {
+                setFileSpecificStorage('sessionExtensionsHeight', 'collapsed');
+            }
+        }
+
+        setTimeout(function() {
+            if (panzoomInstance) {
+                var mermaidContainer = document.getElementById('mermaid-diagram');
+                var wrapper = document.getElementById('wrapper');
+                if (mermaidContainer && wrapper) {
+                    panzoomInstance.destroy();
+                    initializePanzoom(wrapper, mermaidContainer);
+                }
+            }
+        }, 300);
+    }
+
+    function getExtensionsForStep(stepIndex) {
+        var effectiveStepIndex = Math.max(0, Math.min(stepIndex, maxStepIndex));
+        return extensionData[effectiveStepIndex];
+    }
+
+    function updateExtensionsDisplay() {
+        var extensionsGrid = document.getElementById('extensions-grid');
+
+        extensionsGrid.innerHTML = '';
+
+        var extensions = getExtensionsForStep(currentStepIndex);
+
+        var extensionTypes = [
+            { key: 'grounded', label: 'Grounded', id: 'grounded-item', hidden: false },
+            { key: 'stable', label: 'Stable', id: 'stable-item', hidden: false },
+            { key: 'complete', label: 'Complete', id: 'complete-item', hidden: false },
+            { key: 'preferred', label: 'Preferred', id: 'preferred-item', hidden: false },
+            { key: 'conflict_free', label: 'Conflict-free', id: 'conflict-free-item', hidden: true },
+            { key: 'admissible', label: 'Admissible', id: 'admissible-item', hidden: true }
+        ];
+
+        extensionTypes.forEach(function(type) {
+            var itemDiv = document.createElement('div');
+            itemDiv.className = 'extension-item';
+            itemDiv.id = type.id;
+
+            var shouldHide = type.hidden;
+            if (type.key === 'conflict_free') {
+                var conflictFreeBtn = document.getElementById('toggle-conflict-free');
+                shouldHide = conflictFreeBtn && conflictFreeBtn.classList.contains('active');
+            } else if (type.key === 'admissible') {
+                var admissibleBtn = document.getElementById('toggle-admissible');
+                shouldHide = admissibleBtn && admissibleBtn.classList.contains('active');
+            }
+
+            if (shouldHide) {
+                itemDiv.style.display = 'none';
+            }
+
+            var labelSpan = document.createElement('span');
+            labelSpan.className = 'extension-label';
+            labelSpan.textContent = type.label + ':';
+
+            var valuesSpan = document.createElement('span');
+            valuesSpan.className = 'extension-values';
+
+            var extensionSets = extensions[type.key] || [];
+
+            extensionSets.forEach(function(ext, index) {
+                var setSpan = document.createElement('span');
+                setSpan.className = 'extension-set';
+                var setString;
+                if (Array.isArray(ext)) {
+                    setString = '{' + ext.join(', ') + '}';
+                } else {
+                    setString = ext.toString();
+                }
+                setSpan.setAttribute('data-set', setString);
+                setSpan.textContent = setString;
+                valuesSpan.appendChild(setSpan);
+            });
+
+            itemDiv.appendChild(labelSpan);
+            itemDiv.appendChild(valuesSpan);
+            extensionsGrid.appendChild(itemDiv);
+        });
+
+        setupExtensionClickHandlers();
+    }
+
+    window.addEventListener('resize', function() {
+        if (panzoomInstance) {
+            var mermaidContainer = document.getElementById('mermaid-diagram');
+            var wrapper = document.getElementById('wrapper');
+            if (mermaidContainer && wrapper) {
+                panzoomInstance.destroy();
+                initializePanzoom(wrapper, mermaidContainer);
+            }
+        }
+    });
+
+    function setupResizeHandles() {
+        var isResizing = false;
+        var currentHandle = null;
+        var startY = 0;
+        var startExhibitHeight = 0;
+        var startGraphHeight = 0;
+        var startExtensionsHeight = 0;
+
+        function startResize(e, handle) {
+            isResizing = true;
+            currentHandle = handle;
+            startY = e.clientY;
+
+            startExhibitHeight = exhibitSection.getBoundingClientRect().height;
+            startGraphHeight = graphSection.getBoundingClientRect().height;
+            startExtensionsHeight = extensionsSection.getBoundingClientRect().height;
+
+            document.body.style.cursor = 'row-resize';
+            document.body.style.userSelect = 'none';
+
+            e.preventDefault();
+        }
+
+        function doResize(e) {
+            if (!isResizing || !currentHandle) return;
+
+            var deltaY = e.clientY - startY;
+
+            var exhibitHeader = exhibitSection.querySelector('.section-header');
+            var extensionsHeader = extensionsSection.querySelector('.section-header');
+            var exhibitMinHeight = exhibitHeader ? exhibitHeader.getBoundingClientRect().height : 50;
+            var extensionsMinHeight = extensionsHeader ? extensionsHeader.getBoundingClientRect().height : 50;
+            var graphMinHeight = 250;
+
+            var collapseThreshold = 20;
+
+            if (currentHandle === handle1) {
+                var exhibitCollapsed = exhibitContent && exhibitContent.classList.contains('collapsed');
+
+                var targetExhibitHeight = startExhibitHeight + deltaY;
+
+                if (!exhibitCollapsed) {
+                    if (targetExhibitHeight <= exhibitMinHeight + collapseThreshold) {
+                        toggleSection('exhibit');
+                    } else {
+                        var availableForExhibitAndGraph = windowHeight - startExtensionsHeight;
+
+                        var maxExhibitHeight = availableForExhibitAndGraph - graphMinHeight;
+                        var newExhibitHeight = Math.max(
+                            exhibitMinHeight + collapseThreshold,
+                            Math.min(maxExhibitHeight, targetExhibitHeight)
+                        );
+
+                        var newGraphHeight = availableForExhibitAndGraph - newExhibitHeight;
+
+                        exhibitSection.style.flex = '0 0 ' + newExhibitHeight + 'px';
+                        graphSection.style.flex = '1 1 0';
+                        extensionsSection.style.flex = '0 0 ' + startExtensionsHeight + 'px';
+
+                        setFileSpecificStorage('sessionExhibitHeight', newExhibitHeight.toString());
+                        setFileSpecificStorage('sessionExtensionsHeight', startExtensionsHeight.toString());
+                    }
+                } else {
+                    if (targetExhibitHeight > exhibitMinHeight + collapseThreshold) {
+                        toggleSection('exhibit');
+                    }
+                }
+
+            } else if (currentHandle === handle2) {
+                var extensionsCollapsed = extensionsContent && extensionsContent.classList.contains('collapsed');
+
+                var targetExtensionsHeight = startExtensionsHeight - deltaY;
+
+                if (!extensionsCollapsed) {
+                    if (targetExtensionsHeight <= extensionsMinHeight + collapseThreshold) {
+                        toggleSection('extensions');
+                    } else {
+                        var availableForGraphAndExtensions = windowHeight - startExhibitHeight;
+
+                        var maxExtensionsHeight = availableForGraphAndExtensions - graphMinHeight;
+                        var newExtensionsHeight = Math.max(
+                            extensionsMinHeight + collapseThreshold,
+                            Math.min(maxExtensionsHeight, targetExtensionsHeight)
+                        );
+
+                        var newGraphHeight2 = availableForGraphAndExtensions - newExtensionsHeight;
+
+                        exhibitSection.style.flex = '0 0 ' + startExhibitHeight + 'px';
+                        graphSection.style.flex = '1 1 0';
+                        extensionsSection.style.flex = '0 0 ' + newExtensionsHeight + 'px';
+
+                        setFileSpecificStorage('sessionExhibitHeight', startExhibitHeight.toString());
+                        setFileSpecificStorage('sessionExtensionsHeight', newExtensionsHeight.toString());
+                    }
+                } else {
+                    if (targetExtensionsHeight > extensionsMinHeight + collapseThreshold) {
+                        toggleSection('extensions');
+                    }
+                }
+            }
+
+            setTimeout(function() {
+                if (panzoomInstance) {
+                    var mermaidContainer = document.getElementById('mermaid-diagram');
+                    var wrapper = document.getElementById('wrapper');
+                    if (mermaidContainer && wrapper) {
+                        panzoomInstance.destroy();
+                        initializePanzoom(wrapper, mermaidContainer);
+                    }
+                }
+            }, 50);
+        }
+
+        function stopResize() {
+            if (!isResizing) return;
+
+            isResizing = false;
+            currentHandle = null;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+
+        handle1.addEventListener('mousedown', function(e) { startResize(e, handle1); });
+        handle2.addEventListener('mousedown', function(e) { startResize(e, handle2); });
+
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
+
+        document.addEventListener('selectstart', function(e) {
+            if (isResizing) e.preventDefault();
+        });
+    }
+
+    function getFileSpecificKey(key) {
+        return 'argblazer_' + fileKey + '_' + key;
+    }
+
+    function getFileSpecificStorage(key, defaultValue) {
+        return sessionStorage.getItem(getFileSpecificKey(key)) || defaultValue;
+    }
+
+    function setFileSpecificStorage(key, value) {
+        sessionStorage.setItem(getFileSpecificKey(key), value);
+    }
+
+    var windowHeight = document.body.getBoundingClientRect().height - 50;
+    var handle1 = document.getElementById('resize-handle-1');
+    var handle2 = document.getElementById('resize-handle-2');
+    var exhibitSection = document.getElementById('exhibit-section');
+    var graphSection = document.getElementById('graph-section');
+    var extensionsSection = document.getElementById('extensions-section');
+    var exhibitContent = document.getElementById('exhibit-content');
+    var extensionsContent = document.getElementById('extensions-content');
+
+    initializeGraph();
+    initializeSectionHeight();
+    setupResizeHandles();
+    updateResizeHandleVisibility();
+`;
+    }
+
+    function generateReportHtml(af4graph, af4ext, exhibit, fileKey) {
+        var exhibitHidden = (exhibit === '[Not provided]');
+        var exhibitStyle = exhibitHidden ? ' style="display: none;"' : '';
+        var scriptFuncs = getReportScriptFuncs();
+
+        return `<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ArgBlazer Report</title>
+        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+        <style>
+            body{margin:0;padding:10px 20px 0 20px;font-family:'JetBrains Mono',monospace;background:#fff;color:#333;height:100vh;box-sizing:border-box;display:flex;flex-direction:column}
+            body::after{content:'';height:10px;flex-shrink:0}
+            .token.operator{background:transparent!important}
+            pre[class*="language-"],code[class*="language-"]{background:#f8f9fa!important}
+            .line-numbers .line-numbers-rows{border-right-color:#e0e0e0!important}
+            .exhibit-section,.extensions-section{padding:0;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.05);display:flex;flex-direction:column;min-height:0}
+            .resize-handle{height:10px;background:transparent;cursor:row-resize;display:flex;align-items:center;justify-content:center;position:relative;z-index:1000;margin:5px 0}
+            .resize-handle::before{content:'';width:80px;height:3px;background:#dee2e6;border-radius:2px;transition:all 0.2s ease}
+            .resize-handle:hover::before{background:#28a745;width:120px;height:4px;box-shadow:0 2px 8px rgba(40, 167, 69, 0.3)}
+            .resize-handle:active::before{background:#1e7e34}
+            .section-header{display:flex;justify-content:space-between;align-items:center;padding:5px;cursor:pointer;user-select:none;border-bottom:1px solid #e0e0e0;flex-shrink:0;flex-wrap:wrap;gap:8px}
+            .main-content > .section-header{cursor:default;margin-bottom:0;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px 8px 0 0;box-shadow:0 2px 4px rgba(0,0,0,.05);border-bottom:1px solid #e0e0e0}
+            .section-header h3{margin:0;font-size:16px;font-weight:600;color:#333}
+            .section-toggle{font-size:14px;color:#666;transition:transform 0.2s ease}
+            .section-toggle.collapsed{transform:rotate(-90deg)}
+            .section-content{padding:16px;overflow-y:auto;transition:max-height 0.3s ease;flex:1;min-height:0}
+            #exhibit-content{padding:0}
+            #exhibit-content pre{margin:0;padding:8px 16px 8px 48px!important}
+            .section-content.collapsed{max-height:0!important;padding-top:0;padding-bottom:0;overflow:hidden}
+            .section-header:has(+ .section-content.collapsed){border-bottom:none}
+            .header-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;min-width:0;justify-content:flex-end;flex:1 1 auto}
+            .step-navigation{display:flex;align-items:center;gap:8px;flex-shrink:0}
+            .nav-btn{padding:4px 8px;font-size:14px;font-weight:500;font-family:'JetBrains Mono',monospace;background:#f0f0f0;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer;transition:all .2s}
+            .nav-btn:hover:not(:disabled){background:#e0e0e0;border-color:#bbb}
+            .nav-btn:disabled{background:#f8f8f8;border-color:#e0e0e0;color:#ccc;cursor:not-allowed}
+            #step-indicator{font-size:14px;font-weight:500;color:#555;min-width:60px;text-align:center}
+            .display-controls{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;min-width:0}
+            .display-dropdown{padding:4px 8px;min-width:80px;max-width:100%;font-size:12px;font-family:'JetBrains Mono',monospace;background:#f8f9fa;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer}
+            .display-dropdown:hover{background:#f0f0f0;border-color:#bbb}
+            .display-dropdown:focus{outline:none;border-color:#999;box-shadow:0 0 3px rgba(0,0,0,.1)}
+            .main-content{display:flex;flex-direction:column;min-height:0}
+            #graph-container{width:calc(100% - 2px);margin-left:0;margin-right:0;flex:1;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;background:#f8f9fa;box-shadow:0 2px 4px rgba(0,0,0,.05);position:relative}
+            .zoom-controls{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:4px;z-index:1000}
+            .zoom-btn{width:32px;height:32px;padding:0;font-size:16px;font-weight:600;font-family:'JetBrains Mono',monospace;background:#fff;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.1)}
+            .zoom-btn:hover{background:#f0f0f0;border-color:#bbb;box-shadow:0 3px 6px rgba(0,0,0,.15)}
+            .zoom-btn:active{background:#e0e0e0;border-color:#999;transform:translateY(1px)}
+            .zoom-btn:disabled{background:#f8f8f8;border-color:#e0e0e0;color:#ccc;cursor:not-allowed;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+            .zoom-btn:disabled:hover{background:#f8f8f8;border-color:#e0e0e0;transform:none}
+            .diagram-wrapper{display:flex;justify-content:center;align-items:center;height:100%;transform-origin: center;font-size:16px;color:#666}
+            .error{color:#555;text-align:center;padding:20px}
+            .extensions-header{display:flex;justify-content:space-between;align-items:center}
+            .toggle-buttons{display:flex;gap:8px;margin-left:auto}
+            .toggle-btn,.extension-set{padding:4px 8px;font-size:12px;font-weight:500;font-family:'JetBrains Mono',monospace;border-radius:4px;cursor:pointer;transition:all .2s}
+            .toggle-btn{background:#d0d0d0;border:1px solid #aaa}
+            .toggle-btn:hover{background:#c0c0c0;border-color:#999}
+            .toggle-btn.active{background:#f0f0f0;border-color:#ddd;color:#777}
+            .extensions-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+            .extension-item{display:flex;align-items:flex-start;padding:6px 0;font-size:13px}
+            .extension-label{font-weight:600;color:#555;min-width:100px;margin-right:8px;flex-shrink:0}
+            .extension-values{color:#555;flex:1;display:flex;flex-wrap:wrap;gap:4px}
+            .extension-set{border:1px solid #d0d0d0;background:#f0f0f0;box-shadow:0 1px 2px rgba(0,0,0,.1);max-width:100%;word-break:break-word;white-space:normal}
+            .extension-set:hover,.extension-set.selected{background:var(--extension-hover-bg);border-color:var(--extension-hover-border);color:var(--extension-hover-text);box-shadow:0 2px 4px rgba(0,0,0,.15)}
+            .extension-set.selected{font-weight:600}
+            @media(max-width:600px){
+                body{padding:10px 10px 0 10px}
+                .header-controls{flex-direction:column;align-items:flex-start;gap:8px;width:100%}
+                .step-navigation{align-self:flex-end;justify-content:flex-end}
+                .display-controls{align-self:flex-end;justify-content:flex-end}
+                .extensions-grid{grid-template-columns:1fr}
+                #graph-container{min-height:150px}
+            }
+            @media(max-width:480px){
+                .nav-btn{padding:2px 6px;font-size:12px}
+                .display-dropdown{min-width:70px;font-size:11px}
+                #step-indicator{min-width:50px;font-size:12px}
+            }
+        </style>
+    </head>
+<body>
+    <div class="exhibit-section" id="exhibit-section"${exhibitStyle}>
+        <div class="section-header" onclick="toggleSection('exhibit')">
+            <h3>Exhibit</h3>
+            <span class="section-toggle" id="exhibit-toggle"><span style="font-family: Arial;">&#9660;</span></span>
+        </div>
+        <div class="section-content" id="exhibit-content">
+            <pre class="line-numbers"><code class="language-python">${exhibit}</code></pre>
+        </div>
+    </div>
+
+    <div class="resize-handle" id="resize-handle-1"${exhibitStyle}></div>
+
+    <div class="main-content" id="graph-section">
+        <div class="section-header">
+            <h3>Graph</h3>
+            <div class="header-controls">
+                <div class="display-controls">
+                    <label for="theme-selector">Theme:</label>
+                    <select id="theme-selector" class="display-dropdown">
+                        <option value="default" selected>Default</option>
+                        <option value="green">Green</option>
+                        <option value="xray">XRAY</option>
+                    </select>
+                </div>
+                <div class="display-controls">
+                    <label for="rank-direction">Rank from:</label>
+                    <select id="rank-direction" class="display-dropdown">
+                        <option value="top" selected>Top</option>
+                        <option value="bottom">Bottom</option>
+                    </select>
+                </div>
+                <div class="step-navigation">
+                    <button id="start-step" class="nav-btn">&#448;&lt;</button>
+                    <button id="prev-step" class="nav-btn" disabled>&lt;</button>
+                    <span id="step-indicator">Step 1</span>
+                    <button id="next-step" class="nav-btn">&gt;</button>
+                    <button id="end-step" class="nav-btn">&gt;&#448;</button>
+                </div>
+                <div class="display-controls">
+                    <label for="argument-display-mode">Display:</label>
+                    <select id="argument-display-mode" class="display-dropdown">
+                        <option value="label">Label</option>
+                        <option value="label-summary" selected>Summary</option>
+                        <option value="label-summary-details">Details</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div id="graph-container">
+            <div class="zoom-controls">
+                <button id="zoom-in-btn" class="zoom-btn" title="Zoom In">+</button>
+                <button id="zoom-out-btn" class="zoom-btn" title="Zoom Out">-</button>
+                <button id="zoom-fit-btn" class="zoom-btn" title="Fit to Screen">&#x26F6</button>
+            </div>
+            <div class="diagram-wrapper", id="wrapper">
+                <div id="mermaid-diagram"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="resize-handle" id="resize-handle-2"></div>
+
+    <div class="extensions-section" id="extensions-section">
+        <div class="section-header" onclick="toggleSection('extensions')">
+            <h3>Extensions</h3>
+            <span class="section-toggle" id="extensions-toggle"><span style="font-family: Arial;">&#9660;</span></span>
+        </div>
+        <div class="section-content" id="extensions-content">
+            <div class="extensions-header">
+                <div class="toggle-buttons">
+                    <button id="toggle-conflict-free" class="toggle-btn active">Show Conflict-free</button>
+                    <button id="toggle-admissible" class="toggle-btn active">Show Admissible</button>
+                </div>
+            </div>
+            <div class="extensions-grid" id="extensions-grid">
+            </div>
+        </div>
+    </div>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.9.0/mermaid.min.js"><\/script>
+<script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"><\/script>
+<script>
+    const argumentationData = ${af4graph};
+    const extensionData = ${af4ext};
+    const fileKey = '${fileKey}';
+    let panzoomInstance = null;
+    let savedZoomLevel = null;
+    let currentStepIndex = 0;
+    let maxStepIndex = 0;
+    let actualSteps = [];
+    let nodeData, colors;
+    ${scriptFuncs}
+<\/script>
+<\/html>`;
+    }
+
+    // =====================================================================
+    //  Main playground logic
+    // =====================================================================
+
+    function runVisualization(yamlText) {
+        var errorBar = document.getElementById('error-bar');
+        var previewFrame = document.getElementById('preview-frame');
+
+        try {
+            var yamlData = jsyaml.load(yamlText);
+
+            if (!yamlData || !yamlData.arguments) {
+                errorBar.textContent = 'YAML must contain an "arguments" keyword.';
+                errorBar.style.display = 'block';
+                return;
+            }
+            if (!Array.isArray(yamlData.arguments) || yamlData.arguments.length === 0) {
+                errorBar.textContent = 'The "arguments" field must be a non-empty list.';
+                errorBar.style.display = 'block';
+                return;
+            }
+
+            // Convert arguments from object to array if needed
+            if (typeof yamlData.arguments === 'object' && !Array.isArray(yamlData.arguments)) {
+                var argumentsArray = [];
+                var entries = Object.entries(yamlData.arguments);
+                for (var i = 0; i < entries.length; i++) {
+                    var obj = {};
+                    obj[entries[i][0]] = entries[i][1];
+                    argumentsArray.push(obj);
+                }
+                yamlData.arguments = argumentsArray;
+            }
+
+            var result = preprocessAndCompute(yamlData);
+            var af4graph = JSON.stringify(result.jsonData);
+            var af4ext = JSON.stringify(result.stepExtensions);
+            var exhibit = extractRawExhibit(yamlText) || '[Not provided]';
+            var html = generateReportHtml(af4graph, af4ext, exhibit, 'playground');
+
+            errorBar.style.display = 'none';
+            previewFrame.srcdoc = html;
+
+        } catch (e) {
+            errorBar.textContent = 'Error: ' + e.message;
+            errorBar.style.display = 'block';
+        }
+    }
+
+    // --- CodeMirror editor ---
+    var editor = CodeMirror(document.getElementById('editor-container'), {
+        value: EXAMPLES.tweety,
+        mode: 'yaml',
+        lineNumbers: true,
+        tabSize: 2,
+        indentWithTabs: false,
+        lineWrapping: true,
+        extraKeys: {
+            'Tab': function(cm) {
+                if (cm.somethingSelected()) {
+                    cm.indentSelection('add');
+                } else {
+                    cm.replaceSelection('  ', 'end');
+                }
+            },
+            'Shift-Tab': function(cm) {
+                cm.indentSelection('subtract');
+            },
+            'Cmd-S': function(cm) {
+                runVisualization(cm.getValue());
+            },
+            'Ctrl-S': function(cm) {
+                runVisualization(cm.getValue());
+            }
+        }
+    });
+
+    // --- Run button ---
+    document.getElementById('runBtn').addEventListener('click', function() {
+        runVisualization(editor.getValue());
+    });
+
+    // --- Share button ---
+    var SHARE_URL_MAX = 8192;
+    document.getElementById('shareBtn').addEventListener('click', function() {
+        var yaml = editor.getValue();
+        var compressed = LZString.compressToEncodedURIComponent(yaml);
+        var url = window.location.href.split('#')[0] + '#yaml=' + compressed;
+        var btn = document.getElementById('shareBtn');
+        var errorBar = document.getElementById('error-bar');
+
+        if (url.length > SHARE_URL_MAX) {
+            btn.textContent = 'Too long!';
+            btn.style.background = '#fee2e2';
+            btn.style.color = '#dc2626';
+            btn.style.borderColor = '#fca5a5';
+            errorBar.textContent = 'YAML too long to share (' + url.length + ' / ' + SHARE_URL_MAX + ' chars). Shorten your YAML and try again.';
+            errorBar.style.display = 'block';
+            setTimeout(function() {
+                btn.textContent = 'Share';
+                btn.style.background = '';
+                btn.style.color = '';
+                btn.style.borderColor = '';
+            }, 3000);
+            return;
+        }
+
+        errorBar.style.display = 'none';
+        navigator.clipboard.writeText(url).then(function() {
+            btn.textContent = 'Copied!';
+            setTimeout(function() { btn.textContent = 'Share'; }, 1500);
+        });
+    });
+
+    // --- Ctrl+S / Cmd+S global shortcut (when editor not focused) ---
+    window.addEventListener('keydown', function(e) {
+        if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+            e.preventDefault();
+            runVisualization(editor.getValue());
+        }
+    }, true);
+
+    // --- Example dropdown ---
+    document.getElementById('example-select').addEventListener('change', function(e) {
+        var content = EXAMPLES[e.target.value];
+        if (content) {
+            editor.setValue(content);
+            runVisualization(content);
+        }
+    });
+
+    // --- Install button ---
+    document.getElementById('installBtn').addEventListener('click', function() {
+        window.open('https://marketplace.visualstudio.com/items?itemName=CIRSS.argblazer', '_blank');
+    });
+
+    // --- Divider dragging ---
+    (function() {
+        var divider = document.getElementById('divider');
+        var editorPanel = document.getElementById('editor-panel');
+        var workspace = document.getElementById('workspace');
+        var isVertical = window.matchMedia('(max-width: 768px)').matches;
+        var isDragging = false;
+
+        var previewFrame = document.getElementById('preview-frame');
+
+        divider.addEventListener('mousedown', function(e) {
+            isDragging = true;
+            isVertical = window.matchMedia('(max-width: 768px)').matches;
+            divider.classList.add('active');
+            document.body.style.cursor = isVertical ? 'row-resize' : 'col-resize';
+            document.body.style.userSelect = 'none';
+            previewFrame.style.pointerEvents = 'none';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            var rect = workspace.getBoundingClientRect();
+            if (isVertical) {
+                var newHeight = e.clientY - rect.top;
+                var minH = 100, maxH = rect.height - 100;
+                newHeight = Math.max(minH, Math.min(maxH, newHeight));
+                editorPanel.style.height = newHeight + 'px';
+            } else {
+                var newWidth = e.clientX - rect.left;
+                var minW = 220, maxW = rect.width - 220;
+                newWidth = Math.max(minW, Math.min(maxW, newWidth));
+                editorPanel.style.width = newWidth + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (isDragging) {
+                isDragging = false;
+                divider.classList.remove('active');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                previewFrame.style.pointerEvents = '';
+            }
+        });
+    })();
+
+    // --- Load from shared URL or run default ---
+    (function() {
+        var hash = window.location.hash;
+        if (hash && hash.indexOf('#yaml=') === 0) {
+            var compressed = hash.substring(6);
+            try {
+                var yaml = LZString.decompressFromEncodedURIComponent(compressed);
+                if (yaml) {
+                    editor.setValue(yaml);
+                    runVisualization(yaml);
+                    return;
+                }
+            } catch (e) {
+                console.error('Failed to load shared YAML:', e);
+            }
+        }
+        if (hash && hash.indexOf('#example=') === 0) {
+            var key = hash.substring(9);
+            if (EXAMPLES[key]) {
+                document.getElementById('example-select').value = key;
+                editor.setValue(EXAMPLES[key]);
+                runVisualization(EXAMPLES[key]);
+                return;
+            }
+        }
+        runVisualization(EXAMPLES.tweety);
+    })();
+    </script>
+</body>
+</html>

@@ -114,8 +114,8 @@ When no `top` or `bottom` annotations are provided, the first argument defaults 
 
 ## Release Notes
 
-### v0.1.0
+### v0.1.0 (2026-02-07)
 Initial release with interactive report generation for a given argumentation framework.
 
-### v0.0.1
+### v0.0.1 (2026-01-13)
 Early version with Python dependencies (deprecated).

@@ -237,28 +237,6 @@ main {
   line-height: 1.45;
 }
 
-.examples-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 28px;
-}
-
-.example-card {
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 20px;
-  padding: 20px;
-  border: 1px solid rgba(17, 20, 32, 0.1);
-  display: grid;
-  gap: 12px;
-}
-
-.example-body {
-  display: grid;
-  grid-template-columns: minmax(200px, 1fr) minmax(320px, 3fr);
-  gap: 18px;
-  align-items: start;
-}
-
 .yaml-block {
   background: #f7f5ef;
   color: #1d1f2a;
@@ -302,28 +280,145 @@ main {
   box-shadow: 0 0 0 2px rgba(255, 200, 87, 0.3);
 }
 
-.example-frame {
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(17, 20, 32, 0.12);
-  height: 520px;
-  background: #f8f9fa;
+/* YAML Structure */
+.schema-subheading {
+  font-size: 1.1rem;
+  margin: 28px 0 16px;
 }
 
-.example-frame iframe {
+.schema-subheading:first-child {
+  margin-top: 0;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 8px;
+}
+
+.schema-table {
   width: 100%;
-  height: 100%;
-  border: none;
+  border-collapse: collapse;
+  font-size: 0.95rem;
 }
 
-.example-card.example-tall .example-frame {
-  height: 760px;
+.schema-table th {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--line);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-.example-card.example-tall .yaml-block {
-  min-height: 760px;
+.schema-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  line-height: 1.45;
 }
 
+.schema-table code {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.88em;
+  background: rgba(17, 20, 32, 0.06);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+/* Demo cards */
+.demo-card {
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  padding: 24px 28px;
+  display: grid;
+  gap: 10px;
+}
+
+.demo-card + .demo-card {
+  margin-top: 28px;
+}
+
+.demo-card h3 {
+  font-size: 1.15rem;
+}
+
+.demo-desc {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.demo-content {
+  display: flex;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.yaml-demo {
+  min-height: auto;
+  flex-shrink: 0;
+}
+
+.graph-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(17, 20, 32, 0.08);
+  background: #f8f9fa;
+  padding: 10px 8px;
+}
+
+.graph-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.graph-panel .mermaid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  flex: 1;
+}
+
+.graph-panel svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.graph-panel .nodeLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  font-size: 16px;
+}
+
+.demo-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.demo-playground-link {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent-2);
+  transition: opacity 0.2s ease;
+}
+
+.demo-playground-link:hover {
+  opacity: 0.75;
+}
 
 footer {
   padding: 24px 8vw 40px;
@@ -335,13 +430,13 @@ footer {
   gap: 12px;
 }
 
-section, header, footer, .feature-item, .example-card {
+section, header, footer, .feature-item, .demo-card {
   opacity: 0;
   transform: translateY(18px);
   transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
-section.reveal, header.reveal, footer.reveal, .feature-item.reveal, .example-card.reveal {
+section.reveal, header.reveal, footer.reveal, .feature-item.reveal, .demo-card.reveal {
   opacity: 1;
   transform: translateY(0);
 }
@@ -378,24 +473,12 @@ section.reveal, header.reveal, footer.reveal, .feature-item.reveal, .example-car
     padding: 0 6vw 70px;
   }
 
-  .example-frame {
-    height: 420px;
+  .demo-card {
+    padding: 18px;
   }
 
-  .example-body {
-    grid-template-columns: 1fr;
-  }
-
-  .yaml-block {
-    min-height: 520px;
-  }
-
-  .example-card.example-tall .example-frame {
-    height: 660px;
-  }
-
-  .example-card.example-tall .yaml-block {
-    min-height: 660px;
+  .demo-content {
+    flex-direction: column;
   }
 
 }

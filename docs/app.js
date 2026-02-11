@@ -1,5 +1,5 @@
 const revealItems = document.querySelectorAll(
-  "section, header, footer, .feature-item, .example-card"
+  "section, header, footer, .feature-item, .example-card, .demo-card"
 );
 
 const observer = new IntersectionObserver(
@@ -34,3 +34,9 @@ window.addEventListener("message", (event) => {
     });
   }
 });
+
+/* Set green theme for report iframes */
+sessionStorage.setItem("argblazer_global_sessionTheme", "green");
+
+/* Initialize mermaid for demo graphs */
+mermaid.initialize({ startOnLoad: true, flowchart: { padding: 0.01, htmlLabels: true } });

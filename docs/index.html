@@ -10,8 +10,6 @@
     />
     <link rel="stylesheet" href="styles.css" />
     <link rel="icon" type="image/png" sizes="32x32" href="media/favicon-32.png" />
-    <link rel="icon" type="image/x-icon" href="media/favicon.ico" />
-    <link rel="apple-touch-icon" href="media/apple-touch-icon.png" />
   </head>
   <body>
     <div class="ambient">
@@ -27,9 +25,10 @@
         <span>ArgBlazer</span>
       </div>
       <nav class="nav">
-        <a href="#showcase">Showcase</a>
         <a href="#features">Features</a>
-        <a href="#examples">Demos</a>
+        <a href="#examples">Examples</a>
+        <a href="#yaml-structure">YAML</a>
+        <a href="playground.html">Playground</a>
         <a href="https://github.com/xai-ca/argblazer">GitHub</a>
         <button class="pill" id="installBtn">Install</button>
       </nav>
@@ -51,45 +50,6 @@
           </div>
         </div>
 
-      </section>
-
-      <section id="showcase" class="section">
-        <div class="section-header">
-          <h2>A simple, complete example</h2>
-        </div>
-        <div class="examples-grid">
-          <div class="example-card example-tall">
-            <div class="example-body">
-              <div class="yaml-block">
-                <div class="yaml-label">YAML</div>
-                <pre><code>exhibit: |
-  Tweety is a bird.
-  Tweety is a penguin.
-arguments:
-  - a:
-    - summary: Tweety can fly because birds typically can fly
-    - details:
-      - rule: Birds typically can fly
-      - evidence: Tweety is a bird
-      - conclusion: Tweety can fly
-  - b:
-    - summary: Tweety cannot fly because it is a penguin
-    - details:
-      - rule: Penguins cannot fly
-      - evidence: Tweety is a penguin
-      - conclusion: Tweety cannot fly
-attacks:
-  - [b, a]</code></pre>
-              </div>
-              <div class="example-frame">
-                <iframe
-                  title="ArgBlazer Example 1"
-                  src="examples/ex1_argBlazerReport.html"
-                ></iframe>
-              </div>
-            </div>
-          </div>
-        </div>
       </section>
 
       <section id="features" class="section">
@@ -145,15 +105,16 @@ attacks:
 
       <section id="examples" class="section">
         <div class="section-header">
-          <h2>Feature demos</h2>
+          <h2>Examples</h2>
         </div>
-        <div class="examples-grid">
-          <div class="example-card example-tall">
-            <h3>Step-by-step construction</h3>
-            <div class="example-body">
-              <div class="yaml-block">
-                <div class="yaml-label">YAML</div>
-                <pre><code>arguments:
+
+        <div class="demo-card">
+          <h3>Step-by-step construction</h3>
+          <p class="demo-desc">Arguments are introduced incrementally across steps, with the graph and extensions recomputed at each step.</p>
+          <div class="demo-content">
+            <div class="yaml-block yaml-demo">
+              <div class="yaml-label">YAML</div>
+              <pre><code>arguments:
   - a:
     - step: 1
   - b:
@@ -166,21 +127,84 @@ attacks:
   - [b, a]
   - [c, b]
   - [d, c]</code></pre>
-              </div>
-              <div class="example-frame">
-                <iframe
-                  title="ArgBlazer Example 2"
-                  src="examples/ex2_argBlazerReport.html"
-                ></iframe>
-              </div>
+            </div>
+            <div class="graph-panel">
+              <span class="graph-label">Step 1</span>
+              <pre class="mermaid">
+graph BT
+  classDef default fill:#D5E8D4,stroke:#004d00
+  classDef ghost fill:transparent,stroke:none,color:transparent
+  subgraph r2[Rank 2]
+    b
+  end
+  subgraph r1[Rank 1]
+    a
+  end
+  class r1,r2 ghost
+  b --> a
+              </pre>
+            </div>
+            <div class="graph-panel">
+              <span class="graph-label">Step 2</span>
+              <pre class="mermaid">
+graph BT
+  classDef default fill:#D5E8D4,stroke:#004d00
+  classDef add fill:#D5E8D4,stroke:#004d00,stroke-width:4px
+  classDef ghost fill:transparent,stroke:none,color:transparent
+  subgraph r3[Rank 3]
+    c
+  end
+  subgraph r2[Rank 2]
+    b
+  end
+  subgraph r1[Rank 1]
+    a
+  end
+  class r1,r2,r3 ghost
+  b --> a
+  c ==> b
+  class c add
+              </pre>
+            </div>
+            <div class="graph-panel">
+              <span class="graph-label">Step 3</span>
+              <pre class="mermaid">
+graph BT
+  classDef default fill:#D5E8D4,stroke:#004d00
+  classDef add fill:#D5E8D4,stroke:#004d00,stroke-width:4px
+  classDef ghost fill:transparent,stroke:none,color:transparent
+  subgraph r4[Rank 4]
+    d
+  end
+  subgraph r3[Rank 3]
+    c
+  end
+  subgraph r2[Rank 2]
+    b
+  end
+  subgraph r1[Rank 1]
+    a
+  end
+  class r1,r2,r3,r4 ghost
+  b --> a
+  c --> b
+  d ==> c
+  class d add
+              </pre>
             </div>
           </div>
-          <div class="example-card example-tall">
-            <h3>Top / bottom layout</h3>
-            <div class="example-body">
-              <div class="yaml-block">
-                <div class="yaml-label">YAML</div>
-                <pre><code>arguments:
+          <div class="demo-footer">
+            <a href="playground.html#example=steps" class="demo-playground-link">Try in Playground &rarr;</a>
+          </div>
+        </div>
+
+        <div class="demo-card">
+          <h3>Top / bottom layout</h3>
+          <p class="demo-desc">Annotations control which arguments are placed at the top or bottom of the graph.</p>
+          <div class="demo-content">
+            <div class="yaml-block yaml-demo">
+              <div class="yaml-label">YAML</div>
+              <pre><code>arguments:
   - a:
     - top
   - b
@@ -194,15 +218,145 @@ attacks:
   - [c, b]
   - [d, c]
   - [e, b]</code></pre>
-              </div>
-              <div class="example-frame">
-                <iframe
-                  title="ArgBlazer Example 3"
-                  src="examples/ex3_argBlazerReport.html"
-                ></iframe>
-              </div>
+            </div>
+            <div class="graph-panel">
+              <span class="graph-label">Rank from top</span>
+              <pre class="mermaid">
+graph BT
+  classDef default fill:#D5E8D4,stroke:#004d00
+  classDef ghost fill:transparent,stroke:none,color:transparent
+  subgraph r4[Rank 4]
+    d
+  end
+  subgraph r3[Rank 3]
+    c
+    e
+  end
+  subgraph r2[Rank 2]
+    b
+  end
+  subgraph r1[Rank 1]
+    a
+  end
+  class r1,r2,r3,r4 ghost
+  b --> a
+  c --> b
+  d --> c
+  e --> b
+              </pre>
+            </div>
+            <div class="graph-panel">
+              <span class="graph-label">Rank from bottom</span>
+              <pre class="mermaid">
+graph BT
+  classDef default fill:#D5E8D4,stroke:#004d00
+  classDef ghost fill:transparent,stroke:none,color:transparent
+  subgraph r1[Rank 1]
+    d
+    e
+  end
+  subgraph r2[Rank 2]
+    c
+    b
+  end
+  subgraph r3[Rank 3]
+    a
+  end
+  class r1,r2,r3 ghost
+  b --> a
+  c --> b
+  d --> c
+  e --> b
+              </pre>
             </div>
           </div>
+          <div class="demo-footer">
+            <a href="playground.html#example=topbottom" class="demo-playground-link">Try in Playground &rarr;</a>
+          </div>
+        </div>
+      </section>
+
+      <section id="yaml-structure" class="section">
+        <div class="section-header">
+          <h2>YAML Structure</h2>
+        </div>
+        <div class="demo-card">
+          <h3 class="schema-subheading">ArgBlazer reads YAML files with three top-level fields.</h3>
+
+          <div class="table-scroll">
+            <table class="schema-table">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Required</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>exhibit</code></td>
+                  <td>No</td>
+                  <td>String</td>
+                  <td>Background text displayed in the Exhibit section</td>
+                </tr>
+                <tr>
+                  <td><code>arguments</code></td>
+                  <td>Yes</td>
+                  <td>List</td>
+                  <td>Argument definitions. Each argument can optionally include annotations listed below.</td>
+                </tr>
+                <tr>
+                  <td><code>attacks</code></td>
+                  <td>No</td>
+                  <td>List of pairs</td>
+                  <td>Attack relationships, e.g. <code>[b, a]</code> means b attacks a</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 class="schema-subheading">Argument annotations</h3>
+
+          <div class="table-scroll">
+            <table class="schema-table">
+              <thead>
+                <tr>
+                  <th>Annotation</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>summary</code></td>
+                  <td>String</td>
+                  <td>Brief description shown on graph nodes</td>
+                </tr>
+                <tr>
+                  <td><code>details</code></td>
+                  <td>String or list</td>
+                  <td>Extended details as a list of key-value pairs with arbitrary sub-fields (e.g. rule, evidence, conclusion)</td>
+                </tr>
+                <tr>
+                  <td><code>step</code></td>
+                  <td>Integer</td>
+                  <td>Which step the argument is introduced (for incremental construction)</td>
+                </tr>
+                <tr>
+                  <td><code>top</code></td>
+                  <td>Flag</td>
+                  <td>Place this argument at the top of the graph layout</td>
+                </tr>
+                <tr>
+                  <td><code>bottom</code></td>
+                  <td>Flag</td>
+                  <td>Place this argument at the bottom of the graph layout</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
         </div>
       </section>
     </main>
@@ -211,6 +365,7 @@ attacks:
       <span>ArgBlazer © 2026</span>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.9.0/mermaid.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

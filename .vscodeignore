@@ -3,6 +3,7 @@
 tests/**
 out/tests/**
 src/**
+docs/**
 tsconfig.json
 .gitignore
 .DS_Store
