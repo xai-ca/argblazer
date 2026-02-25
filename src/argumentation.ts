@@ -103,19 +103,37 @@ function computeGrounded(args: string[], attacks: [string, string][]): Set<strin
     return inSet;
 }
 
-function generatePowerSet(args: string[]): Set<string>[] {
+function extractConflictFreeSets(args: string[], attacks: [string, string][]): Set<string>[] {
     const n = args.length;
-    const total = 1 << n;
-    const result: Set<string>[] = [];
-    for (let mask = 0; mask < total; mask++) {
-        const subset = new Set<string>();
-        for (let j = 0; j < n; j++) {
-            if (mask & (1 << j)) {
-                subset.add(args[j]);
-            }
-        }
-        result.push(subset);
+    const argIndex = new Map<string, number>();
+    for (let i = 0; i < n; i++) {
+        argIndex.set(args[i], i);
     }
+
+    const conflictMask: bigint[] = new Array(n).fill(0n);
+    for (const [a, b] of attacks) {
+        const ai = argIndex.get(a)!;
+        const bi = argIndex.get(b)!;
+        conflictMask[ai] |= (1n << BigInt(bi));
+        conflictMask[bi] |= (1n << BigInt(ai));
+    }
+
+    const result: Set<string>[] = [];
+    const current = new Set<string>();
+
+    function backtrack(index: number, blocked: bigint): void {
+        result.push(new Set(current));
+        for (let i = index; i < n; i++) {
+            const bit = 1n << BigInt(i);
+            if (blocked & bit) continue;
+            if (conflictMask[i] & bit) continue;
+            current.add(args[i]);
+            backtrack(i + 1, blocked | conflictMask[i]);
+            current.delete(args[i]);
+        }
+    }
+
+    backtrack(0, 0n);
     return result;
 }
 
@@ -126,9 +144,7 @@ function setToSortedArray(s: Set<string>): string[] {
 export function computeExtensions(af: ArgumentationFramework): Extensions {
     const { args, attacks } = af;
 
-    const allSubsets = generatePowerSet(args);
-
-    const conflictFree = allSubsets.filter(s => isConflictFree(s, attacks));
+    const conflictFree = extractConflictFreeSets(args, attacks);
     const admissible = conflictFree.filter(s => isAdmissible(s, attacks));
     const complete = admissible.filter(s => isComplete(s, args, attacks));
     const preferred = admissible.filter(ext =>

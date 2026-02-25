@@ -302,17 +302,38 @@
         return inSet;
     }
 
-    function generatePowerSet(args) {
+    function extractConflictFreeSets(args, attacks) {
         var n = args.length;
-        var total = 1 << n;
-        var result = [];
-        for (var mask = 0; mask < total; mask++) {
-            var subset = new Set();
-            for (var j = 0; j < n; j++) {
-                if (mask & (1 << j)) subset.add(args[j]);
-            }
-            result.push(subset);
+        var argIndex = new Map();
+        for (var i = 0; i < n; i++) {
+            argIndex.set(args[i], i);
         }
+
+        var conflictMask = [];
+        for (var i = 0; i < n; i++) conflictMask.push(0n);
+        for (var i = 0; i < attacks.length; i++) {
+            var ai = argIndex.get(attacks[i][0]);
+            var bi = argIndex.get(attacks[i][1]);
+            conflictMask[ai] |= (1n << BigInt(bi));
+            conflictMask[bi] |= (1n << BigInt(ai));
+        }
+
+        var result = [];
+        var current = new Set();
+
+        function backtrack(index, blocked) {
+            result.push(new Set(current));
+            for (var i = index; i < n; i++) {
+                var bit = 1n << BigInt(i);
+                if (blocked & bit) continue;
+                if (conflictMask[i] & bit) continue;
+                current.add(args[i]);
+                backtrack(i + 1, blocked | conflictMask[i]);
+                current.delete(args[i]);
+            }
+        }
+
+        backtrack(0, 0n);
         return result;
     }
 
@@ -320,8 +341,7 @@
 
     function computeExtensions(af) {
         var args = af.args, attacks = af.attacks;
-        var allSubsets = generatePowerSet(args);
-        var conflictFree = allSubsets.filter(function(s) { return isConflictFree(s, attacks); });
+        var conflictFree = extractConflictFreeSets(args, attacks);
         var admissible = conflictFree.filter(function(s) { return isAdmissible(s, attacks); });
         var complete = admissible.filter(function(s) { return isComplete(s, args, attacks); });
         var preferred = admissible.filter(function(ext) {
