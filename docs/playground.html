@@ -35,7 +35,7 @@
         #workspace { display: flex; height: calc(100vh - 52px); }
 
         #editor-panel {
-            display: flex; flex-direction: column; width: 38%; min-width: 220px; background: #fff;
+            display: flex; flex-direction: column; width: 30%; min-width: 220px; background: #fff;
         }
         .panel-header {
             display: flex; align-items: center; justify-content: space-between;
@@ -571,21 +571,70 @@
         updateResizeHandleVisibility();
     }
 
+    function collectAllSets() {
+        var setObj = {};
+        if (!argumentationData.arguments) return [];
+        argumentationData.arguments.forEach(function(arg) {
+            var argData = Object.values(arg)[0];
+            if (!Array.isArray(argData)) return;
+            argData.forEach(function(item) {
+                if (item && item.sets !== undefined) {
+                    var s = Array.isArray(item.sets) ? item.sets : [item.sets];
+                    s.forEach(function(t) { setObj[t] = true; });
+                }
+            });
+        });
+        return Object.keys(setObj).sort();
+    }
+
+    function getArgumentSets(arg) {
+        var argData = Object.values(arg)[0];
+        var sets = new Set();
+        if (!Array.isArray(argData)) return sets;
+        argData.forEach(function(item) {
+            if (item && item.sets !== undefined) {
+                var s = Array.isArray(item.sets) ? item.sets : [item.sets];
+                s.forEach(function(v) { sets.add(v); });
+            }
+        });
+        return sets;
+    }
+
+    function hasAnySets(arg) {
+        return getArgumentSets(arg).size > 0;
+    }
+
     function getFilteredArguments(stepIndex) {
         if (!argumentationData.arguments) return [];
 
+        var filtered;
         if (stepIndex > maxStepIndex) {
-            return argumentationData.arguments;
+            filtered = argumentationData.arguments.slice();
+        } else {
+            var currentActualStep = actualSteps[stepIndex];
+            filtered = argumentationData.arguments.filter(function(arg) {
+                var argData = Object.values(arg)[0];
+                var stepItem = argData.find(function(item) { return item.step !== undefined; });
+                var argStep = stepItem.step;
+                return argStep <= currentActualStep;
+            });
         }
 
-        var currentActualStep = actualSteps[stepIndex];
+        var setControlsVisible = document.getElementById('set-filter-controls') && document.getElementById('set-filter-controls').style.display !== 'none';
+        if (setControlsVisible) {
+            filtered = filtered.filter(function(arg) {
+                if (currentSetFilter.length === 0) return false;
+                var argSets = getArgumentSets(arg);
+                if (argSets.size === 0) {
+                    return currentSetFilter.indexOf('__unassigned__') !== -1;
+                }
+                return currentSetFilter.some(function(t) {
+                    return t !== '__unassigned__' && argSets.has(t);
+                });
+            });
+        }
 
-        return argumentationData.arguments.filter(function(arg) {
-            var argData = Object.values(arg)[0];
-            var stepItem = argData.find(function(item) { return item.step !== undefined; });
-            var argStep = stepItem.step;
-            return argStep <= currentActualStep;
-        });
+        return filtered;
     }
 
     function getNewArgumentsForStep(stepIndex) {
@@ -830,13 +879,6 @@
         document.getElementById('theme-selector').value = theme;
 
         switch (theme) {
-            case 'green':
-                return {
-                    'default': 'fill:#D5E8D4,stroke:#004d00',
-                    add: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px',
-                    select: 'fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff',
-                    selectadd: 'fill:#0F7C0F,stroke:#004d00,color:#ffffff,stroke-width:4px'
-                };
             case 'xray':
                 return {
                     'default': 'fill:#F4BA71,stroke:#000000',
@@ -846,10 +888,10 @@
                 };
             default:
                 return {
-                    'default': 'fill:#D9E7D6,stroke:#8CB26F',
-                    add: 'fill:#D9E7D6,stroke:#000000,stroke-width:4px',
-                    select: 'fill:#FFE6CC,stroke:#D79B00',
-                    selectadd: 'fill:#FFE6CC,stroke:#000000,stroke-width:4px'
+                    'default': 'fill:#D5E8D4,stroke:#004d00',
+                    add: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px',
+                    select: 'fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff',
+                    selectadd: 'fill:#0F7C0F,stroke:#004d00,color:#ffffff,stroke-width:4px'
                 };
         }
     }
@@ -1175,6 +1217,127 @@
 
         initializeSteps();
         setupStepNavigation();
+
+        var allSets = collectAllSets();
+        if (allSets.length > 0) {
+            var hasUnassigned = argumentationData.arguments.some(function(a) { return !hasAnySets(a); });
+            var setBtn = document.getElementById('set-dropdown-btn');
+            var setList = document.getElementById('set-dropdown-list');
+            var setWrap = document.getElementById('set-dropdown-wrap');
+            var allCheckboxes = [];
+
+            function updateSetBtnText() {
+                var total = allCheckboxes.filter(function(cb) { return !cb.disabled; }).length;
+                setBtn.textContent = currentSetFilter.length + '/' + total + ' sets selected';
+            }
+
+            function applySetFilter() {
+                updateSetBtnText();
+                updateSelectAllState();
+                if (panzoomInstance) { panzoomInstance.destroy(); panzoomInstance = null; }
+                updateGraph('SetFilter');
+                resetExtensionSelection();
+            }
+
+            function makeCheckboxItem(value, label) {
+                var item = document.createElement('label');
+                item.className = 'set-dropdown-item';
+                var cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.value = value;
+                cb.addEventListener('change', function() {
+                    if (cb.checked) {
+                        if (currentSetFilter.indexOf(value) === -1) currentSetFilter.push(value);
+                    } else {
+                        var idx = currentSetFilter.indexOf(value);
+                        if (idx !== -1) currentSetFilter.splice(idx, 1);
+                    }
+                    applySetFilter();
+                });
+                item.appendChild(cb);
+                item.appendChild(document.createTextNode(label));
+                allCheckboxes.push(cb);
+                return item;
+            }
+
+            allSets.forEach(function(s) {
+                setList.appendChild(makeCheckboxItem(s, s));
+            });
+
+            var sep1 = document.createElement('hr');
+            sep1.className = 'set-dropdown-sep';
+            setList.appendChild(sep1);
+            var unassignedItem = makeCheckboxItem('__unassigned__', 'unassigned');
+            if (!hasUnassigned) {
+                unassignedItem.classList.add('disabled');
+                unassignedItem.querySelector('input').disabled = true;
+            }
+            setList.appendChild(unassignedItem);
+
+            var sep2 = document.createElement('hr');
+            sep2.className = 'set-dropdown-sep';
+            setList.appendChild(sep2);
+
+            var selectAll = document.createElement('div');
+            selectAll.className = 'set-dropdown-action';
+            selectAll.textContent = 'Select All';
+            selectAll.addEventListener('click', function() {
+                currentSetFilter = [];
+                allCheckboxes.forEach(function(cb) {
+                    if (!cb.disabled) {
+                        cb.checked = true;
+                        currentSetFilter.push(cb.value);
+                    }
+                });
+                applySetFilter();
+            });
+            setList.appendChild(selectAll);
+
+            var deselectAll = document.createElement('div');
+            deselectAll.className = 'set-dropdown-action';
+            deselectAll.textContent = 'Deselect All';
+            deselectAll.addEventListener('click', function() {
+                currentSetFilter = [];
+                allCheckboxes.forEach(function(cb) { cb.checked = false; });
+                applySetFilter();
+            });
+            setList.appendChild(deselectAll);
+
+            function updateSelectAllState() {
+                var enabledCount = allCheckboxes.filter(function(cb) { return !cb.disabled; }).length;
+                if (currentSetFilter.length >= enabledCount) {
+                    selectAll.classList.add('disabled');
+                } else {
+                    selectAll.classList.remove('disabled');
+                }
+                if (currentSetFilter.length === 0) {
+                    deselectAll.classList.add('disabled');
+                } else {
+                    deselectAll.classList.remove('disabled');
+                }
+            }
+
+            setBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                setList.classList.toggle('open');
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!setWrap.contains(e.target)) {
+                    setList.classList.remove('open');
+                }
+            });
+
+            allCheckboxes.forEach(function(cb) {
+                if (!cb.disabled) {
+                    cb.checked = true;
+                    currentSetFilter.push(cb.value);
+                }
+            });
+            updateSetBtnText();
+            updateSelectAllState();
+            document.getElementById('set-filter-controls').style.display = '';
+        }
 
         mermaid.initialize({
             startOnLoad: false,
@@ -1523,6 +1686,21 @@
             .nav-btn:disabled{background:#f8f8f8;border-color:#e0e0e0;color:#ccc;cursor:not-allowed}
             #step-indicator{font-size:14px;font-weight:500;color:#555;min-width:60px;text-align:center}
             .display-controls{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;min-width:0}
+            .set-dropdown-wrap{position:relative}
+            .set-dropdown-btn{padding:4px 8px;min-width:80px;max-width:180px;font-size:12px;font-family:'JetBrains Mono',monospace;background:#f8f9fa;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+            .set-dropdown-btn:hover{background:#f0f0f0;border-color:#bbb}
+            .set-dropdown-btn::after{content:'\\25BE';float:right;margin-left:6px;color:#888}
+            .set-dropdown-list{display:none;position:absolute;top:100%;right:0;margin-top:2px;background:#fff;border:1px solid #d0d0d0;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:2000;min-width:140px;max-height:200px;overflow-y:auto}
+            .set-dropdown-list.open{display:block}
+            .set-dropdown-item{display:flex;align-items:center;gap:6px;padding:4px 10px;font-size:12px;font-family:'JetBrains Mono',monospace;cursor:pointer;user-select:none;white-space:nowrap}
+            .set-dropdown-item:hover{background:#f0f0f0}
+            .set-dropdown-item input{margin:0;cursor:pointer}
+            .set-dropdown-item.disabled{color:#bbb;cursor:default;pointer-events:none}
+            .set-dropdown-item.disabled input{cursor:default}
+            .set-dropdown-sep{border:none;border-top:1px solid #e0e0e0;margin:2px 0}
+            .set-dropdown-action{display:flex;align-items:center;gap:6px;padding:4px 10px;font-size:12px;font-family:'JetBrains Mono',monospace;cursor:pointer;user-select:none}
+            .set-dropdown-action:hover{background:#f0f0f0}
+            .set-dropdown-action.disabled{color:#bbb;cursor:default;pointer-events:none}
             .display-dropdown{padding:4px 8px;min-width:80px;max-width:100%;font-size:12px;font-family:'JetBrains Mono',monospace;background:#f8f9fa;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer}
             .display-dropdown:hover{background:#f0f0f0;border-color:#bbb}
             .display-dropdown:focus{outline:none;border-color:#999;box-shadow:0 0 3px rgba(0,0,0,.1)}
@@ -1584,8 +1762,7 @@
                 <div class="display-controls">
                     <label for="theme-selector">Theme:</label>
                     <select id="theme-selector" class="display-dropdown">
-                        <option value="default" selected>Default</option>
-                        <option value="green">Green</option>
+                        <option value="green" selected>Green</option>
                         <option value="xray">XRAY</option>
                     </select>
                 </div>
@@ -1610,6 +1787,13 @@
                         <option value="label-summary" selected>Summary</option>
                         <option value="label-summary-details">Details</option>
                     </select>
+                </div>
+                <div class="display-controls" id="set-filter-controls" style="display:none;">
+                    <label>Sets:</label>
+                    <div class="set-dropdown-wrap" id="set-dropdown-wrap">
+                        <button type="button" class="set-dropdown-btn" id="set-dropdown-btn"></button>
+                        <div class="set-dropdown-list" id="set-dropdown-list"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1658,6 +1842,7 @@
     let currentStepIndex = 0;
     let maxStepIndex = 0;
     let actualSteps = [];
+    let currentSetFilter = [];
     let nodeData, colors;
     ${scriptFuncs}
 <\/script>
