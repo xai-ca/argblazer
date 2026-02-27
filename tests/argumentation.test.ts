@@ -1,4 +1,8 @@
-import { computeExtensions, ArgumentationFramework } from '../src/argumentation';
+import { getExtensionFuncs } from '../src/htmlRenderer';
+
+// Eval the client-side computation functions to get computeExtensions
+const computeExtensions: (args: string[], attacks: [string, string][]) => any =
+    new Function(getExtensionFuncs() + '\nreturn computeExtensions;')();
 
 // Helper: normalize extension results for comparison (sort inner arrays, sort outer array)
 function normalize(exts: string[][]): string {
@@ -8,6 +12,11 @@ function normalize(exts: string[][]): string {
             return ja < jb ? -1 : ja > jb ? 1 : 0;
         })
     );
+}
+
+interface ArgumentationFramework {
+    args: string[];
+    attacks: [string, string][];
 }
 
 interface TestCase {
@@ -278,8 +287,8 @@ const testCases: TestCase[] = [
 let passed = 0, failed = 0;
 
 for (const tc of testCases) {
-    const result = computeExtensions(tc.af);
-    const types: (keyof typeof result)[] = ['conflict_free', 'admissible', 'complete', 'preferred', 'grounded', 'stable'];
+    const result = computeExtensions(tc.af.args, tc.af.attacks);
+    const types = ['conflict_free', 'admissible', 'complete', 'preferred', 'grounded', 'stable'] as const;
 
     for (const type of types) {
         // Skip conflict_free and admissible checks for large AFs (too many to list)

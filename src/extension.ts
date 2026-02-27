@@ -191,15 +191,14 @@ async function generateAndUpdateReport(yamlContent: string, panel: vscode.Webvie
                 yamlData.arguments = argumentsArray;
             }
 
-            // Process data and compute extensions
-            const { jsonData, stepExtensions } = preprocessAndCompute(yamlData);
+            // Process data
+            const jsonData = preprocessAndCompute(yamlData);
 
             // Generate HTML report
             const af4graph = JSON.stringify(jsonData);
-            const af4ext = JSON.stringify(stepExtensions);
             // Extract exhibit from raw YAML to preserve comments and newlines
             const exhibit = extractRawExhibit(yamlContent) || '[Not provided]';
-            const htmlOutput = renderHtml({ af4graph, af4ext, exhibit, fileKey });
+            const htmlOutput = renderHtml({ af4graph, exhibit, fileKey });
 
             // Store the HTML content for export
             panelHtmlContent.set(fileKey, htmlOutput);

@@ -3,7 +3,7 @@
   "displayName": "ArgBlazer",
   "description": "Convert YAML files representing argumentation frameworks into interactive HTML reports",
   "publisher": "CIRSS",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/xai-ca/argblazer.git"
@@ -72,7 +72,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "test": "tsc --module commonjs --target ES2022 --moduleResolution node --esModuleInterop --outDir out/tests --rootDir . tests/argumentation.test.ts src/argumentation.ts && node out/tests/tests/argumentation.test.js"
+    "test": "tsc --module commonjs --target ES2022 --moduleResolution node --esModuleInterop --outDir out/tests --rootDir . tests/argumentation.test.ts src/htmlRenderer.ts && node out/tests/tests/argumentation.test.js"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"

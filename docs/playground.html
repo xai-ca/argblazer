@@ -216,21 +216,18 @@
 
     // --- argumentation.ts ---
     function isConflictFree(subset, attacks) {
-        for (var i = 0; i < attacks.length; i++) {
-            if (subset.has(attacks[i][0]) && subset.has(attacks[i][1])) return false;
+        for (const [a, b] of attacks) {
+            if (subset.has(a) && subset.has(b)) return false;
         }
         return true;
     }
 
     function isDefended(arg, subset, attacks) {
-        for (var i = 0; i < attacks.length; i++) {
-            if (attacks[i][1] === arg) {
-                var attacker = attacks[i][0];
-                var defended = false;
-                for (var j = 0; j < attacks.length; j++) {
-                    if (attacks[j][1] === attacker && subset.has(attacks[j][0])) {
-                        defended = true; break;
-                    }
+        for (const [attacker, target] of attacks) {
+            if (target === arg) {
+                let defended = false;
+                for (const [z, t] of attacks) {
+                    if (t === attacker && subset.has(z)) { defended = true; break; }
                 }
                 if (!defended) return false;
             }
@@ -240,7 +237,7 @@
 
     function isAdmissible(subset, attacks) {
         if (!isConflictFree(subset, attacks)) return false;
-        for (var x of subset) {
+        for (const x of subset) {
             if (!isDefended(x, subset, attacks)) return false;
         }
         return true;
@@ -248,22 +245,20 @@
 
     function isComplete(subset, args, attacks) {
         if (!isAdmissible(subset, attacks)) return false;
-        for (var i = 0; i < args.length; i++) {
-            if (subset.has(args[i])) continue;
-            if (isDefended(args[i], subset, attacks)) return false;
+        for (const x of args) {
+            if (subset.has(x)) continue;
+            if (isDefended(x, subset, attacks)) return false;
         }
         return true;
     }
 
     function isStable(subset, args, attacks) {
         if (!isConflictFree(subset, attacks)) return false;
-        for (var i = 0; i < args.length; i++) {
-            if (subset.has(args[i])) continue;
-            var attacked = false;
-            for (var j = 0; j < attacks.length; j++) {
-                if (attacks[j][1] === args[i] && subset.has(attacks[j][0])) {
-                    attacked = true; break;
-                }
+        for (const x of args) {
+            if (subset.has(x)) continue;
+            let attacked = false;
+            for (const [a, b] of attacks) {
+                if (b === x && subset.has(a)) { attacked = true; break; }
             }
             if (!attacked) return false;
         }
@@ -272,30 +267,33 @@
 
     function isProperSuperset(a, b) {
         if (a.size <= b.size) return false;
-        for (var x of b) { if (!a.has(x)) return false; }
+        for (const x of b) {
+            if (!a.has(x)) return false;
+        }
         return true;
     }
 
     function computeGrounded(args, attacks) {
-        var inSet = new Set();
-        var outSet = new Set();
-        var changed = true;
+        const inSet = new Set();
+        const outSet = new Set();
+        let changed = true;
         while (changed) {
             changed = false;
-            for (var i = 0; i < args.length; i++) {
-                var x = args[i];
+            for (const x of args) {
                 if (inSet.has(x) || outSet.has(x)) continue;
-                var attackers = [];
-                for (var j = 0; j < attacks.length; j++) {
-                    if (attacks[j][1] === x) attackers.push(attacks[j][0]);
+                const attackers = [];
+                for (const [a, b] of attacks) {
+                    if (b === x) attackers.push(a);
                 }
                 if (attackers.every(function(y) { return outSet.has(y); })) {
-                    inSet.add(x); changed = true;
+                    inSet.add(x);
+                    changed = true;
                 }
             }
-            for (var k = 0; k < attacks.length; k++) {
-                if (inSet.has(attacks[k][0]) && !outSet.has(attacks[k][1])) {
-                    outSet.add(attacks[k][1]); changed = true;
+            for (const [a, b] of attacks) {
+                if (inSet.has(a) && !outSet.has(b)) {
+                    outSet.add(b);
+                    changed = true;
                 }
             }
         }
@@ -303,28 +301,23 @@
     }
 
     function extractConflictFreeSets(args, attacks) {
-        var n = args.length;
-        var argIndex = new Map();
-        for (var i = 0; i < n; i++) {
-            argIndex.set(args[i], i);
-        }
-
-        var conflictMask = [];
-        for (var i = 0; i < n; i++) conflictMask.push(0n);
-        for (var i = 0; i < attacks.length; i++) {
-            var ai = argIndex.get(attacks[i][0]);
-            var bi = argIndex.get(attacks[i][1]);
+        const n = args.length;
+        const argIndex = {};
+        for (let i = 0; i < n; i++) argIndex[args[i]] = i;
+        const conflictMask = [];
+        for (let i = 0; i < n; i++) conflictMask.push(0n);
+        for (const [a, b] of attacks) {
+            const ai = argIndex[a];
+            const bi = argIndex[b];
             conflictMask[ai] |= (1n << BigInt(bi));
             conflictMask[bi] |= (1n << BigInt(ai));
         }
-
-        var result = [];
-        var current = new Set();
-
+        const result = [];
+        const current = new Set();
         function backtrack(index, blocked) {
             result.push(new Set(current));
-            for (var i = index; i < n; i++) {
-                var bit = 1n << BigInt(i);
+            for (let i = index; i < n; i++) {
+                const bit = 1n << BigInt(i);
                 if (blocked & bit) continue;
                 if (conflictMask[i] & bit) continue;
                 current.add(args[i]);
@@ -332,23 +325,21 @@
                 current.delete(args[i]);
             }
         }
-
         backtrack(0, 0n);
         return result;
     }
 
     function setToSortedArray(s) { return Array.from(s).sort(); }
 
-    function computeExtensions(af) {
-        var args = af.args, attacks = af.attacks;
-        var conflictFree = extractConflictFreeSets(args, attacks);
-        var admissible = conflictFree.filter(function(s) { return isAdmissible(s, attacks); });
-        var complete = admissible.filter(function(s) { return isComplete(s, args, attacks); });
-        var preferred = admissible.filter(function(ext) {
+    function computeExtensions(args, attacks) {
+        const conflictFree = extractConflictFreeSets(args, attacks);
+        const admissible = conflictFree.filter(function(s) { return isAdmissible(s, attacks); });
+        const complete = admissible.filter(function(s) { return isComplete(s, args, attacks); });
+        const preferred = admissible.filter(function(ext) {
             return !admissible.some(function(other) { return other !== ext && isProperSuperset(other, ext); });
         });
-        var grounded = computeGrounded(args, attacks);
-        var stable = conflictFree.filter(function(s) { return isStable(s, args, attacks); });
+        const grounded = computeGrounded(args, attacks);
+        const stable = conflictFree.filter(function(s) { return isStable(s, args, attacks); });
         return {
             conflict_free: conflictFree.map(setToSortedArray),
             admissible: admissible.map(setToSortedArray),
@@ -463,7 +454,6 @@
 
         var rankTopArr = [];
         var rankBottomArr = [];
-        var stepExtensions = [];
         var sortedSteps = Array.from(step2extFacts.keys()).sort(function(a, b) { return a - b; });
 
         for (var si = 0; si < sortedSteps.length; si++) {
@@ -471,12 +461,10 @@
             var edges = step2edges.get(step) || [];
             rankTopArr.push(computeRank(edges, top, first, last, true));
             rankBottomArr.push(computeRank(edges, bottom, first, last, false));
-            var af = step2extFacts.get(step);
-            stepExtensions.push(computeExtensions({ args: af.args, attacks: af.attacks }));
         }
 
         jsonData.steps = { rank_top: rankTopArr, rank_bottom: rankBottomArr };
-        return { jsonData: jsonData, stepExtensions: stepExtensions };
+        return jsonData;
     }
 
     // --- extractRawExhibit ---
@@ -1237,6 +1225,7 @@
                 if (panzoomInstance) { panzoomInstance.destroy(); panzoomInstance = null; }
                 updateGraph('SetFilter');
                 resetExtensionSelection();
+                updateExtensionsDisplay();
             }
 
             function makeCheckboxItem(value, label) {
@@ -1403,8 +1392,10 @@
     }
 
     function getExtensionsForStep(stepIndex) {
-        var effectiveStepIndex = Math.max(0, Math.min(stepIndex, maxStepIndex));
-        return extensionData[effectiveStepIndex];
+        var filteredArgs = getFilteredArguments(stepIndex);
+        var argIds = filteredArgs.map(function(arg) { return Object.keys(arg)[0]; });
+        var attacks = getFilteredAttacks(stepIndex);
+        return parent.computeExtensions(argIds, attacks);
     }
 
     function updateExtensionsDisplay() {
@@ -1644,7 +1635,7 @@
 `;
     }
 
-    function generateReportHtml(af4graph, af4ext, exhibit, fileKey) {
+    function generateReportHtml(af4graph, exhibit, fileKey) {
         var exhibitHidden = (exhibit === '[Not provided]');
         var exhibitStyle = exhibitHidden ? ' style="display: none;"' : '';
         var scriptFuncs = getReportScriptFuncs();
@@ -1835,7 +1826,6 @@
 <script src="https://unpkg.com/@panzoom/panzoom@4.6.0/dist/panzoom.min.js"><\/script>
 <script>
     const argumentationData = ${af4graph};
-    const extensionData = ${af4ext};
     const fileKey = '${fileKey}';
     let panzoomInstance = null;
     let savedZoomLevel = null;
@@ -1883,11 +1873,10 @@
                 yamlData.arguments = argumentsArray;
             }
 
-            var result = preprocessAndCompute(yamlData);
-            var af4graph = JSON.stringify(result.jsonData);
-            var af4ext = JSON.stringify(result.stepExtensions);
+            var jsonData = preprocessAndCompute(yamlData);
+            var af4graph = JSON.stringify(jsonData);
             var exhibit = extractRawExhibit(yamlText) || '[Not provided]';
-            var html = generateReportHtml(af4graph, af4ext, exhibit, 'playground');
+            var html = generateReportHtml(af4graph, exhibit, 'playground');
 
             errorBar.style.display = 'none';
             previewFrame.srcdoc = html;

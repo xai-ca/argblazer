@@ -1,12 +1,6 @@
 import { computeRank } from './bfs';
-import { computeExtensions, Extensions } from './argumentation';
 
-export interface ProcessedData {
-    jsonData: any;
-    stepExtensions: Extensions[];
-}
-
-export function preprocessAndCompute(yamlData: any): ProcessedData {
+export function preprocessAndCompute(yamlData: any): any {
     const jsonData = JSON.parse(JSON.stringify(yamlData)); // deep clone
 
     let first: string | null = null;
@@ -115,10 +109,9 @@ export function preprocessAndCompute(yamlData: any): ProcessedData {
         }
     }
 
-    // Compute ranks and extensions per step
+    // Compute ranks per step
     const rankTopArr: Record<string, number>[] = [];
     const rankBottomArr: Record<string, number>[] = [];
-    const stepExtensions: Extensions[] = [];
 
     const sortedSteps = Array.from(step2extFacts.keys()).sort((a, b) => a - b);
 
@@ -126,10 +119,6 @@ export function preprocessAndCompute(yamlData: any): ProcessedData {
         const edges = step2edges.get(step) || [];
         rankTopArr.push(computeRank(edges, top, first, last, true));
         rankBottomArr.push(computeRank(edges, bottom, first, last, false));
-
-        const af = step2extFacts.get(step)!;
-        const extensions = computeExtensions({ args: af.args, attacks: af.attacks });
-        stepExtensions.push(extensions);
     }
 
     // Store per-step rank data
@@ -138,5 +127,5 @@ export function preprocessAndCompute(yamlData: any): ProcessedData {
         rank_bottom: rankBottomArr
     };
 
-    return { jsonData, stepExtensions };
+    return jsonData;
 }
