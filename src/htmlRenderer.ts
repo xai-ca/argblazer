@@ -17,21 +17,32 @@ export function renderHtml(params: {
         <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
         <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
         <style>
-            body{margin:0;padding:10px 20px 0 20px;font-family:'JetBrains Mono',monospace;background:#fff;color:#333;height:100vh;box-sizing:border-box;display:flex;flex-direction:column}
+            body{margin:0;padding:10px 20px 0 20px;font-family:'JetBrains Mono',monospace;background:#fff;color:#333;height:100vh;min-width:340px;box-sizing:border-box;display:flex;flex-direction:column}
             body::after{content:'';height:10px;flex-shrink:0}
             .token.operator{background:transparent!important}
-            .exhibit-section,.extensions-section{padding:0;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.05);display:flex;flex-direction:column;min-height:0}
+            pre[class*="language-"],code[class*="language-"]{background:#f8f9fa!important}
+            .line-numbers .line-numbers-rows{border-right-color:#e0e0e0!important}
+            .exhibit-section,.decisions-section,.extensions-section{padding:0;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.05);display:flex;flex-direction:column;min-height:0}
+            .decision-item{display:flex;align-items:baseline;padding:1px 0;font-size:13px;gap:6px;flex-wrap:wrap;border-bottom:1px solid #ebebeb}
+            .decision-item:last-child{border-bottom:none}
+            .decision-question{color:#555}
+            .decision-answer{font-weight:600}
+            .decision-answer.yes{color:#28a745}
+            .decision-answer.no{color:#dc3545}
             .resize-handle{height:10px;background:transparent;cursor:row-resize;display:flex;align-items:center;justify-content:center;position:relative;z-index:1000;margin:5px 0}
             .resize-handle::before{content:'';width:80px;height:3px;background:#dee2e6;border-radius:2px;transition:all 0.2s ease}
             .resize-handle:hover::before{background:#28a745;width:120px;height:4px;box-shadow:0 2px 8px rgba(40, 167, 69, 0.3)}
             .resize-handle:active::before{background:#1e7e34}
             .section-header{display:flex;justify-content:space-between;align-items:center;padding:5px;cursor:pointer;user-select:none;border-bottom:1px solid #e0e0e0;flex-shrink:0;flex-wrap:wrap;gap:8px}
-            .main-content > .section-header{cursor:default;margin-bottom:0;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px 8px 0 0;box-shadow:0 2px 4px rgba(0,0,0,.05);border-bottom:1px solid #e0e0e0}
+            .main-content > .section-header{cursor:default;margin-bottom:0;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px 8px 0 0;box-shadow:0 2px 4px rgba(0,0,0,.05);border-bottom:1px solid #e0e0e0;flex-wrap:nowrap;align-items:flex-start}
             .section-header h3{margin:0;font-size:16px;font-weight:600;color:#333}
             .section-toggle{font-size:14px;color:#666;transition:transform 0.2s ease}
             .section-toggle.collapsed{transform:rotate(-90deg)}
             .section-content{padding:16px;overflow-y:auto;transition:max-height 0.3s ease;flex:1;min-height:0}
-            .section-content.collapsed{max-height:0!important;padding-top:0;padding-bottom:0;overflow:hidden}
+            #decisions-content{flex:0 0 auto;padding-top:6px;padding-bottom:6px}
+            #exhibit-content{padding:0}
+            #exhibit-content pre{margin:0;padding:8px 16px 8px 48px!important}
+            .section-content.collapsed{max-height:0!important;padding-top:0!important;padding-bottom:0!important;overflow:hidden}
             .section-header:has(+ .section-content.collapsed){border-bottom:none}
             .header-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;min-width:0;justify-content:flex-end;flex:1 1 auto}
             .step-navigation{display:flex;align-items:center;gap:8px;flex-shrink:0}
@@ -39,7 +50,7 @@ export function renderHtml(params: {
             .nav-btn:hover:not(:disabled){background:#e0e0e0;border-color:#bbb}
             .nav-btn:disabled{background:#f8f8f8;border-color:#e0e0e0;color:#ccc;cursor:not-allowed}
             #step-indicator{font-size:14px;font-weight:500;color:#555;min-width:60px;text-align:center}
-            .display-controls{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;min-width:0}
+            .display-controls{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:nowrap;min-width:0}
             .set-dropdown-wrap{position:relative}
             .set-dropdown-btn{padding:4px 8px;min-width:80px;max-width:180px;font-size:12px;font-family:'JetBrains Mono',monospace;background:#f8f9fa;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
             .set-dropdown-btn:hover{background:#f0f0f0;border-color:#bbb}
@@ -107,7 +118,19 @@ export function renderHtml(params: {
         </div>
     </div>
 
-    <div class="resize-handle" id="resize-handle-1"${exhibitStyle}></div>
+    <div class="resize-handle" id="resize-handle-0" style="display: none;"></div>
+
+    <div class="decisions-section" id="decisions-section" style="display: none;">
+        <div class="section-header" onclick="toggleSection('decisions')">
+            <h3>Decisions</h3>
+            <span class="section-toggle" id="decisions-toggle"><span style="font-family: Arial;">&#9660;</span></span>
+        </div>
+        <div class="section-content" id="decisions-content">
+            <div id="decisions-list"></div>
+        </div>
+    </div>
+
+    <div class="resize-handle" id="resize-handle-1"></div>
 
     <div class="main-content" id="graph-section">
         <div class="section-header">
@@ -198,7 +221,7 @@ export function renderHtml(params: {
     let currentSetFilter = [];
     let nodeData, colors;
     ${getScriptFuncs()}
-</script>
+    </script>
 </html>`;
 }
 
@@ -207,15 +230,10 @@ function getScriptFuncs(): string {
     // Uses escaped template literals where the original code used backticks.
     return `
     function updateResizeHandleVisibility(){
-        var handle1 = document.getElementById('resize-handle-1');
-        var handle2 = document.getElementById('resize-handle-2');
-        var exhibitSection = document.getElementById('exhibit-section');
-
-        if (handle1 && exhibitSection) {
-            var exhibitStyle = window.getComputedStyle(exhibitSection);
-            var exhibitHidden = exhibitStyle.display === 'none';
-            handle1.style.display = exhibitHidden ? 'none' : 'flex';
-        }
+        var exhibitHidden = window.getComputedStyle(exhibitSection).display === 'none';
+        var decisionsHidden = window.getComputedStyle(decisionsSection).display === 'none';
+        handle0.style.display = (!exhibitHidden && !decisionsHidden) ? 'flex' : 'none';
+        handle1.style.display = (exhibitHidden && decisionsHidden) ? 'none' : 'flex';
     }
 
     function getFitScale(container, elem) {
@@ -253,7 +271,6 @@ function getScriptFuncs(): string {
         }
 
         updateStepIndicator();
-        updateResizeHandleVisibility();
     }
 
     function collectAllSets() {
@@ -422,6 +439,7 @@ function getScriptFuncs(): string {
         document.getElementById('end-step').disabled = currentStepIndex > maxStepIndex;
 
         updateExtensionsDisplay();
+        updateDecisionsDisplay();
     }
 
     function setupStepNavigation() {
@@ -431,7 +449,6 @@ function getScriptFuncs(): string {
                 updateStepIndicator();
                 updateGraph('StepNavigation');
                 resetExtensionSelection();
-                updateResizeHandleVisibility();
             }
         });
 
@@ -441,7 +458,6 @@ function getScriptFuncs(): string {
                 updateStepIndicator();
                 updateGraph('StepNavigation');
                 resetExtensionSelection();
-                updateResizeHandleVisibility();
             }
         });
 
@@ -451,7 +467,6 @@ function getScriptFuncs(): string {
                 updateStepIndicator();
                 updateGraph('StepNavigation');
                 resetExtensionSelection();
-                updateResizeHandleVisibility();
             }
         });
 
@@ -461,7 +476,6 @@ function getScriptFuncs(): string {
                 updateStepIndicator();
                 updateGraph('StepNavigation');
                 resetExtensionSelection();
-                updateResizeHandleVisibility();
             }
         });
     }
@@ -470,7 +484,7 @@ function getScriptFuncs(): string {
         displayMode = displayMode || 'label-summary';
         var separator = "<hr style='border:0;border-top:1px dashed;margin:0;'/>";
         if (displayMode === 'label' || typeof argData === 'string') {
-            return "<div style='display:flex;align-items:center;justify-content:center;min-width:60px;min-height:60px;aspect-ratio:1;padding:4px;'>" + key + "</div>";
+            return "<div style='display:flex;align-items:center;justify-content:center;padding:2px 10px;font-size:16px;white-space:nowrap;'>" + key + "</div>";
         }
 
         var formattedText = key + "<br>" + separator;
@@ -518,7 +532,7 @@ function getScriptFuncs(): string {
                 }
             }
         }
-        return "<div style='min-width:150px;'>" + formattedText + "</div>";
+        return "<div style='min-width:150px;max-width:350px;word-wrap:break-word;'>" + formattedText + "</div>";
     }
 
     function initializePanzoom(wrapper, mermaidContainer) {
@@ -532,6 +546,21 @@ function getScriptFuncs(): string {
             if (!event.shiftKey) return;
             panzoomInstance.zoomWithWheel(event);
         });
+    }
+
+    function destroyPanzoom() {
+        if (panzoomInstance) { panzoomInstance.destroy(); panzoomInstance = null; }
+    }
+
+    function reinitPanzoom() {
+        if (panzoomInstance) {
+            var mermaidContainer = document.getElementById('mermaid-diagram');
+            var wrapper = document.getElementById('wrapper');
+            if (mermaidContainer && wrapper) {
+                panzoomInstance.destroy();
+                initializePanzoom(wrapper, mermaidContainer);
+            }
+        }
     }
 
     function zoomIn() {
@@ -728,7 +757,7 @@ function getScriptFuncs(): string {
             var hasSummary = Array.isArray(argData) && argData.some(function(item) { return item && item.summary; });
             return {
                 id: key,
-                label: hasSummary ? formatMultiLineLabel(key, argData, displayMode) : "<div style='display:flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;aspect-ratio:1;font-size:18px;'>" + key + "</div>",
+                label: (hasSummary || displayMode === 'label') ? formatMultiLineLabel(key, argData, displayMode) : "<div style='display:flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;aspect-ratio:1;font-size:18px;'>" + key + "</div>",
                 shape: 'rect'
             };
         });
@@ -754,11 +783,33 @@ function getScriptFuncs(): string {
             savedZoomLevel = panzoomInstance.getScale();
         }
 
-        if (panzoomInstance) {
-            panzoomInstance.destroy();
-            panzoomInstance = null;
-        }
+        destroyPanzoom();
         render();
+    }
+
+    function setupToggleBtn(btn, itemId, hideLabel, showLabel, storageKey) {
+        if (!btn) return;
+        if (getFileSpecificStorage(storageKey, 'true') === 'false') {
+            var item = document.getElementById(itemId);
+            btn.classList.toggle('active');
+            item.style.display = 'flex';
+            btn.textContent = hideLabel;
+        }
+        btn.addEventListener('click', function() {
+            var item = document.getElementById(itemId);
+            if (item) {
+                btn.classList.toggle('active');
+                if (btn.classList.contains('active')) {
+                    item.style.display = 'none';
+                    btn.textContent = showLabel;
+                    setFileSpecificStorage(storageKey, 'true');
+                } else {
+                    item.style.display = 'flex';
+                    btn.textContent = hideLabel;
+                    setFileSpecificStorage(storageKey, 'false');
+                }
+            }
+        });
     }
 
     function setupControls() {
@@ -781,10 +832,7 @@ function getScriptFuncs(): string {
             themeSelector.addEventListener('change', function() {
                 sessionStorage.setItem('argblazer_global_sessionTheme', themeSelector.value);
                 updateExtensionStyling();
-                if (panzoomInstance) {
-                    panzoomInstance.destroy();
-                    panzoomInstance = null;
-                }
+                destroyPanzoom();
                 render();
             });
         }
@@ -798,10 +846,7 @@ function getScriptFuncs(): string {
         if (rankDirectionSelect) {
             rankDirectionSelect.addEventListener('change', function() {
                 setFileSpecificStorage('sessionRankDirection', rankDirectionSelect.value);
-                if (panzoomInstance) {
-                    panzoomInstance.destroy();
-                    panzoomInstance = null;
-                }
+                destroyPanzoom();
                 render();
             });
         }
@@ -809,53 +854,8 @@ function getScriptFuncs(): string {
         var conflictFreeBtn = document.getElementById('toggle-conflict-free');
         var admissibleBtn = document.getElementById('toggle-admissible');
 
-        if (conflictFreeBtn) {
-            if (getFileSpecificStorage('sessionConflictFreeHide', 'true') === 'false') {
-                var conflictFreeItem = document.getElementById('conflict-free-item');
-                conflictFreeBtn.classList.toggle('active');
-                conflictFreeItem.style.display = 'flex';
-                conflictFreeBtn.textContent = 'Hide Conflict-free';
-            }
-            conflictFreeBtn.addEventListener('click', function() {
-                var conflictFreeItem = document.getElementById('conflict-free-item');
-                if (conflictFreeItem) {
-                    conflictFreeBtn.classList.toggle('active');
-                    if (conflictFreeBtn.classList.contains('active')) {
-                        conflictFreeItem.style.display = 'none';
-                        conflictFreeBtn.textContent = 'Show Conflict-free';
-                        setFileSpecificStorage('sessionConflictFreeHide', 'true');
-                    } else {
-                        conflictFreeItem.style.display = 'flex';
-                        conflictFreeBtn.textContent = 'Hide Conflict-free';
-                        setFileSpecificStorage('sessionConflictFreeHide', 'false');
-                    }
-                }
-            });
-        }
-
-        if (admissibleBtn) {
-            if (getFileSpecificStorage('sessionAdmissibleHide', 'true') === 'false') {
-                var admissibleItem = document.getElementById('admissible-item');
-                admissibleBtn.classList.toggle('active');
-                admissibleItem.style.display = 'flex';
-                admissibleBtn.textContent = 'Hide Admissible';
-            }
-            admissibleBtn.addEventListener('click', function() {
-                var admissibleItem = document.getElementById('admissible-item');
-                if (admissibleItem) {
-                    admissibleBtn.classList.toggle('active');
-                    if (admissibleBtn.classList.contains('active')) {
-                        admissibleItem.style.display = 'none';
-                        admissibleBtn.textContent = 'Show Admissible';
-                        setFileSpecificStorage('sessionAdmissibleHide', true);
-                    } else {
-                        admissibleItem.style.display = 'flex';
-                        admissibleBtn.textContent = 'Hide Admissible';
-                        setFileSpecificStorage('sessionAdmissibleHide', false);
-                    }
-                }
-            });
-        }
+        setupToggleBtn(conflictFreeBtn, 'conflict-free-item', 'Hide Conflict-free', 'Show Conflict-free', 'sessionConflictFreeHide');
+        setupToggleBtn(admissibleBtn, 'admissible-item', 'Hide Admissible', 'Show Admissible', 'sessionAdmissibleHide');
     }
 
     function initializeSectionHeight() {
@@ -869,7 +869,7 @@ function getScriptFuncs(): string {
         var exhibitDesiredHeight = Math.min(exhibitHeaderHeight + exhibitContentHeight, maxSectionHeight);
         var extensionsDesiredHeight = Math.min(extensionsHeaderHeight + extensionsContentHeight, maxSectionHeight);
 
-        var exhibitDesiredHeightCheckedSession = getFileSpecificStorage('sessionExhibitHeight', exhibitDesiredHeight);
+        var exhibitDesiredHeightCheckedSession = getFileSpecificStorage('sessionExhibitHeight', 'collapsed');
         var extensionsDesiredHeightCheckedSession = getFileSpecificStorage('sessionExtensionsHeight', extensionsDesiredHeight);
 
         if (exhibitDesiredHeightCheckedSession === 'collapsed') {
@@ -891,7 +891,13 @@ function getScriptFuncs(): string {
             }
             extensionsSection.style.flex = '0 0 ' + extensionsDesiredHeightCheckedSession + 'px';
         }
-        var graphDesiredHeight = windowHeight - exhibitDesiredHeightCheckedSession - extensionsDesiredHeightCheckedSession;
+        var decisionsHeight = 0;
+        if (window.getComputedStyle(decisionsSection).display !== 'none') {
+            var decisionsHeader = decisionsSection.querySelector('.section-header');
+            decisionsHeight = decisionsHeader.offsetHeight + decisionsContent.scrollHeight;
+            decisionsSection.style.flex = '0 0 ' + decisionsHeight + 'px';
+        }
+        var graphDesiredHeight = windowHeight - exhibitDesiredHeightCheckedSession - extensionsDesiredHeightCheckedSession - decisionsHeight;
         graphSection.style.flex = '1 1 ' + graphDesiredHeight + 'px';
     }
 
@@ -921,7 +927,7 @@ function getScriptFuncs(): string {
             function applySetFilter() {
                 updateSetBtnText();
                 updateSelectAllState();
-                if (panzoomInstance) { panzoomInstance.destroy(); panzoomInstance = null; }
+                destroyPanzoom();
                 updateGraph('SetFilter');
                 resetExtensionSelection();
                 updateExtensionsDisplay();
@@ -1031,7 +1037,8 @@ function getScriptFuncs(): string {
             startOnLoad: false,
             flowchart: {
                 padding: 0.01,
-                htmlLabels: true
+                htmlLabels: true,
+                wrappingWidth: 240
             }
         });
 
@@ -1078,16 +1085,7 @@ function getScriptFuncs(): string {
             }
         }
 
-        setTimeout(function() {
-            if (panzoomInstance) {
-                var mermaidContainer = document.getElementById('mermaid-diagram');
-                var wrapper = document.getElementById('wrapper');
-                if (mermaidContainer && wrapper) {
-                    panzoomInstance.destroy();
-                    initializePanzoom(wrapper, mermaidContainer);
-                }
-            }
-        }, 300);
+        setTimeout(reinitPanzoom, 300);
     }
 
     function getExtensionsForStep(stepIndex) {
@@ -1162,24 +1160,15 @@ function getScriptFuncs(): string {
         setupExtensionClickHandlers();
     }
 
-    window.addEventListener('resize', function() {
-        if (panzoomInstance) {
-            var mermaidContainer = document.getElementById('mermaid-diagram');
-            var wrapper = document.getElementById('wrapper');
-            if (mermaidContainer && wrapper) {
-                panzoomInstance.destroy();
-                initializePanzoom(wrapper, mermaidContainer);
-            }
-        }
-    });
+    window.addEventListener('resize', reinitPanzoom);
 
     function setupResizeHandles() {
         var isResizing = false;
         var currentHandle = null;
         var startY = 0;
         var startExhibitHeight = 0;
-        var startGraphHeight = 0;
         var startExtensionsHeight = 0;
+        var startDecisionsHeight = 0;
 
         function startResize(e, handle) {
             isResizing = true;
@@ -1187,8 +1176,8 @@ function getScriptFuncs(): string {
             startY = e.clientY;
 
             startExhibitHeight = exhibitSection.getBoundingClientRect().height;
-            startGraphHeight = graphSection.getBoundingClientRect().height;
             startExtensionsHeight = extensionsSection.getBoundingClientRect().height;
+            startDecisionsHeight = decisionsSection.getBoundingClientRect().height;
 
             document.body.style.cursor = 'row-resize';
             document.body.style.userSelect = 'none';
@@ -1203,36 +1192,32 @@ function getScriptFuncs(): string {
 
             var exhibitHeader = exhibitSection.querySelector('.section-header');
             var extensionsHeader = extensionsSection.querySelector('.section-header');
-            var exhibitMinHeight = exhibitHeader ? exhibitHeader.getBoundingClientRect().height : 50;
-            var extensionsMinHeight = extensionsHeader ? extensionsHeader.getBoundingClientRect().height : 50;
+            var exhibitMinHeight = exhibitHeader.getBoundingClientRect().height;
+            var extensionsMinHeight = extensionsHeader.getBoundingClientRect().height;
             var graphMinHeight = 250;
 
             var collapseThreshold = 20;
 
-            if (currentHandle === handle1) {
-                var exhibitCollapsed = exhibitContent && exhibitContent.classList.contains('collapsed');
-
+            if (currentHandle === handle0) {
+                var exhibitCollapsed = exhibitContent.classList.contains('collapsed');
                 var targetExhibitHeight = startExhibitHeight + deltaY;
 
                 if (!exhibitCollapsed) {
                     if (targetExhibitHeight <= exhibitMinHeight + collapseThreshold) {
                         toggleSection('exhibit');
                     } else {
-                        var availableForExhibitAndGraph = windowHeight - startExtensionsHeight;
-
-                        var maxExhibitHeight = availableForExhibitAndGraph - graphMinHeight;
-                        var newExhibitHeight = Math.max(
+                        var available0 = windowHeight - startExtensionsHeight - startDecisionsHeight;
+                        var maxExhibitHeight0 = available0 - graphMinHeight;
+                        var newExhibitHeight0 = Math.max(
                             exhibitMinHeight + collapseThreshold,
-                            Math.min(maxExhibitHeight, targetExhibitHeight)
+                            Math.min(maxExhibitHeight0, targetExhibitHeight)
                         );
 
-                        var newGraphHeight = availableForExhibitAndGraph - newExhibitHeight;
-
-                        exhibitSection.style.flex = '0 0 ' + newExhibitHeight + 'px';
+                        exhibitSection.style.flex = '0 0 ' + newExhibitHeight0 + 'px';
                         graphSection.style.flex = '1 1 0';
                         extensionsSection.style.flex = '0 0 ' + startExtensionsHeight + 'px';
 
-                        setFileSpecificStorage('sessionExhibitHeight', newExhibitHeight.toString());
+                        setFileSpecificStorage('sessionExhibitHeight', newExhibitHeight0.toString());
                         setFileSpecificStorage('sessionExtensionsHeight', startExtensionsHeight.toString());
                     }
                 } else {
@@ -1241,8 +1226,66 @@ function getScriptFuncs(): string {
                     }
                 }
 
+            } else if (currentHandle === handle1) {
+                var decisionsVisible1 = window.getComputedStyle(decisionsSection).display !== 'none';
+
+                if (decisionsVisible1) {
+                    var decisionsCollapsed1 = decisionsContent.classList.contains('collapsed');
+                    var decisionsHeader1 = decisionsSection.querySelector('.section-header');
+                    var decisionsMinHeight1 = decisionsHeader1.getBoundingClientRect().height;
+                    var targetDecisionsHeight = startDecisionsHeight + deltaY;
+
+                    if (!decisionsCollapsed1) {
+                        if (targetDecisionsHeight <= decisionsMinHeight1 + collapseThreshold) {
+                            toggleSection('decisions');
+                        } else {
+                            var availableForDecisionsAndGraph = windowHeight - startExtensionsHeight - startExhibitHeight;
+                            var maxDecisionsHeight = availableForDecisionsAndGraph - graphMinHeight;
+                            var newDecisionsHeight = Math.max(
+                                decisionsMinHeight1 + collapseThreshold,
+                                Math.min(maxDecisionsHeight, targetDecisionsHeight)
+                            );
+                            if (window.getComputedStyle(exhibitSection).display !== 'none') {
+                                exhibitSection.style.flex = '0 0 ' + startExhibitHeight + 'px';
+                            }
+                            decisionsSection.style.flex = '0 0 ' + newDecisionsHeight + 'px';
+                            graphSection.style.flex = '1 1 0';
+                            extensionsSection.style.flex = '0 0 ' + startExtensionsHeight + 'px';
+                        }
+                    } else {
+                        if (targetDecisionsHeight > decisionsMinHeight1 + collapseThreshold) {
+                            toggleSection('decisions');
+                        }
+                    }
+                } else {
+                    var exhibitCollapsed1 = exhibitContent.classList.contains('collapsed');
+                    var targetExhibitHeight1 = startExhibitHeight + deltaY;
+
+                    if (!exhibitCollapsed1) {
+                        if (targetExhibitHeight1 <= exhibitMinHeight + collapseThreshold) {
+                            toggleSection('exhibit');
+                        } else {
+                            var available1 = windowHeight - startExtensionsHeight;
+                            var maxExhibitHeight1 = available1 - graphMinHeight;
+                            var newExhibitHeight1 = Math.max(
+                                exhibitMinHeight + collapseThreshold,
+                                Math.min(maxExhibitHeight1, targetExhibitHeight1)
+                            );
+                            exhibitSection.style.flex = '0 0 ' + newExhibitHeight1 + 'px';
+                            graphSection.style.flex = '1 1 0';
+                            extensionsSection.style.flex = '0 0 ' + startExtensionsHeight + 'px';
+                            setFileSpecificStorage('sessionExhibitHeight', newExhibitHeight1.toString());
+                            setFileSpecificStorage('sessionExtensionsHeight', startExtensionsHeight.toString());
+                        }
+                    } else {
+                        if (targetExhibitHeight1 > exhibitMinHeight + collapseThreshold) {
+                            toggleSection('exhibit');
+                        }
+                    }
+                }
+
             } else if (currentHandle === handle2) {
-                var extensionsCollapsed = extensionsContent && extensionsContent.classList.contains('collapsed');
+                var extensionsCollapsed = extensionsContent.classList.contains('collapsed');
 
                 var targetExtensionsHeight = startExtensionsHeight - deltaY;
 
@@ -1250,15 +1293,13 @@ function getScriptFuncs(): string {
                     if (targetExtensionsHeight <= extensionsMinHeight + collapseThreshold) {
                         toggleSection('extensions');
                     } else {
-                        var availableForGraphAndExtensions = windowHeight - startExhibitHeight;
+                        var availableForGraphAndExtensions = windowHeight - startExhibitHeight - startDecisionsHeight;
 
                         var maxExtensionsHeight = availableForGraphAndExtensions - graphMinHeight;
                         var newExtensionsHeight = Math.max(
                             extensionsMinHeight + collapseThreshold,
                             Math.min(maxExtensionsHeight, targetExtensionsHeight)
                         );
-
-                        var newGraphHeight2 = availableForGraphAndExtensions - newExtensionsHeight;
 
                         exhibitSection.style.flex = '0 0 ' + startExhibitHeight + 'px';
                         graphSection.style.flex = '1 1 0';
@@ -1274,16 +1315,7 @@ function getScriptFuncs(): string {
                 }
             }
 
-            setTimeout(function() {
-                if (panzoomInstance) {
-                    var mermaidContainer = document.getElementById('mermaid-diagram');
-                    var wrapper = document.getElementById('wrapper');
-                    if (mermaidContainer && wrapper) {
-                        panzoomInstance.destroy();
-                        initializePanzoom(wrapper, mermaidContainer);
-                    }
-                }
-            }, 50);
+            setTimeout(reinitPanzoom, 50);
         }
 
         function stopResize() {
@@ -1295,6 +1327,7 @@ function getScriptFuncs(): string {
             document.body.style.userSelect = '';
         }
 
+        handle0.addEventListener('mousedown', function(e) { startResize(e, handle0); });
         handle1.addEventListener('mousedown', function(e) { startResize(e, handle1); });
         handle2.addEventListener('mousedown', function(e) { startResize(e, handle2); });
 
@@ -1318,19 +1351,112 @@ function getScriptFuncs(): string {
         sessionStorage.setItem(getFileSpecificKey(key), value);
     }
 
+    function updateDecisionsDisplay() {
+        var decisionsList = document.getElementById('decisions-list');
+        if (!decisionsList) return;
+
+        var decisions = argumentationData.decisions;
+        if (!decisions || !Array.isArray(decisions) || decisions.length === 0) {
+            decisionsSection.style.display = 'none';
+            updateResizeHandleVisibility();
+            return;
+        }
+
+        decisionsSection.style.display = 'flex';
+        decisionsList.innerHTML = '';
+
+        var extensions = getExtensionsForStep(currentStepIndex);
+
+        decisions.forEach(function(decObj) {
+            var question = Object.keys(decObj)[0];
+            var props = decObj[question] || [];
+            var extensionType = 'preferred';
+            var target = null;
+            var mode = 'can';
+            props.forEach(function(prop) {
+                if (prop && prop.extension !== undefined) extensionType = prop.extension;
+                if (prop && prop.target !== undefined) target = String(prop.target);
+                if (prop && prop.mode !== undefined) mode = prop.mode;
+            });
+
+            if (target === null) return;
+
+            var extList = extensions[extensionType] || [];
+            var answer;
+            if (mode === 'can') {
+                answer = extList.some(function(ext) { return ext.indexOf(target) !== -1; });
+            } else {
+                answer = extList.length > 0 && extList.every(function(ext) { return ext.indexOf(target) !== -1; });
+            }
+
+            var itemDiv = document.createElement('div');
+            itemDiv.className = 'decision-item';
+
+            var questionSpan = document.createElement('span');
+            questionSpan.className = 'decision-question';
+            questionSpan.textContent = question;
+
+            var answerSpan = document.createElement('span');
+            answerSpan.className = 'decision-answer ' + (answer ? 'yes' : 'no');
+            answerSpan.textContent = answer ? 'Yes' : 'No';
+
+            itemDiv.appendChild(questionSpan);
+            itemDiv.appendChild(answerSpan);
+            decisionsList.appendChild(itemDiv);
+        });
+
+        updateResizeHandleVisibility();
+    }
+
     var windowHeight = document.body.getBoundingClientRect().height - 50;
+    var handle0 = document.getElementById('resize-handle-0');
     var handle1 = document.getElementById('resize-handle-1');
     var handle2 = document.getElementById('resize-handle-2');
     var exhibitSection = document.getElementById('exhibit-section');
+    var decisionsSection = document.getElementById('decisions-section');
     var graphSection = document.getElementById('graph-section');
     var extensionsSection = document.getElementById('extensions-section');
     var exhibitContent = document.getElementById('exhibit-content');
+    var decisionsContent = document.getElementById('decisions-content');
     var extensionsContent = document.getElementById('extensions-content');
 
     initializeGraph();
     initializeSectionHeight();
     setupResizeHandles();
     updateResizeHandleVisibility();
+
+    (function() {
+        var graphSectionHeader = graphSection.querySelector('.section-header');
+        var themeControls = document.getElementById('theme-selector').parentElement;
+        var rankControls = document.getElementById('rank-direction').parentElement;
+        var displayControls = document.getElementById('argument-display-mode').parentElement;
+        var setFilterControls = document.getElementById('set-filter-controls');
+        var stepNav = document.querySelector('.step-navigation');
+
+        function isWrapping() {
+            var refRect = stepNav.getBoundingClientRect();
+            var refMid = (refRect.top + refRect.bottom) / 2;
+            return [themeControls, rankControls, displayControls, setFilterControls].some(function(el) {
+                if (el.style.display === 'none') return false;
+                var rect = el.getBoundingClientRect();
+                return Math.abs((rect.top + rect.bottom) / 2 - refMid) > 5;
+            });
+        }
+
+        function updateVisibility() {
+            themeControls.style.display = '';
+            rankControls.style.display = '';
+            displayControls.style.display = '';
+            if (!isWrapping()) return;
+            themeControls.style.display = 'none';
+            if (!isWrapping()) return;
+            rankControls.style.display = 'none';
+            if (!isWrapping()) return;
+            displayControls.style.display = 'none';
+        }
+
+        new ResizeObserver(updateVisibility).observe(graphSectionHeader);
+    })();
 `;
 }
 

@@ -9,6 +9,8 @@ A VS Code extension that generates interactive HTML reports from YAML files, whe
 
 - **Interactive graph visualization** &mdash; generates an interactive HTML report from a YAML file representing an argumentation framework, displayed in a side-by-side webview panel
 - **Extensions** &mdash; automatically computes and displays conflict-free, admissible, complete, preferred, grounded, and stable extensions
+- **Decisions** &mdash; pose yes/no questions about whether an argument can or must appear in a given extension type (see [Decisions](#decisions))
+- **Sets** &mdash; assign arguments to named sets and filter the graph by set (see [Sets](#sets))
 - **Step-by-step construction** &mdash; arguments can be introduced incrementally across steps, with the graph and extensions recomputed at each step (see [Step-by-Step Construction](#step-by-step-construction))
 - **Graph layout control** &mdash; `top` and `bottom` annotations control which arguments are placed at the top or bottom of the graph layout (see [Top and Bottom Layout](#top-and-bottom-layout))
 - **Zoom controls** &mdash; zoom in, zoom out, and fit-to-view buttons on the graph
@@ -17,7 +19,7 @@ A VS Code extension that generates interactive HTML reports from YAML files, whe
 
 ## Requirements
 
-- A YAML file that represents an argumentation framework using the `arguments` key (required), and optionally the `exhibit` and `attacks` keys
+- A YAML file that represents an argumentation framework using the `arguments` key (required), and optionally the `exhibit`, `attacks`, and `decisions` keys.
 
 ## Usage
 
@@ -60,6 +62,82 @@ attacks:
 ```
 
 When `attacks` is omitted, the report displays the arguments as disconnected nodes.
+
+### Decisions
+
+The `decisions` key poses yes/no questions about whether a specific argument appears in a given extension. Each decision has three fields:
+
+- `target`: the argument to query
+- `extension`: the extension type to query, one of `conflict_free`, `admissible`, `complete`, `preferred`, `grounded`, or `stable` (default: `preferred`)
+- `mode`: `can` (the argument appears in at least one extension, default) or `must` (it appears in every extension)
+
+```yaml
+arguments:
+  - a:
+    - summary: Order fried chicken for here
+  - b:
+    - summary: Get fried chicken to go
+  - c:
+    - summary: Fried chicken to go will not be crispy
+  - d:
+    - summary: An air fryer at home can make fried chicken crispy again
+attacks:
+  - [b, a]
+  - [a, b]
+  - [c, b]
+  - [d, c]
+decisions:
+  - "Can we get fried chicken to go?":
+    - extension: preferred
+    - target: b
+    - mode: can
+  - "Must we get fried chicken to go?":
+    - extension: preferred
+    - target: b
+    - mode: must
+```
+
+The Decisions panel appears in the report when `decisions` is present, showing each question with a **Yes** or **No** answer that updates as you navigate steps.
+
+### Sets
+
+The `sets` annotation assigns an argument to one or more named sets. Arguments without a `sets` annotation are treated as "unassigned" and can be shown or hidden separately via the dropdown. You can filter the graph to show only arguments belonging to selected sets.
+
+```yaml
+arguments:
+  - a:
+    - summary: Order fried chicken for here
+    - sets:
+      - apt 1
+      - apt 2
+  - b:
+    - summary: Get fried chicken to go
+    - sets:
+      - apt 1
+      - apt 2
+  - c:
+    - summary: Fried chicken taken to go will not be crispy
+    - details:
+      - rule: Food transported in a box loses crispiness due to trapped steam
+      - evidence: Fried chicken taken to go is transported in a box
+      - conclusion: Fried chicken taken to go will not be crispy
+    - sets:
+      - apt 1
+      - apt 2
+  - d:
+    - summary: An air fryer at home can make fried chicken crispy again
+    - details:
+      - rule: An air fryer restores crispiness by circulating hot air
+      - evidence: There is an air fryer at home
+      - conclusion: An air fryer at home can make fried chicken crispy again
+    - sets:
+      - apt 2
+attacks:
+  - [b, a]
+  - [a, b]
+  - [c, b]
+  - [d, c]
+```
 
 ### Step-by-Step Construction
 
