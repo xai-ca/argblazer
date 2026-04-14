@@ -39,7 +39,7 @@ export function renderHtml(params: {
             .section-toggle{font-size:14px;color:#666;transition:transform 0.2s ease}
             .section-toggle.collapsed{transform:rotate(-90deg)}
             .section-content{padding:16px;overflow-y:auto;transition:max-height 0.3s ease;flex:1;min-height:0}
-            #decisions-content{flex:0 0 auto;padding-top:6px;padding-bottom:6px}
+            #decisions-content{flex:1 1 0;padding-top:6px;padding-bottom:6px;overflow-y:auto}
             #exhibit-content{padding:0}
             #exhibit-content pre{margin:0;padding:8px 16px 8px 48px!important}
             .section-content.collapsed{max-height:0!important;padding-top:0!important;padding-bottom:0!important;overflow:hidden}
@@ -81,17 +81,18 @@ export function renderHtml(params: {
             .error{color:#555;text-align:center;padding:20px}
             .extensions-header{display:flex;justify-content:space-between;align-items:center}
             .toggle-buttons{display:flex;gap:8px;margin-left:auto}
-            .toggle-btn,.extension-set{padding:4px 8px;font-size:12px;font-weight:500;font-family:'JetBrains Mono',monospace;border-radius:4px;cursor:pointer;transition:all .2s}
+            .toggle-btn,.extension-set{padding:4px 5px;font-size:12px;font-weight:500;font-family:'JetBrains Mono',monospace;border-radius:4px;cursor:pointer;transition:all .2s}
             .toggle-btn{background:#d0d0d0;border:1px solid #aaa}
             .toggle-btn:hover{background:#c0c0c0;border-color:#999}
             .toggle-btn.active{background:#f0f0f0;border-color:#ddd;color:#777}
             .extensions-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
             .extension-item{display:flex;align-items:flex-start;padding:6px 0;font-size:13px}
             .extension-label{font-weight:600;color:#555;min-width:100px;margin-right:8px;flex-shrink:0}
-            .extension-values{color:#555;flex:1;display:flex;flex-wrap:wrap;gap:4px}
+            .extension-values{color:#555;flex:1;display:flex;flex-wrap:wrap;gap:8px}
             .extension-set{border:1px solid #d0d0d0;background:#f0f0f0;box-shadow:0 1px 2px rgba(0,0,0,.1);max-width:100%;word-break:break-word;white-space:normal}
             .extension-set:hover,.extension-set.selected{background:var(--extension-hover-bg);border-color:var(--extension-hover-border);color:var(--extension-hover-text);box-shadow:0 2px 4px rgba(0,0,0,.15)}
             .extension-set.selected{font-weight:600}
+            g.select foreignObject hr,g.selectadd foreignObject hr{border-top-color:white!important}
             @media(max-width:600px){
                 body{padding:10px 10px 0 10px}
                 .header-controls{flex-direction:column;align-items:flex-start;gap:8px;width:100%}
@@ -104,6 +105,12 @@ export function renderHtml(params: {
                 .nav-btn{padding:2px 6px;font-size:12px}
                 .display-dropdown{min-width:70px;font-size:11px}
                 #step-indicator{min-width:50px;font-size:12px}
+            }
+            @media print{
+                .extension-set.selected{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:var(--extension-hover-bg)!important;border-color:var(--extension-hover-border)!important;color:var(--extension-hover-text)!important}
+                g.select *,g.selectadd *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+                g.select foreignObject *,g.selectadd foreignObject *{color:white!important}
+                g.select foreignObject hr,g.selectadd foreignObject hr{border-top-color:white!important}
             }
         </style>
     </head>
@@ -247,10 +254,8 @@ function getScriptFuncs(): string {
     function initializeSteps() {
         var stepSet = new Set();
         if (argumentationData.arguments) {
-            argumentationData.arguments.forEach(function(arg) {
-                var argData = Object.values(arg)[0];
-                var stepItem = argData.find(function(item) { return item.step !== undefined; });
-                stepSet.add(stepItem.step);
+            Object.values(argumentationData.arguments).forEach(function(argData) {
+                stepSet.add(argData.step);
             });
         }
 
@@ -273,18 +278,23 @@ function getScriptFuncs(): string {
         updateStepIndicator();
     }
 
+    function toArgArray() {
+        return Object.keys(argumentationData.arguments).map(function(k) {
+            var o = {}; o[k] = argumentationData.arguments[k]; return o;
+        });
+    }
+
+    function normalizeSets(sets) {
+        return Array.isArray(sets) ? sets : [sets];
+    }
+
     function collectAllSets() {
         var setObj = {};
         if (!argumentationData.arguments) return [];
-        argumentationData.arguments.forEach(function(arg) {
-            var argData = Object.values(arg)[0];
-            if (!Array.isArray(argData)) return;
-            argData.forEach(function(item) {
-                if (item && item.sets !== undefined) {
-                    var s = Array.isArray(item.sets) ? item.sets : [item.sets];
-                    s.forEach(function(t) { setObj[t] = true; });
-                }
-            });
+        Object.values(argumentationData.arguments).forEach(function(argData) {
+            if (argData && argData.sets !== undefined) {
+                normalizeSets(argData.sets).forEach(function(t) { setObj[t] = true; });
+            }
         });
         return Object.keys(setObj).sort();
     }
@@ -292,13 +302,9 @@ function getScriptFuncs(): string {
     function getArgumentSets(arg) {
         var argData = Object.values(arg)[0];
         var sets = new Set();
-        if (!Array.isArray(argData)) return sets;
-        argData.forEach(function(item) {
-            if (item && item.sets !== undefined) {
-                var s = Array.isArray(item.sets) ? item.sets : [item.sets];
-                s.forEach(function(v) { sets.add(v); });
-            }
-        });
+        if (argData && argData.sets !== undefined) {
+            normalizeSets(argData.sets).forEach(function(v) { sets.add(v); });
+        }
         return sets;
     }
 
@@ -311,16 +317,15 @@ function getScriptFuncs(): string {
     function getFilteredArguments(stepIndex) {
         if (!argumentationData.arguments) return [];
 
+        var allArgs = toArgArray();
+
         var filtered;
         if (stepIndex > maxStepIndex) {
-            filtered = argumentationData.arguments.slice();
+            filtered = allArgs;
         } else {
             var currentActualStep = actualSteps[stepIndex];
-            filtered = argumentationData.arguments.filter(function(arg) {
-                var argData = Object.values(arg)[0];
-                var stepItem = argData.find(function(item) { return item.step !== undefined; });
-                var argStep = stepItem.step;
-                return argStep <= currentActualStep;
+            filtered = allArgs.filter(function(arg) {
+                return Object.values(arg)[0].step <= currentActualStep;
             });
         }
 
@@ -350,11 +355,8 @@ function getScriptFuncs(): string {
 
         var currentActualStep = actualSteps[stepIndex];
 
-        return argumentationData.arguments.filter(function(arg) {
-            var argData = Object.values(arg)[0];
-            var stepItem = argData.find(function(item) { return item.step !== undefined; });
-            var argStep = stepItem.step;
-            return argStep === currentActualStep;
+        return toArgArray().filter(function(arg) {
+            return Object.values(arg)[0].step === currentActualStep;
         });
     }
 
@@ -489,16 +491,13 @@ function getScriptFuncs(): string {
 
         var formattedText = key + "<br>" + separator;
 
-        var summaryItem = argData.find(function(item) { return item.summary; });
-        if (summaryItem && summaryItem.summary) {
-            formattedText += "<span style='padding:4px;'>" + summaryItem.summary + "</span>";
+        if (argData && argData.summary) {
+            formattedText += "<span style='padding:4px;'>" + argData.summary + "</span>";
         }
 
         if (displayMode === 'label-summary-details') {
-            var detailsItem = argData.find(function(item) { return item.details; });
-            if (detailsItem && detailsItem.details) {
-                var details = detailsItem.details;
-
+            var details = argData && argData.details;
+            if (details) {
                 var formattedDetails = '';
                 var isListFormat = false;
 
@@ -510,16 +509,22 @@ function getScriptFuncs(): string {
                         if (typeof item === 'string') {
                             formattedDetails += '<li>' + item + '</li>';
                         } else if (typeof item === 'object' && item !== null) {
-                            var allKeys = new Set();
-                            Object.keys(item).forEach(function(key) { allKeys.add(key); });
-
-                            allKeys.forEach(function(key) {
+                            Object.keys(item).forEach(function(key) {
                                 if (item[key]) {
                                     formattedDetails += '<li><i>' + key + '</i>: ' + item[key] + '</li>';
                                 } else {
                                     formattedDetails += '<li>' + key + '</li>';
                                 }
                             });
+                        }
+                    });
+                } else if (typeof details === 'object') {
+                    isListFormat = true;
+                    Object.keys(details).forEach(function(key) {
+                        if (details[key]) {
+                            formattedDetails += '<li><i>' + key + '</i>: ' + details[key] + '</li>';
+                        } else {
+                            formattedDetails += '<li>' + key + '</li>';
                         }
                     });
                 }
@@ -754,7 +759,7 @@ function getScriptFuncs(): string {
         return filteredArguments.map(function(arg) {
             var key = Object.keys(arg)[0];
             var argData = arg[key];
-            var hasSummary = Array.isArray(argData) && argData.some(function(item) { return item && item.summary; });
+            var hasSummary = argData && argData.summary !== undefined;
             return {
                 id: key,
                 label: (hasSummary || displayMode === 'label') ? formatMultiLineLabel(key, argData, displayMode) : "<div style='display:flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;aspect-ratio:1;font-size:18px;'>" + key + "</div>",
@@ -869,17 +874,22 @@ function getScriptFuncs(): string {
         var exhibitDesiredHeight = Math.min(exhibitHeaderHeight + exhibitContentHeight, maxSectionHeight);
         var extensionsDesiredHeight = Math.min(extensionsHeaderHeight + extensionsContentHeight, maxSectionHeight);
 
-        var exhibitDesiredHeightCheckedSession = getFileSpecificStorage('sessionExhibitHeight', 'collapsed');
         var extensionsDesiredHeightCheckedSession = getFileSpecificStorage('sessionExtensionsHeight', extensionsDesiredHeight);
 
-        if (exhibitDesiredHeightCheckedSession === 'collapsed') {
-            toggleSection('exhibit');
+        var exhibitDesiredHeightCheckedSession;
+        if (window.getComputedStyle(exhibitSection).display === 'none') {
             exhibitDesiredHeightCheckedSession = 0;
         } else {
-            if (exhibitDesiredHeightCheckedSession === 'expanded') {
-                exhibitDesiredHeightCheckedSession = exhibitDesiredHeight;
+            exhibitDesiredHeightCheckedSession = getFileSpecificStorage('sessionExhibitHeight', 'expanded');
+            if (exhibitDesiredHeightCheckedSession === 'collapsed') {
+                toggleSection('exhibit');
+                exhibitDesiredHeightCheckedSession = 0;
+            } else {
+                if (exhibitDesiredHeightCheckedSession === 'expanded') {
+                    exhibitDesiredHeightCheckedSession = exhibitDesiredHeight;
+                }
+                exhibitSection.style.flex = '0 0 ' + exhibitDesiredHeightCheckedSession + 'px';
             }
-            exhibitSection.style.flex = '0 0 ' + exhibitDesiredHeightCheckedSession + 'px';
         }
 
         if (extensionsDesiredHeightCheckedSession === 'collapsed') {
@@ -913,7 +923,7 @@ function getScriptFuncs(): string {
 
         var allSets = collectAllSets();
         if (allSets.length > 0) {
-            var hasUnassigned = argumentationData.arguments.some(function(a) { return !hasAnySets(a); });
+            var hasUnassigned = Object.values(argumentationData.arguments).some(function(argData) { return argData && argData.sets === undefined; });
             var setBtn = document.getElementById('set-dropdown-btn');
             var setList = document.getElementById('set-dropdown-list');
             var setWrap = document.getElementById('set-dropdown-wrap');
@@ -1163,6 +1173,20 @@ function getScriptFuncs(): string {
 
     window.addEventListener('resize', reinitPanzoom);
 
+    var lastWindowWidth = document.body.getBoundingClientRect().width;
+    window.addEventListener('resize', function() {
+        var newWidth = document.body.getBoundingClientRect().width;
+        if (newWidth === lastWindowWidth) return;
+        lastWindowWidth = newWidth;
+        if (window.getComputedStyle(decisionsSection).display !== 'none'
+                && !decisionsContent.classList.contains('collapsed')) {
+            decisionsSection.style.flex = '0 0 auto';
+            var dh = decisionsSection.querySelector('.section-header');
+            var newDecisionsHeight = dh.offsetHeight + decisionsContent.scrollHeight;
+            decisionsSection.style.flex = '0 0 ' + newDecisionsHeight + 'px';
+        }
+    });
+
     function setupResizeHandles() {
         var isResizing = false;
         var currentHandle = null;
@@ -1357,7 +1381,7 @@ function getScriptFuncs(): string {
         if (!decisionsList) return;
 
         var decisions = argumentationData.decisions;
-        if (!decisions || !Array.isArray(decisions) || decisions.length === 0) {
+        if (!decisions || typeof decisions !== 'object' || Array.isArray(decisions) || Object.keys(decisions).length === 0) {
             decisionsSection.style.display = 'none';
             updateResizeHandleVisibility();
             return;
@@ -1368,17 +1392,11 @@ function getScriptFuncs(): string {
 
         var extensions = getExtensionsForStep(currentStepIndex);
 
-        decisions.forEach(function(decObj) {
-            var question = Object.keys(decObj)[0];
-            var props = decObj[question] || [];
-            var semanticsType = 'preferred';
-            var criterion = null;
-            var quantifier = 'some';
-            props.forEach(function(prop) {
-                if (prop && prop.semantics !== undefined) semanticsType = prop.semantics;
-                if (prop && prop.criterion !== undefined) criterion = String(prop.criterion);
-                if (prop && prop.quantifier !== undefined) quantifier = prop.quantifier;
-            });
+        Object.keys(decisions).forEach(function(question) {
+            var dec = decisions[question] || {};
+            var semanticsType = dec.semantics !== undefined ? dec.semantics : 'preferred';
+            var criterion = dec.criterion !== undefined ? String(dec.criterion) : null;
+            var quantifier = dec.quantifier !== undefined ? dec.quantifier : 'some';
 
             if (criterion === null) return;
 
@@ -1399,9 +1417,12 @@ function getScriptFuncs(): string {
             questionSpan.className = 'decision-question';
             questionSpan.textContent = question;
 
+            var semanticsDisplay = semanticsType.replace(/_/g, ' ');
             var answerSpan = document.createElement('span');
             answerSpan.className = 'decision-answer ' + (answer ? 'yes' : 'no');
-            answerSpan.textContent = answer ? 'Yes' : 'No';
+            answerSpan.textContent = (answer ? 'Yes' : 'No') + ', the criterion ' + criterion
+                + (answer ? ' holds in ' : ' does not hold in ')
+                + quantifier + ' ' + semanticsDisplay + ' extensions.';
 
             itemDiv.appendChild(questionSpan);
             itemDiv.appendChild(answerSpan);

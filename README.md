@@ -36,27 +36,27 @@ exhibit: |
   Tweety is a bird.
   Tweety is a penguin.
 arguments:
-  - a:
-    - summary: Tweety can fly because birds typically can fly
-    - details:
-      - rule: Birds typically can fly
-      - evidence: Tweety is a bird
-      - conclusion: Tweety can fly
-  - b:
-    - summary: Tweety cannot fly because it is a penguin
-    - details:
-      - rule: Penguins cannot fly
-      - evidence: Tweety is a penguin
-      - conclusion: Tweety cannot fly
+  a:
+    summary: Tweety can fly because birds typically can fly
+    details:
+      rule: Birds typically can fly
+      evidence: Tweety is a bird
+      conclusion: Tweety can fly
+  b:
+    summary: Tweety cannot fly because it is a penguin
+    details:
+      rule: Penguins cannot fly
+      evidence: Tweety is a penguin
+      conclusion: Tweety cannot fly
 attacks:
   - [b, a]
 ```
 
-Arguments can be listed with or without summaries and details. The simplest form is just the argument name:
+Arguments with no fields can be written with an empty value:
 ```yaml
 arguments:
-  - a
-  - b
+  a:
+  b:
 attacks:
   - [b, a]
 ```
@@ -73,28 +73,28 @@ The `decisions` key poses yes/no questions about whether a specific argument app
 
 ```yaml
 arguments:
-  - a:
-    - summary: Order fried chicken for here
-  - b:
-    - summary: Get fried chicken to go
-  - c:
-    - summary: Fried chicken to go will not be crispy
-  - d:
-    - summary: An air fryer at home can make fried chicken crispy again
+  a:
+    summary: Order fried chicken in
+  b:
+    summary: Get fried chicken to go
+  c:
+    summary: Fried chicken to go will not be crispy
+  d:
+    summary: An air fryer at home can make fried chicken crispy again
 attacks:
   - [b, a]
   - [a, b]
   - [c, b]
   - [d, c]
 decisions:
-  - "Can we get fried chicken to go?":
-    - criterion: b
-    - quantifier: some
-    - semantics: preferred
-  - "Must we get fried chicken to go?":
-    - criterion: b
-    - quantifier: all
-    - semantics: preferred
+  "Can we get fried chicken to go?":
+    criterion: b
+    quantifier: some
+    semantics: preferred
+  "Must we get fried chicken to go?":
+    criterion: b
+    quantifier: all
+    semantics: preferred
 ```
 
 The Decisions panel appears in the report when `decisions` is present, showing each question with a **Yes** or **No** answer that updates as you navigate steps.
@@ -105,32 +105,32 @@ The `sets` annotation assigns an argument to one or more named sets. Arguments w
 
 ```yaml
 arguments:
-  - a:
-    - summary: Order fried chicken for here
-    - sets:
+  a:
+    summary: Order fried chicken in
+    sets:
       - apt 1
       - apt 2
-  - b:
-    - summary: Get fried chicken to go
-    - sets:
+  b:
+    summary: Get fried chicken to go
+    sets:
       - apt 1
       - apt 2
-  - c:
-    - summary: Fried chicken taken to go will not be crispy
-    - details:
-      - rule: Food transported in a box loses crispiness due to trapped steam
-      - evidence: Fried chicken taken to go is transported in a box
-      - conclusion: Fried chicken taken to go will not be crispy
-    - sets:
+  c:
+    summary: To-go chicken will not be crispy
+    details:
+      rule: Food transported in a box loses crispiness due to trapped steam
+      evidence: Fried chicken taken to go is transported in a box
+      conclusion: To-go chicken will not be crispy
+    sets:
       - apt 1
       - apt 2
-  - d:
-    - summary: An air fryer at home can make fried chicken crispy again
-    - details:
-      - rule: An air fryer restores crispiness by circulating hot air
-      - evidence: There is an air fryer at home
-      - conclusion: An air fryer at home can make fried chicken crispy again
-    - sets:
+  d:
+    summary: An air fryer at home can make fried chicken crispy again
+    details:
+      rule: An air fryer restores crispiness by circulating hot air
+      evidence: There is an air fryer at home
+      conclusion: An air fryer at home can make fried chicken crispy again
+    sets:
       - apt 2
 attacks:
   - [b, a]
@@ -145,14 +145,14 @@ Arguments can be introduced incrementally using the `step` annotation. The graph
 
 ```yaml
 arguments:
-  - a:
-    - step: 1
-  - b:
-    - step: 1
-  - c:
-    - step: 2
-  - d:
-    - step: 3
+  a:
+    step: 1
+  b:
+    step: 1
+  c:
+    step: 2
+  d:
+    step: 3
 attacks:
   - [b, a]
   - [c, b]
@@ -167,14 +167,14 @@ The `top` and `bottom` annotations control the vertical placement of arguments i
 
 ```yaml
 arguments:
-  - a:
-    - top
-  - b
-  - c
-  - d:
-    - bottom
-  - e:
-    - bottom
+  a:
+    anchor: top
+  b:
+  c:
+  d:
+    anchor: bottom
+  e:
+    anchor: bottom
 attacks:
   - [b, a]
   - [c, b]
@@ -182,7 +182,7 @@ attacks:
   - [e, b]
 ```
 
-When no `top` or `bottom` annotations are provided, the first argument defaults to the top root and the last argument defaults to the bottom root.
+When no `anchor` is provided, the first argument defaults to the top root and the last argument defaults to the bottom root.
 
 ## Development
 
@@ -191,6 +191,12 @@ When no `top` or `bottom` annotations are provided, the first argument defaults 
 3. Export as the VSIX file: `npx vsce package`
 
 ## Release Notes
+
+### v0.1.1
+- **Decisions** &mdash; pose yes/no questions about whether an argument appears in a given extension type, with answers updating at each step
+- **Sets** &mdash; assign arguments to named sets and filter the graph by set; extensions are recomputed per step and per active set filter
+- **Simplified YAML format** &mdash; argument fields (`summary`, `details`, `step`, `anchor`, `sets`) are now direct keys under the argument ID instead of list items; `top`/`bottom` replaced by `anchor: top`/`anchor: bottom`
+- **Keyboard shortcut** &mdash; `Ctrl+/` (or `Cmd+/`) to toggle comments on selected lines in the YAML editor
 
 ### v0.1.0 (2026-02-07)
 Initial release with interactive report generation for a given argumentation framework.

@@ -25,9 +25,6 @@
         <span>ArgBlazer</span>
       </div>
       <nav class="nav">
-        <a href="#features">Features</a>
-        <a href="#examples">Examples</a>
-        <a href="#yaml-structure">YAML</a>
         <a href="playground.html">Playground</a>
         <a href="https://github.com/xai-ca/argblazer">GitHub</a>
         <button class="pill" id="installBtn">Install</button>
@@ -115,14 +112,14 @@
             <div class="yaml-block yaml-demo">
               <div class="yaml-label">YAML</div>
               <pre><code>arguments:
-  - a:
-    - step: 1
-  - b:
-    - step: 1
-  - c:
-    - step: 2
-  - d:
-    - step: 3
+  a:
+    step: 1
+  b:
+    step: 1
+  c:
+    step: 2
+  d:
+    step: 3
 attacks:
   - [b, a]
   - [c, b]
@@ -205,14 +202,14 @@ graph BT
             <div class="yaml-block yaml-demo">
               <div class="yaml-label">YAML</div>
               <pre><code>arguments:
-  - a:
-    - top
-  - b
-  - c
-  - d:
-    - bottom
-  - e:
-    - bottom
+  a:
+    anchor: top
+  b:
+  c:
+  d:
+    anchor: bottom
+  e:
+    anchor: bottom
 attacks:
   - [b, a]
   - [c, b]

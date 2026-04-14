@@ -5,6 +5,7 @@ import * as os from 'os';
 import * as yaml from 'js-yaml';
 import { preprocessAndCompute } from './preprocessor';
 import { renderHtml } from './htmlRenderer';
+import { validateYaml } from './validator';
 
 // Track active report panels and their associated YAML file URIs
 const activeReportPanels = new Map<string, vscode.WebviewPanel>();
@@ -47,14 +48,9 @@ export function activate(context: vscode.ExtensionContext) {
             // Validate YAML
             try {
                 const yamlData = yaml.load(yamlContent) as any;
-                // Check if 'arguments' keyword exists
-                if (!yamlData || !yamlData.hasOwnProperty('arguments')) {
-                    vscode.window.showErrorMessage('YAML file must contain an "arguments" keyword');
-                    return;
-                }
-                // Check if 'arguments' is a non-empty list
-                if (!Array.isArray(yamlData.arguments) || yamlData.arguments.length === 0) {
-                    vscode.window.showErrorMessage('The "arguments" field must be a non-empty list');
+                const validationError = validateYaml(yamlData);
+                if (validationError) {
+                    vscode.window.showErrorMessage(validationError);
                     return;
                 }
             } catch (error) {
@@ -182,15 +178,6 @@ async function generateAndUpdateReport(yamlContent: string, panel: vscode.Webvie
             // Parse YAML
             const yamlData = yaml.load(yamlContent) as any;
 
-            // Convert arguments from YAML object format to JSON array format
-            if (yamlData.arguments && typeof yamlData.arguments === 'object' && !Array.isArray(yamlData.arguments)) {
-                const argumentsArray = [];
-                for (const [key, value] of Object.entries(yamlData.arguments)) {
-                    argumentsArray.push({ [key]: value });
-                }
-                yamlData.arguments = argumentsArray;
-            }
-
             // Process data
             const jsonData = preprocessAndCompute(yamlData);
 
@@ -208,15 +195,7 @@ async function generateAndUpdateReport(yamlContent: string, panel: vscode.Webvie
 
         } catch (error: any) {
             console.error('Error generating report:', error);
-
-            let errorMsg = `Failed to generate report: ${error.message}`;
-            if (error.message.includes('arguments')) {
-                errorMsg = 'The YAML file must contain an "arguments" keyword, which must be a non-empty list.';
-            } else if (error.message.includes('attacks')) {
-                errorMsg = 'The "attacks" field must be a non-empty list of lists, where each inner list has at least two elements and the first attacks the second.';
-            }
-
-            vscode.window.showErrorMessage(errorMsg);
+            vscode.window.showErrorMessage(`Failed to generate report: ${error.message}`);
         }
     };
 
