@@ -107,6 +107,8 @@ export function renderHtml(params: {
                 #step-indicator{min-width:50px;font-size:12px}
             }
             @media print{
+                .exhibit-section,.decisions-section,.extensions-section,.main-content>.section-header,#graph-container{background:none!important;box-shadow:none!important}
+                .extension-set{background:none!important;box-shadow:none!important}
                 .extension-set.selected{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:var(--extension-hover-bg)!important;border-color:var(--extension-hover-border)!important;color:var(--extension-hover-text)!important}
                 g.select *,g.selectadd *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
                 g.select foreignObject *,g.selectadd foreignObject *{color:white!important}
@@ -1613,9 +1615,11 @@ export function getExtensionFuncs(): string {
         return result;
     }
 
-    function setToSortedArray(s) { return Array.from(s).sort(); }
-
     function computeExtensions(args, attacks) {
+        const argOrder = {};
+        args.forEach(function(a, i) { argOrder[a] = i; });
+        function setToOrderedArray(s) { return Array.from(s).sort(function(a, b) { return argOrder[a] - argOrder[b]; }); }
+
         const conflictFree = extractConflictFreeSets(args, attacks);
         const admissible = conflictFree.filter(function(s) { return isAdmissible(s, attacks); });
         const complete = admissible.filter(function(s) { return isComplete(s, args, attacks); });
@@ -1625,12 +1629,12 @@ export function getExtensionFuncs(): string {
         const grounded = computeGrounded(args, attacks);
         const stable = conflictFree.filter(function(s) { return isStable(s, args, attacks); });
         return {
-            conflict_free: conflictFree.map(setToSortedArray),
-            admissible: admissible.map(setToSortedArray),
-            complete: complete.map(setToSortedArray),
-            preferred: preferred.map(setToSortedArray),
-            grounded: [setToSortedArray(grounded)],
-            stable: stable.map(setToSortedArray)
+            conflict_free: conflictFree.map(setToOrderedArray),
+            admissible: admissible.map(setToOrderedArray),
+            complete: complete.map(setToOrderedArray),
+            preferred: preferred.map(setToOrderedArray),
+            grounded: [setToOrderedArray(grounded)],
+            stable: stable.map(setToOrderedArray)
         };
     }`;
 }

@@ -162,9 +162,9 @@
     //  Example YAML content
     // =====================================================================
     var EXAMPLES = {
-        friedchicken_step: 'arguments:\n  a:\n    summary: Order fried chicken in\n    step: 1\n  b:\n    summary: Get fried chicken to go\n    step: 1\n  c:\n    summary: To-go chicken will not be crispy\n    details:\n      rule: Food transported in a box loses crispiness due to trapped steam\n      evidence: Fried chicken taken to go is transported in a box\n      conclusion: To-go chicken will not be crispy\n    step: 2\n  d:\n    summary: An air fryer at home can make fried chicken crispy again\n    details:\n      rule: An air fryer restores crispiness by circulating hot air\n      evidence: There is an air fryer at home\n      conclusion: An air fryer at home can make fried chicken crispy again\n    step: 3\nattacks:\n  - [b, a]\n  - [a, b]\n  - [c, b]\n  - [d, c]\ndecisions:\n  "Can we get fried chicken to go?":\n    criterion: b\n    quantifier: some\n    semantics: preferred\n  "Must we get fried chicken to go?":\n    criterion: b\n    quantifier: all\n    semantics: preferred',
+        friedchicken_step: 'arguments:\n  dine-in:\n    summary: Order dine-in fried chicken\n    step: 1\n  to-go:\n    summary: Order to-go fried chicken\n    step: 1\n  soggy:\n    summary: To-go chicken will not be crispy\n    details:\n      rule: Food transported in a box loses crispiness due to trapped steam\n      evidence: Fried chicken taken to go is transported in a box\n      conclusion: To-go chicken will not be crispy\n    step: 2\n  fryer:\n    summary: An air fryer at home can make fried chicken crispy again\n    details:\n      rule: An air fryer restores crispiness by circulating hot air\n      evidence: There is an air fryer at home\n      conclusion: An air fryer at home can make fried chicken crispy again\n    step: 3\nattacks:\n  - [to-go, dine-in]\n  - [dine-in, to-go]\n  - [soggy, to-go]\n  - [fryer, soggy]\ndecisions:\n  "Can we get fried chicken to go?":\n    criterion: to-go\n    quantifier: some\n    semantics: preferred\n  "Must we get fried chicken to go?":\n    criterion: to-go\n    quantifier: all\n    semantics: preferred',
 
-        friedchicken_sets: 'arguments:\n  a:\n    summary: Order fried chicken in\n    sets:\n      - apt 1\n      - apt 2\n  b:\n    summary: Get fried chicken to go\n    sets:\n      - apt 1\n      - apt 2\n  c:\n    summary: To-go chicken will not be crispy\n    details:\n      rule: Food transported in a box loses crispiness due to trapped steam\n      evidence: Fried chicken taken to go is transported in a box\n      conclusion: To-go chicken will not be crispy\n    sets:\n      - apt 1\n      - apt 2\n  d:\n    summary: An air fryer at home can make fried chicken crispy again\n    details:\n      rule: An air fryer restores crispiness by circulating hot air\n      evidence: There is an air fryer at home\n      conclusion: An air fryer at home can make fried chicken crispy again\n    sets:\n      - apt 2\nattacks:\n  - [b, a]\n  - [a, b]\n  - [c, b]\n  - [d, c]\ndecisions:\n  "Can we get fried chicken to go?":\n    criterion: b\n    quantifier: some\n    semantics: preferred\n  "Must we get fried chicken to go?":\n    criterion: b\n    quantifier: all\n    semantics: preferred',
+        friedchicken_sets: 'arguments:\n  dine-in:\n    summary: Order dine-in fried chicken\n    sets:\n      - apt 1\n      - apt 2\n  to-go:\n    summary: Order to-go fried chicken\n    sets:\n      - apt 1\n      - apt 2\n  soggy:\n    summary: To-go chicken will not be crispy\n    details:\n      rule: Food transported in a box loses crispiness due to trapped steam\n      evidence: Fried chicken taken to go is transported in a box\n      conclusion: To-go chicken will not be crispy\n    sets:\n      - apt 1\n      - apt 2\n  fryer:\n    summary: An air fryer at home can make fried chicken crispy again\n    details:\n      rule: An air fryer restores crispiness by circulating hot air\n      evidence: There is an air fryer at home\n      conclusion: An air fryer at home can make fried chicken crispy again\n    sets:\n      - apt 2\nattacks:\n  - [to-go, dine-in]\n  - [dine-in, to-go]\n  - [soggy, to-go]\n  - [fryer, soggy]\ndecisions:\n  "Can we get fried chicken to go?":\n    criterion: to-go\n    quantifier: some\n    semantics: preferred\n  "Must we get fried chicken to go?":\n    criterion: to-go\n    quantifier: all\n    semantics: preferred',
 
         tweety: 'exhibit: |\n  Tweety is a bird.\n  Tweety is a penguin.\narguments:\n  a:\n    summary: Tweety can fly because birds typically can fly\n    details:\n      rule: Birds typically can fly\n      evidence: Tweety is a bird\n      conclusion: Tweety can fly\n  b:\n    summary: Tweety cannot fly because it is a penguin\n    details:\n      rule: Penguins cannot fly\n      evidence: Tweety is a penguin\n      conclusion: Tweety cannot fly\nattacks:\n  - [b, a]',
 
@@ -354,9 +354,11 @@
         return result;
     }
 
-    function setToSortedArray(s) { return Array.from(s).sort(); }
-
     function computeExtensions(args, attacks) {
+        const argOrder = {};
+        args.forEach(function(a, i) { argOrder[a] = i; });
+        function setToOrderedArray(s) { return Array.from(s).sort(function(a, b) { return argOrder[a] - argOrder[b]; }); }
+
         const conflictFree = extractConflictFreeSets(args, attacks);
         const admissible = conflictFree.filter(function(s) { return isAdmissible(s, attacks); });
         const complete = admissible.filter(function(s) { return isComplete(s, args, attacks); });
@@ -366,12 +368,12 @@
         const grounded = computeGrounded(args, attacks);
         const stable = conflictFree.filter(function(s) { return isStable(s, args, attacks); });
         return {
-            conflict_free: conflictFree.map(setToSortedArray),
-            admissible: admissible.map(setToSortedArray),
-            complete: complete.map(setToSortedArray),
-            preferred: preferred.map(setToSortedArray),
-            grounded: [setToSortedArray(grounded)],
-            stable: stable.map(setToSortedArray)
+            conflict_free: conflictFree.map(setToOrderedArray),
+            admissible: admissible.map(setToOrderedArray),
+            complete: complete.map(setToOrderedArray),
+            preferred: preferred.map(setToOrderedArray),
+            grounded: [setToOrderedArray(grounded)],
+            stable: stable.map(setToOrderedArray)
         };
     }
 
@@ -1915,6 +1917,8 @@
                 #step-indicator{min-width:50px;font-size:12px}
             }
             @media print{
+                .exhibit-section,.decisions-section,.extensions-section,.main-content>.section-header,#graph-container{background:none!important;box-shadow:none!important}
+                .extension-set{background:none!important;box-shadow:none!important}
                 .extension-set.selected{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:var(--extension-hover-bg)!important;border-color:var(--extension-hover-border)!important;color:var(--extension-hover-text)!important}
                 g.select *,g.selectadd *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
                 g.select foreignObject *,g.selectadd foreignObject *{color:white!important}
