@@ -143,11 +143,20 @@ async function handleYamlFileChange(uri: vscode.Uri) {
         const document = await vscode.workspace.openTextDocument(uri);
         const yamlContent = document.getText();
 
-        // Validate YAML
+        // Validate YAML syntax
+        let yamlData: any;
         try {
-            yaml.load(yamlContent);
+            yamlData = yaml.load(yamlContent);
         } catch (error) {
-            console.log(`Invalid YAML in ${uri.fsPath}, skipping auto-update`);
+            console.log(`Invalid YAML syntax in ${uri.fsPath}, skipping auto-update`);
+            vscode.window.showErrorMessage(`YAML syntax error in ${path.basename(uri.fsPath)}: ${(error as any).message}`);
+            return;
+        }
+
+        // Validate YAML schema/content
+        const validationError = validateYaml(yamlData);
+        if (validationError) {
+            vscode.window.showErrorMessage(`Invalid YAML in ${path.basename(uri.fsPath)}: ${validationError}`);
             return;
         }
 
