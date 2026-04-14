@@ -931,6 +931,7 @@ function getScriptFuncs(): string {
                 updateGraph('SetFilter');
                 resetExtensionSelection();
                 updateExtensionsDisplay();
+                updateDecisionsDisplay();
             }
 
             function makeCheckboxItem(value, label) {
@@ -1370,23 +1371,25 @@ function getScriptFuncs(): string {
         decisions.forEach(function(decObj) {
             var question = Object.keys(decObj)[0];
             var props = decObj[question] || [];
-            var extensionType = 'preferred';
-            var target = null;
-            var mode = 'can';
+            var semanticsType = 'preferred';
+            var criterion = null;
+            var quantifier = 'some';
             props.forEach(function(prop) {
-                if (prop && prop.extension !== undefined) extensionType = prop.extension;
-                if (prop && prop.target !== undefined) target = String(prop.target);
-                if (prop && prop.mode !== undefined) mode = prop.mode;
+                if (prop && prop.semantics !== undefined) semanticsType = prop.semantics;
+                if (prop && prop.criterion !== undefined) criterion = String(prop.criterion);
+                if (prop && prop.quantifier !== undefined) quantifier = prop.quantifier;
             });
 
-            if (target === null) return;
+            if (criterion === null) return;
 
-            var extList = extensions[extensionType] || [];
+            var extList = extensions[semanticsType] || [];
             var answer;
-            if (mode === 'can') {
-                answer = extList.some(function(ext) { return ext.indexOf(target) !== -1; });
+            if (quantifier === 'some') {
+                answer = extList.some(function(ext) { return ext.indexOf(criterion) !== -1; });
+            } else if (quantifier === 'all') {
+                answer = extList.length > 0 && extList.every(function(ext) { return ext.indexOf(criterion) !== -1; });
             } else {
-                answer = extList.length > 0 && extList.every(function(ext) { return ext.indexOf(target) !== -1; });
+                answer = extList.every(function(ext) { return ext.indexOf(criterion) === -1; });
             }
 
             var itemDiv = document.createElement('div');

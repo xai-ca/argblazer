@@ -67,9 +67,9 @@ When `attacks` is omitted, the report displays the arguments as disconnected nod
 
 The `decisions` key poses yes/no questions about whether a specific argument appears in a given extension. Each decision has three fields:
 
-- `target`: the argument to query
-- `extension`: the extension type to query, one of `conflict_free`, `admissible`, `complete`, `preferred`, `grounded`, or `stable` (default: `preferred`)
-- `mode`: `can` (the argument appears in at least one extension, default) or `must` (it appears in every extension)
+- `criterion`: the argument to query
+- `quantifier`: `some` (the argument appears in at least one extension, default), `all` (it appears in every extension), or `none` (it appears in no extension)
+- `semantics`: the extension type to query, one of `conflict_free`, `admissible`, `complete`, `preferred`, `grounded`, or `stable` (default: `preferred`)
 
 ```yaml
 arguments:
@@ -88,13 +88,13 @@ attacks:
   - [d, c]
 decisions:
   - "Can we get fried chicken to go?":
-    - extension: preferred
-    - target: b
-    - mode: can
+    - criterion: b
+    - quantifier: some
+    - semantics: preferred
   - "Must we get fried chicken to go?":
-    - extension: preferred
-    - target: b
-    - mode: must
+    - criterion: b
+    - quantifier: all
+    - semantics: preferred
 ```
 
 The Decisions panel appears in the report when `decisions` is present, showing each question with a **Yes** or **No** answer that updates as you navigate steps.

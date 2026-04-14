@@ -162,9 +162,9 @@
     //  Example YAML content
     // =====================================================================
     var EXAMPLES = {
-        friedchicken_step: 'arguments:\n  - a:\n    - summary: Order fried chicken for here\n    - step: 1\n  - b:\n    - summary: Get fried chicken to go\n    - step: 1\n  - c:\n    - summary: Fried chicken taken to go will not be crispy\n    - details:\n      - rule: Food transported in a box loses crispiness due to trapped steam\n      - evidence: Fried chicken taken to go is transported in a box\n      - conclusion: Fried chicken taken to go will not be crispy\n    - step: 2\n  - d:\n    - summary: An air fryer at home can make fried chicken crispy again\n    - details:\n      - rule: An air fryer restores crispiness by circulating hot air\n      - evidence: There is an air fryer at home\n      - conclusion: An air fryer at home can make fried chicken crispy again\n    - step: 3\nattacks:\n  - [b, a]\n  - [a, b]\n  - [c, b]\n  - [d, c]\ndecisions:\n  - "Can we get fried chicken to go?":\n    - extension: preferred\n    - target: b\n    - mode: can\n  - "Must we get fried chicken to go?":\n    - extension: preferred\n    - target: b\n    - mode: must',
+        friedchicken_step: 'arguments:\n  - a:\n    - summary: Order fried chicken for here\n    - step: 1\n  - b:\n    - summary: Get fried chicken to go\n    - step: 1\n  - c:\n    - summary: Fried chicken taken to go will not be crispy\n    - details:\n      - rule: Food transported in a box loses crispiness due to trapped steam\n      - evidence: Fried chicken taken to go is transported in a box\n      - conclusion: Fried chicken taken to go will not be crispy\n    - step: 2\n  - d:\n    - summary: An air fryer at home can make fried chicken crispy again\n    - details:\n      - rule: An air fryer restores crispiness by circulating hot air\n      - evidence: There is an air fryer at home\n      - conclusion: An air fryer at home can make fried chicken crispy again\n    - step: 3\nattacks:\n  - [b, a]\n  - [a, b]\n  - [c, b]\n  - [d, c]\ndecisions:\n  - "Can we get fried chicken to go?":\n    - criterion: b\n    - quantifier: some\n    - semantics: preferred\n  - "Must we get fried chicken to go?":\n    - criterion: b\n    - quantifier: all\n    - semantics: preferred',
 
-        friedchicken_sets: 'arguments:\n  - a:\n    - summary: Order fried chicken for here\n    - sets:\n      - apt 1\n      - apt 2\n  - b:\n    - summary: Get fried chicken to go\n    - sets:\n      - apt 1\n      - apt 2\n  - c:\n    - summary: Fried chicken taken to go will not be crispy\n    - details:\n      - rule: Food transported in a box loses crispiness due to trapped steam\n      - evidence: Fried chicken taken to go is transported in a box\n      - conclusion: Fried chicken taken to go will not be crispy\n    - sets:\n      - apt 1\n      - apt 2\n  - d:\n    - summary: An air fryer at home can make fried chicken crispy again\n    - details:\n      - rule: An air fryer restores crispiness by circulating hot air\n      - evidence: There is an air fryer at home\n      - conclusion: An air fryer at home can make fried chicken crispy again\n    - sets:\n      - apt 2\nattacks:\n  - [b, a]\n  - [a, b]\n  - [c, b]\n  - [d, c]\ndecisions:\n  - "Can we get fried chicken to go?":\n    - extension: preferred\n    - target: b\n    - mode: can\n  - "Must we get fried chicken to go?":\n    - extension: preferred\n    - target: b\n    - mode: must',
+        friedchicken_sets: 'arguments:\n  - a:\n    - summary: Order fried chicken for here\n    - sets:\n      - apt 1\n      - apt 2\n  - b:\n    - summary: Get fried chicken to go\n    - sets:\n      - apt 1\n      - apt 2\n  - c:\n    - summary: Fried chicken taken to go will not be crispy\n    - details:\n      - rule: Food transported in a box loses crispiness due to trapped steam\n      - evidence: Fried chicken taken to go is transported in a box\n      - conclusion: Fried chicken taken to go will not be crispy\n    - sets:\n      - apt 1\n      - apt 2\n  - d:\n    - summary: An air fryer at home can make fried chicken crispy again\n    - details:\n      - rule: An air fryer restores crispiness by circulating hot air\n      - evidence: There is an air fryer at home\n      - conclusion: An air fryer at home can make fried chicken crispy again\n    - sets:\n      - apt 2\nattacks:\n  - [b, a]\n  - [a, b]\n  - [c, b]\n  - [d, c]\ndecisions:\n  - "Can we get fried chicken to go?":\n    - criterion: b\n    - quantifier: some\n    - semantics: preferred\n  - "Must we get fried chicken to go?":\n    - criterion: b\n    - quantifier: all\n    - semantics: preferred',
 
         tweety: 'exhibit: |\n  Tweety is a bird.\n  Tweety is a penguin.\narguments:\n  - a:\n    - summary: Tweety can fly because birds typically can fly\n    - details:\n      - rule: Birds typically can fly\n      - evidence: Tweety is a bird\n      - conclusion: Tweety can fly\n  - b:\n    - summary: Tweety cannot fly because it is a penguin\n    - details:\n      - rule: Penguins cannot fly\n      - evidence: Tweety is a penguin\n      - conclusion: Tweety cannot fly\nattacks:\n  - [b, a]',
 
@@ -1234,6 +1234,7 @@
                 updateGraph('SetFilter');
                 resetExtensionSelection();
                 updateExtensionsDisplay();
+                updateDecisionsDisplay();
             }
 
             function makeCheckboxItem(value, label) {
@@ -1675,23 +1676,25 @@
         decisions.forEach(function(decObj) {
             var question = Object.keys(decObj)[0];
             var props = decObj[question] || [];
-            var extensionType = 'preferred';
-            var target = null;
-            var mode = 'can';
+            var semanticsType = 'preferred';
+            var criterion = null;
+            var quantifier = 'some';
             props.forEach(function(prop) {
-                if (prop && prop.extension !== undefined) extensionType = prop.extension;
-                if (prop && prop.target !== undefined) target = String(prop.target);
-                if (prop && prop.mode !== undefined) mode = prop.mode;
+                if (prop && prop.semantics !== undefined) semanticsType = prop.semantics;
+                if (prop && prop.criterion !== undefined) criterion = String(prop.criterion);
+                if (prop && prop.quantifier !== undefined) quantifier = prop.quantifier;
             });
 
-            if (target === null) return;
+            if (criterion === null) return;
 
-            var extList = extensions[extensionType] || [];
+            var extList = extensions[semanticsType] || [];
             var answer;
-            if (mode === 'can') {
-                answer = extList.some(function(ext) { return ext.indexOf(target) !== -1; });
+            if (quantifier === 'some') {
+                answer = extList.some(function(ext) { return ext.indexOf(criterion) !== -1; });
+            } else if (quantifier === 'all') {
+                answer = extList.length > 0 && extList.every(function(ext) { return ext.indexOf(criterion) !== -1; });
             } else {
-                answer = extList.length > 0 && extList.every(function(ext) { return ext.indexOf(target) !== -1; });
+                answer = extList.every(function(ext) { return ext.indexOf(criterion) === -1; });
             }
 
             var itemDiv = document.createElement('div');
@@ -2012,24 +2015,24 @@
 
             if (yamlData.decisions && Array.isArray(yamlData.decisions)) {
                 var validExtensions = ['conflict_free', 'admissible', 'complete', 'preferred', 'grounded', 'stable'];
-                var validModes = ['can', 'must'];
+                var validQuantifiers = ['all', 'some', 'none'];
                 for (var di = 0; di < yamlData.decisions.length; di++) {
                     var decObj = yamlData.decisions[di];
                     var question = Object.keys(decObj)[0];
                     var props = decObj[question] || [];
-                    var extensionType = 'preferred';
-                    var decMode = 'can';
+                    var semanticsType = 'preferred';
+                    var decQuantifier = 'some';
                     props.forEach(function(prop) {
-                        if (prop && prop.extension !== undefined) extensionType = prop.extension;
-                        if (prop && prop.mode !== undefined) decMode = prop.mode;
+                        if (prop && prop.semantics !== undefined) semanticsType = prop.semantics;
+                        if (prop && prop.quantifier !== undefined) decQuantifier = prop.quantifier;
                     });
-                    if (validModes.indexOf(decMode) === -1) {
-                        errorBar.textContent = 'Invalid mode "' + decMode + '" for decision "' + question + '" (must be "can" or "must").';
+                    if (validQuantifiers.indexOf(decQuantifier) === -1) {
+                        errorBar.textContent = 'Invalid quantifier "' + decQuantifier + '" for decision "' + question + '" (must be "some", "all", or "none").';
                         errorBar.style.display = 'block';
                         return;
                     }
-                    if (validExtensions.indexOf(extensionType) === -1) {
-                        errorBar.textContent = 'Invalid extension "' + extensionType + '" for decision "' + question + '" (must be one of: conflict_free, admissible, complete, preferred, grounded, stable).';
+                    if (validExtensions.indexOf(semanticsType) === -1) {
+                        errorBar.textContent = 'Invalid semantics "' + semanticsType + '" for decision "' + question + '" (must be one of: conflict_free, admissible, complete, preferred, grounded, stable).';
                         errorBar.style.display = 'block';
                         return;
                     }
