@@ -1,0 +1,9 @@
+{
+  "name": "argblazer-mcp",
+  "version": "0.1.1",
+  "description": "ArgBlazer MCP server",
+  "private": true,
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  }
+}

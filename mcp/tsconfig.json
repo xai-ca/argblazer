@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "outDir": "../out/mcp",
+    "skipLibCheck": true
+  },
+  "include": [
+    "**/*.ts",
+    "../src/bfs.ts",
+    "../src/validator.ts",
+    "../src/preprocessor.ts"
+  ]
+}

@@ -2,7 +2,9 @@
 .vscode-test/**
 tests/**
 out/tests/**
+out/mcp/**
 src/**
+mcp/**
 docs/**
 tsconfig.json
 .gitignore
