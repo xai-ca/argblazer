@@ -205,6 +205,7 @@ export function renderHtml(params: {
         <div class="section-content" id="extensions-content">
             <div class="extensions-header">
                 <div class="toggle-buttons">
+                    <button id="toggle-show-all" class="toggle-btn active">Show All</button>
                     <button id="toggle-conflict-free" class="toggle-btn active">Show Conflict-free</button>
                     <button id="toggle-admissible" class="toggle-btn active">Show Admissible</button>
                 </div>
@@ -225,6 +226,7 @@ export function renderHtml(params: {
     let panzoomInstance = null;
     let savedZoomLevel = null;
     let currentStepIndex = 0;
+    var showAllActive = false;
     let maxStepIndex = 0;
     let actualSteps = [];
     let currentSetFilter = [];
@@ -794,13 +796,12 @@ function getScriptFuncs(): string {
         render();
     }
 
-    function setupToggleBtn(btn, itemId, hideLabel, showLabel, storageKey) {
+    function setupToggleBtn(btn, itemId, storageKey) {
         if (!btn) return;
         if (getFileSpecificStorage(storageKey, 'true') === 'false') {
             var item = document.getElementById(itemId);
             btn.classList.toggle('active');
             item.style.display = 'flex';
-            btn.textContent = hideLabel;
         }
         btn.addEventListener('click', function() {
             var item = document.getElementById(itemId);
@@ -808,15 +809,28 @@ function getScriptFuncs(): string {
                 btn.classList.toggle('active');
                 if (btn.classList.contains('active')) {
                     item.style.display = 'none';
-                    btn.textContent = showLabel;
                     setFileSpecificStorage(storageKey, 'true');
                 } else {
                     item.style.display = 'flex';
-                    btn.textContent = hideLabel;
                     setFileSpecificStorage(storageKey, 'false');
                 }
             }
         });
+    }
+
+    function hasDecisions() {
+        var d = argumentationData.decisions;
+        return d && typeof d === 'object' && !Array.isArray(d) && Object.keys(d).length > 0;
+    }
+
+    function getDecisionSemantics() {
+        var d = argumentationData.decisions || {};
+        var result = {};
+        Object.keys(d).forEach(function(q) {
+            var sem = (d[q] && d[q].semantics) ? d[q].semantics : 'preferred';
+            result[sem] = true;
+        });
+        return result;
     }
 
     function setupControls() {
@@ -860,9 +874,31 @@ function getScriptFuncs(): string {
 
         var conflictFreeBtn = document.getElementById('toggle-conflict-free');
         var admissibleBtn = document.getElementById('toggle-admissible');
+        var showAllBtn = document.getElementById('toggle-show-all');
 
-        setupToggleBtn(conflictFreeBtn, 'conflict-free-item', 'Hide Conflict-free', 'Show Conflict-free', 'sessionConflictFreeHide');
-        setupToggleBtn(admissibleBtn, 'admissible-item', 'Hide Admissible', 'Show Admissible', 'sessionAdmissibleHide');
+        setupToggleBtn(conflictFreeBtn, 'conflict-free-item', 'sessionConflictFreeHide');
+        setupToggleBtn(admissibleBtn, 'admissible-item', 'sessionAdmissibleHide');
+
+        if (hasDecisions()) {
+            if (conflictFreeBtn) conflictFreeBtn.style.display = 'none';
+            if (admissibleBtn) admissibleBtn.style.display = 'none';
+            if (showAllBtn) {
+                showAllBtn.addEventListener('click', function() {
+                    showAllActive = !showAllActive;
+                    showAllBtn.classList.toggle('active', !showAllActive);
+                    if (showAllActive) {
+                        if (conflictFreeBtn) conflictFreeBtn.style.display = '';
+                        if (admissibleBtn) admissibleBtn.style.display = '';
+                    } else {
+                        if (conflictFreeBtn) conflictFreeBtn.style.display = 'none';
+                        if (admissibleBtn) admissibleBtn.style.display = 'none';
+                    }
+                    updateExtensionsDisplay();
+                });
+            }
+        } else {
+            if (showAllBtn) showAllBtn.style.display = 'none';
+        }
     }
 
     function initializeSectionHeight() {
@@ -1136,6 +1172,8 @@ function getScriptFuncs(): string {
             } else if (type.key === 'admissible') {
                 var admissibleBtn = document.getElementById('toggle-admissible');
                 shouldHide = admissibleBtn && admissibleBtn.classList.contains('active');
+            } else if (hasDecisions() && !showAllActive) {
+                shouldHide = !getDecisionSemantics()[type.key];
             }
 
             if (shouldHide) {
