@@ -9,6 +9,18 @@ export function preprocessAndCompute(yamlData: any): any {
     }
     jsonData.arguments = argsMap;
 
+    // Normalize attacks map to array of pairs
+    if (jsonData.attacks && !Array.isArray(jsonData.attacks)) {
+        const pairs: [string, string][] = [];
+        for (const [attacker, targets] of Object.entries(jsonData.attacks) as [string, any][]) {
+            const targetList: string[] = Array.isArray(targets) ? targets : [targets];
+            for (const target of targetList) {
+                pairs.push([attacker, String(target)]);
+            }
+        }
+        jsonData.attacks = pairs;
+    }
+
     const argEntries = Object.entries(jsonData.arguments) as [string, any][];
     const first: string | null = argEntries[0]?.[0] ?? null;
     const last: string | null = argEntries[argEntries.length - 1]?.[0] ?? null;

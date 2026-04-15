@@ -19,9 +19,18 @@ export function validateYaml(yamlData: any): string | null {
         }
     }
 
-    for (const attack of yamlData.attacks ?? []) {
-        if (!argIds.has(attack[0])) return `Unknown argument "${attack[0]}" in attack.`;
-        if (!argIds.has(attack[1])) return `Unknown argument "${attack[1]}" in attack.`;
+    const attacksField = yamlData.attacks;
+    if (attacksField !== undefined) {
+        if (typeof attacksField !== 'object' || Array.isArray(attacksField)) {
+            return 'The "attacks" field must be a mapping.';
+        }
+        for (const [attacker, targets] of Object.entries(attacksField)) {
+            if (!argIds.has(attacker)) return `Unknown argument "${attacker}" in attacks.`;
+            const targetList = Array.isArray(targets) ? targets : [targets];
+            for (const target of targetList) {
+                if (!argIds.has(String(target))) return `Unknown argument "${target}" in attacks.`;
+            }
+        }
     }
 
     for (const question of Object.keys(yamlData.decisions ?? {})) {
