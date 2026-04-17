@@ -64,7 +64,7 @@
         #divider:hover, #divider.active { background: #aaa; }
 
         #preview-panel {
-            flex: 1; min-width: 340px; display: flex; flex-direction: column; background: #fff;
+            flex: 1; min-width: 402px; display: flex; flex-direction: column; background: #fff;
         }
         #error-bar {
             padding: 10px 16px; background: #fff3f3; color: #c0392b;
@@ -162,9 +162,9 @@
     //  Example YAML content
     // =====================================================================
     var EXAMPLES = {
-        friedchicken_step: 'arguments:\n  dine-in:\n    summary: Order dine-in fried chicken\n    step: 1\n  to-go:\n    summary: Order to-go fried chicken\n    step: 1\n  soggy:\n    summary: To-go chicken will not be crispy\n    details:\n      rule: Food transported in a box loses crispiness due to trapped steam\n      evidence: Fried chicken taken to go is transported in a box\n      conclusion: To-go chicken will not be crispy\n    step: 2\n  fryer:\n    summary: An air fryer at home can make fried chicken crispy again\n    details:\n      rule: An air fryer restores crispiness by circulating hot air\n      evidence: There is an air fryer at home\n      conclusion: An air fryer at home can make fried chicken crispy again\n    step: 3\nattacks:\n  to-go: [dine-in]\n  dine-in: [to-go]\n  soggy: [to-go]\n  fryer: [soggy]\ndecisions:\n  "Can we get fried chicken to go?":\n    criterion: to-go\n    quantifier: some\n    semantics: preferred\n  "Must we get fried chicken to go?":\n    criterion: to-go\n    quantifier: all\n    semantics: preferred',
+        friedchicken_step: 'arguments:\n  dine-in:\n    summary: Order dine-in fried chicken\n    step: 1\n  to-go:\n    summary: Order to-go fried chicken\n    step: 1\n  soggy:\n    summary: To-go chicken will not be crispy\n    details:\n      rule: Food transported in a box loses crispiness due to trapped steam\n      evidence: Fried chicken taken to go is transported in a box\n      conclusion: To-go chicken will not be crispy\n    step: 2\n  fryer:\n    summary: An air fryer at home can make fried chicken crispy again\n    details:\n      rule: An air fryer restores crispiness by circulating hot air\n      evidence: There is an air fryer at home\n      conclusion: An air fryer at home can make fried chicken crispy again\n    step: 3\nattacks:\n  to-go: [dine-in]\n  dine-in: [to-go]\n  soggy: [to-go]\n  fryer: [soggy]\ndecisions:\n  Can we get fried chicken to go?:\n    criterion: to-go\n    quantifier: some\n    semantics: preferred\n  Must we get fried chicken to go?:\n    criterion: to-go\n    quantifier: all\n    semantics: preferred',
 
-        friedchicken_sets: 'arguments:\n  dine-in:\n    summary: Order dine-in fried chicken\n    sets:\n      - apt 1\n      - apt 2\n  to-go:\n    summary: Order to-go fried chicken\n    sets:\n      - apt 1\n      - apt 2\n  soggy:\n    summary: To-go chicken will not be crispy\n    details:\n      rule: Food transported in a box loses crispiness due to trapped steam\n      evidence: Fried chicken taken to go is transported in a box\n      conclusion: To-go chicken will not be crispy\n    sets:\n      - apt 1\n      - apt 2\n  fryer:\n    summary: An air fryer at home can make fried chicken crispy again\n    details:\n      rule: An air fryer restores crispiness by circulating hot air\n      evidence: There is an air fryer at home\n      conclusion: An air fryer at home can make fried chicken crispy again\n    sets:\n      - apt 2\nattacks:\n  to-go: [dine-in]\n  dine-in: [to-go]\n  soggy: [to-go]\n  fryer: [soggy]\ndecisions:\n  "Can we get fried chicken to go?":\n    criterion: to-go\n    quantifier: some\n    semantics: preferred\n  "Must we get fried chicken to go?":\n    criterion: to-go\n    quantifier: all\n    semantics: preferred',
+        friedchicken_sets: 'arguments:\n  dine-in:\n    summary: Order dine-in fried chicken\n    sets:\n      - apt 1\n      - apt 2\n  to-go:\n    summary: Order to-go fried chicken\n    sets:\n      - apt 1\n      - apt 2\n  soggy:\n    summary: To-go chicken will not be crispy\n    details:\n      rule: Food transported in a box loses crispiness due to trapped steam\n      evidence: Fried chicken taken to go is transported in a box\n      conclusion: To-go chicken will not be crispy\n    sets:\n      - apt 1\n      - apt 2\n  fryer:\n    summary: An air fryer at home can make fried chicken crispy again\n    details:\n      rule: An air fryer restores crispiness by circulating hot air\n      evidence: There is an air fryer at home\n      conclusion: An air fryer at home can make fried chicken crispy again\n    sets:\n      - apt 2\nattacks:\n  to-go: [dine-in]\n  dine-in: [to-go]\n  soggy: [to-go]\n  fryer: [soggy]\ndecisions:\n  Can we get fried chicken to go?:\n    criterion: to-go\n    quantifier: some\n    semantics: preferred\n  Must we get fried chicken to go?:\n    criterion: to-go\n    quantifier: all\n    semantics: preferred',
 
         tweety: 'exhibit: |\n  Tweety is a bird.\n  Tweety is a penguin.\narguments:\n  a:\n    summary: Tweety can fly because birds typically can fly\n    details:\n      rule: Birds typically can fly\n      evidence: Tweety is a bird\n      conclusion: Tweety can fly\n  b:\n    summary: Tweety cannot fly because it is a penguin\n    details:\n      rule: Penguins cannot fly\n      evidence: Tweety is a penguin\n      conclusion: Tweety cannot fly\nattacks:\n  b: a',
 
@@ -939,8 +939,8 @@
         switch (theme) {
             case 'xray':
                 return {
-                    'default': 'fill:#F4BA71,stroke:#000000',
-                    add: 'fill:#F4BA71,stroke:#000000,stroke-width:4px',
+                    'default': 'fill:#ffffff,stroke:#000000',
+                    add: 'fill:#ffffff,stroke:#000000,stroke-width:4px',
                     select: 'fill:#6DCCFA,stroke:#000000',
                     selectadd: 'fill:#6DCCFA,stroke:#000000,stroke-width:4px'
                 };
@@ -1030,7 +1030,7 @@
     }
 
     function setupExtensionClickHandlers() {
-        var currentlySelected = null;
+        var currentlySelected = document.querySelector('.extension-set.selected');
 
         document.querySelectorAll('.extension-set').forEach(function(setElement) {
             setElement.addEventListener('click', function(event) {
@@ -1223,8 +1223,14 @@
                         if (conflictFreeBtn) conflictFreeBtn.style.display = '';
                         if (admissibleBtn) admissibleBtn.style.display = '';
                     } else {
-                        if (conflictFreeBtn) conflictFreeBtn.style.display = 'none';
-                        if (admissibleBtn) admissibleBtn.style.display = 'none';
+                        if (conflictFreeBtn) {
+                            conflictFreeBtn.style.display = 'none';
+                            conflictFreeBtn.classList.add('active');
+                        }
+                        if (admissibleBtn) {
+                            admissibleBtn.style.display = 'none';
+                            admissibleBtn.classList.add('active');
+                        }
                     }
                     updateExtensionsDisplay();
                 });
@@ -1480,6 +1486,10 @@
     function updateExtensionsDisplay() {
         var extensionsGrid = document.getElementById('extensions-grid');
 
+        var prevSelected = extensionsGrid.querySelector('.extension-set.selected');
+        var prevSelectedData = prevSelected ? prevSelected.getAttribute('data-set') : null;
+        var prevSelectedTypeId = prevSelected ? prevSelected.closest('.extension-item').id : null;
+
         extensionsGrid.innerHTML = '';
 
         var extensions = getExtensionsForStep(currentStepIndex);
@@ -1533,6 +1543,9 @@
                 }
                 setSpan.setAttribute('data-set', setString);
                 setSpan.textContent = setString;
+                if (setString === prevSelectedData && type.id === prevSelectedTypeId) {
+                    setSpan.classList.add('selected');
+                }
                 valuesSpan.appendChild(setSpan);
             });
 
@@ -1949,7 +1962,7 @@
             .zoom-btn:disabled:hover{background:#f8f8f8;border-color:#e0e0e0;transform:none}
             .diagram-wrapper{display:flex;justify-content:center;align-items:center;height:100%;transform-origin: center;font-size:16px;color:#666}
             .error{color:#555;text-align:center;padding:20px}
-            .extensions-header{display:flex;justify-content:space-between;align-items:center}
+            .extensions-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
             .toggle-buttons{display:flex;gap:8px;margin-left:auto}
             .toggle-btn,.extension-set{padding:4px 5px;font-size:12px;font-weight:500;font-family:'JetBrains Mono',monospace;border-radius:4px;cursor:pointer;transition:all .2s}
             .toggle-btn{background:#d0d0d0;border:1px solid #aaa}
@@ -1978,6 +1991,7 @@
             }
             @media print{
                 .exhibit-section,.decisions-section,.extensions-section,.main-content>.section-header,#graph-container{background:none!important;box-shadow:none!important}
+                .zoom-btn{box-shadow:none!important}
                 .extension-set{background:none!important;box-shadow:none!important}
                 .extension-set.selected{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:var(--extension-hover-bg)!important;border-color:var(--extension-hover-border)!important;color:var(--extension-hover-text)!important}
                 g.select *,g.selectadd *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -2147,6 +2161,14 @@
         indentWithTabs: false,
         lineWrapping: true,
         extraKeys: {
+            'Enter': function(cm) {
+                var cur = cm.getCursor();
+                if (cur.ch === 0 && !cm.somethingSelected()) {
+                    cm.replaceSelection('\n');
+                    return;
+                }
+                return CodeMirror.Pass;
+            },
             'Tab': function(cm) {
                 if (cm.somethingSelected()) {
                     cm.indentSelection('add');

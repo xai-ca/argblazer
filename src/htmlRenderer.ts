@@ -17,7 +17,7 @@ export function renderHtml(params: {
         <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
         <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
         <style>
-            body{margin:0;padding:10px 20px 0 20px;font-family:'JetBrains Mono',monospace;background:#fff;color:#333;height:100vh;min-width:340px;min-height:540px;box-sizing:border-box;display:flex;flex-direction:column}
+            body{margin:0;padding:10px 20px 0 20px;font-family:'JetBrains Mono',monospace;background:#fff;color:#333;height:100vh;min-width:402px;min-height:540px;box-sizing:border-box;display:flex;flex-direction:column}
             body::after{content:'';height:10px;flex-shrink:0}
             .token.operator{background:transparent!important}
             pre[class*="language-"],code[class*="language-"]{background:#f8f9fa!important}
@@ -79,7 +79,7 @@ export function renderHtml(params: {
             .zoom-btn:disabled:hover{background:#f8f8f8;border-color:#e0e0e0;transform:none}
             .diagram-wrapper{display:flex;justify-content:center;align-items:center;height:100%;transform-origin: center;font-size:16px;color:#666}
             .error{color:#555;text-align:center;padding:20px}
-            .extensions-header{display:flex;justify-content:space-between;align-items:center}
+            .extensions-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
             .toggle-buttons{display:flex;gap:8px;margin-left:auto}
             .toggle-btn,.extension-set{padding:4px 5px;font-size:12px;font-weight:500;font-family:'JetBrains Mono',monospace;border-radius:4px;cursor:pointer;transition:all .2s}
             .toggle-btn{background:#d0d0d0;border:1px solid #aaa}
@@ -108,6 +108,7 @@ export function renderHtml(params: {
             }
             @media print{
                 .exhibit-section,.decisions-section,.extensions-section,.main-content>.section-header,#graph-container{background:none!important;box-shadow:none!important}
+                .zoom-btn{box-shadow:none!important}
                 .extension-set{background:none!important;box-shadow:none!important}
                 .extension-set.selected{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:var(--extension-hover-bg)!important;border-color:var(--extension-hover-border)!important;color:var(--extension-hover-text)!important}
                 g.select *,g.selectadd *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -606,8 +607,8 @@ function getScriptFuncs(): string {
         switch (theme) {
             case 'xray':
                 return {
-                    'default': 'fill:#F4BA71,stroke:#000000',
-                    add: 'fill:#F4BA71,stroke:#000000,stroke-width:4px',
+                    'default': 'fill:#ffffff,stroke:#000000',
+                    add: 'fill:#ffffff,stroke:#000000,stroke-width:4px',
                     select: 'fill:#6DCCFA,stroke:#000000',
                     selectadd: 'fill:#6DCCFA,stroke:#000000,stroke-width:4px'
                 };
@@ -697,7 +698,7 @@ function getScriptFuncs(): string {
     }
 
     function setupExtensionClickHandlers() {
-        var currentlySelected = null;
+        var currentlySelected = document.querySelector('.extension-set.selected');
 
         document.querySelectorAll('.extension-set').forEach(function(setElement) {
             setElement.addEventListener('click', function(event) {
@@ -890,8 +891,14 @@ function getScriptFuncs(): string {
                         if (conflictFreeBtn) conflictFreeBtn.style.display = '';
                         if (admissibleBtn) admissibleBtn.style.display = '';
                     } else {
-                        if (conflictFreeBtn) conflictFreeBtn.style.display = 'none';
-                        if (admissibleBtn) admissibleBtn.style.display = 'none';
+                        if (conflictFreeBtn) {
+                            conflictFreeBtn.style.display = 'none';
+                            conflictFreeBtn.classList.add('active');
+                        }
+                        if (admissibleBtn) {
+                            admissibleBtn.style.display = 'none';
+                            admissibleBtn.classList.add('active');
+                        }
                     }
                     updateExtensionsDisplay();
                 });
@@ -1147,6 +1154,10 @@ function getScriptFuncs(): string {
     function updateExtensionsDisplay() {
         var extensionsGrid = document.getElementById('extensions-grid');
 
+        var prevSelected = extensionsGrid.querySelector('.extension-set.selected');
+        var prevSelectedData = prevSelected ? prevSelected.getAttribute('data-set') : null;
+        var prevSelectedTypeId = prevSelected ? prevSelected.closest('.extension-item').id : null;
+
         extensionsGrid.innerHTML = '';
 
         var extensions = getExtensionsForStep(currentStepIndex);
@@ -1200,6 +1211,9 @@ function getScriptFuncs(): string {
                 }
                 setSpan.setAttribute('data-set', setString);
                 setSpan.textContent = setString;
+                if (setString === prevSelectedData && type.id === prevSelectedTypeId) {
+                    setSpan.classList.add('selected');
+                }
                 valuesSpan.appendChild(setSpan);
             });
 

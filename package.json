@@ -24,7 +24,6 @@
   "activationEvents": [
     "onLanguage:yaml"
   ],
-  "workspaces": ["mcp"],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
