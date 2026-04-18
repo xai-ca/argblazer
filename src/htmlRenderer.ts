@@ -29,6 +29,7 @@ export function renderHtml(params: {
             .decision-answer{font-weight:600}
             .decision-answer.yes{color:#28a745}
             .decision-answer.no{color:#dc3545}
+            .decision-value{text-decoration:underline}
             .resize-handle{height:10px;background:transparent;cursor:row-resize;display:flex;align-items:center;justify-content:center;position:relative;z-index:1000;margin:5px 0}
             .resize-handle::before{content:'';width:80px;height:3px;background:#dee2e6;border-radius:2px;transition:all 0.2s ease}
             .resize-handle:hover::before{background:#28a745;width:120px;height:4px;box-shadow:0 2px 8px rgba(40, 167, 69, 0.3)}
@@ -1487,9 +1488,10 @@ function getScriptFuncs(): string {
             var semanticsDisplay = semanticsType.replace(/_/g, ' ');
             var answerSpan = document.createElement('span');
             answerSpan.className = 'decision-answer ' + (answer ? 'yes' : 'no');
-            answerSpan.textContent = (answer ? 'Yes' : 'No') + ', the criterion ' + criterion
+            var v = function(t) { return '<span class="decision-value">' + t + '</span>'; };
+            answerSpan.innerHTML = (answer ? 'Yes' : 'No') + ', the criterion ' + v(criterion)
                 + (answer ? ' holds in ' : ' does not hold in ')
-                + quantifier + ' ' + semanticsDisplay + ' extensions.';
+                + v(quantifier) + ' ' + v(semanticsDisplay) + ' extensions.';
 
             itemDiv.appendChild(questionSpan);
             itemDiv.appendChild(answerSpan);
