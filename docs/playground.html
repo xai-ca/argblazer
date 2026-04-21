@@ -162,9 +162,9 @@
     //  Example YAML content
     // =====================================================================
     var EXAMPLES = {
-        friedchicken_step: 'arguments:\n  dine-in:\n    summary: Order dine-in fried chicken\n    step: 1\n  to-go:\n    summary: Order to-go fried chicken\n    step: 1\n  soggy:\n    summary: To-go chicken will not be crispy\n    details:\n      rule: Food transported in a box loses crispiness due to trapped steam\n      evidence: Fried chicken taken to go is transported in a box\n      conclusion: To-go chicken will not be crispy\n    step: 2\n  fryer:\n    summary: An air fryer at home can make fried chicken crispy again\n    details:\n      rule: An air fryer restores crispiness by circulating hot air\n      evidence: There is an air fryer at home\n      conclusion: An air fryer at home can make fried chicken crispy again\n    step: 3\nattacks:\n  to-go: [dine-in]\n  dine-in: [to-go]\n  soggy: [to-go]\n  fryer: [soggy]\ndecisions:\n  Can we get fried chicken to go?:\n    criterion: to-go\n    quantifier: some\n    semantics: preferred\n  Must we get fried chicken to go?:\n    criterion: to-go\n    quantifier: all\n    semantics: preferred',
+        friedchicken_step: 'arguments:\n  dine-in:\n    summary: Order dine-in fried chicken\n    step: 1\n  to-go:\n    summary: Order to-go fried chicken\n    step: 1\n  soggy:\n    summary: To-go chicken will be soggy\n    details:\n      rule: Food transported in a box loses crispiness due to trapped steam\n      evidence: Fried chicken taken to go is transported in a box\n      conclusion: To-go chicken will be soggy\n    step: 2\n  fryer:\n    summary: An air fryer at home can make fried chicken crispy\n    details:\n      rule: An air fryer restores crispiness by circulating hot air\n      evidence: There is an air fryer at home\n      conclusion: An air fryer at home can make fried chicken crispy again\n    step: 3\nattacks:\n  to-go: [dine-in]\n  dine-in: [to-go]\n  soggy: [to-go]\n  fryer: [soggy]\ndecisions:\n  Can we get fried chicken to go?:\n    criterion: to-go\n    quantifier: at least one\n    semantics: preferred\n  Must we get fried chicken to go?:\n    criterion: to-go\n    quantifier: all\n    semantics: preferred',
 
-        friedchicken_sets: 'arguments:\n  dine-in:\n    summary: Order dine-in fried chicken\n    sets:\n      - apt 1\n      - apt 2\n  to-go:\n    summary: Order to-go fried chicken\n    sets:\n      - apt 1\n      - apt 2\n  soggy:\n    summary: To-go chicken will not be crispy\n    details:\n      rule: Food transported in a box loses crispiness due to trapped steam\n      evidence: Fried chicken taken to go is transported in a box\n      conclusion: To-go chicken will not be crispy\n    sets:\n      - apt 1\n      - apt 2\n  fryer:\n    summary: An air fryer at home can make fried chicken crispy again\n    details:\n      rule: An air fryer restores crispiness by circulating hot air\n      evidence: There is an air fryer at home\n      conclusion: An air fryer at home can make fried chicken crispy again\n    sets:\n      - apt 2\nattacks:\n  to-go: [dine-in]\n  dine-in: [to-go]\n  soggy: [to-go]\n  fryer: [soggy]\ndecisions:\n  Can we get fried chicken to go?:\n    criterion: to-go\n    quantifier: some\n    semantics: preferred\n  Must we get fried chicken to go?:\n    criterion: to-go\n    quantifier: all\n    semantics: preferred',
+        friedchicken_sets: 'arguments:\n  dine-in:\n    summary: Order dine-in fried chicken\n    sets:\n      - apt 1\n      - apt 2\n  to-go:\n    summary: Order to-go fried chicken\n    sets:\n      - apt 1\n      - apt 2\n  soggy:\n    summary: To-go chicken will be soggy\n    details:\n      rule: Food transported in a box loses crispiness due to trapped steam\n      evidence: Fried chicken taken to go is transported in a box\n      conclusion: To-go chicken will be soggy\n    sets:\n      - apt 1\n      - apt 2\n  fryer:\n    summary: An air fryer at home can make fried chicken crispy\n    details:\n      rule: An air fryer restores crispiness by circulating hot air\n      evidence: There is an air fryer at home\n      conclusion: An air fryer at home can make fried chicken crispy again\n    sets:\n      - apt 2\nattacks:\n  to-go: [dine-in]\n  dine-in: [to-go]\n  soggy: [to-go]\n  fryer: [soggy]\ndecisions:\n  Can we get fried chicken to go?:\n    criterion: to-go\n    quantifier: at least one\n    semantics: preferred\n  Must we get fried chicken to go?:\n    criterion: to-go\n    quantifier: all\n    semantics: preferred',
 
         tweety: 'exhibit: |\n  Tweety is a bird.\n  Tweety is a penguin.\narguments:\n  a:\n    summary: Tweety can fly because birds typically can fly\n    details:\n      rule: Birds typically can fly\n      evidence: Tweety is a bird\n      conclusion: Tweety can fly\n  b:\n    summary: Tweety cannot fly because it is a penguin\n    details:\n      rule: Penguins cannot fly\n      evidence: Tweety is a penguin\n      conclusion: Tweety cannot fly\nattacks:\n  b: a',
 
@@ -379,7 +379,7 @@
 
     // --- validator.ts ---
     var VALID_ANCHORS = ['top', 'bottom'];
-    var VALID_QUANTIFIERS = ['all', 'some', 'none'];
+    var VALID_QUANTIFIERS = ['all', 'at least one', 'none'];
     var VALID_SEMANTICS = ['preferred', 'grounded', 'complete', 'stable', 'conflict_free', 'admissible'];
 
     function validateYaml(yamlData) {
@@ -1797,13 +1797,13 @@
             var dec = decisions[question] || {};
             var semanticsType = dec.semantics !== undefined ? dec.semantics : 'preferred';
             var criterion = dec.criterion !== undefined ? String(dec.criterion) : null;
-            var quantifier = dec.quantifier !== undefined ? dec.quantifier : 'some';
+            var quantifier = dec.quantifier !== undefined ? dec.quantifier : 'at least one';
 
             if (criterion === null) return;
 
             var extList = extensions[semanticsType] || [];
             var answer;
-            if (quantifier === 'some') {
+            if (quantifier === 'at least one') {
                 answer = extList.some(function(ext) { return ext.indexOf(criterion) !== -1; });
             } else if (quantifier === 'all') {
                 answer = extList.length > 0 && extList.every(function(ext) { return ext.indexOf(criterion) !== -1; });
@@ -1822,9 +1822,19 @@
             var answerSpan = document.createElement('span');
             answerSpan.className = 'decision-answer ' + (answer ? 'yes' : 'no');
             var v = function(t) { return '<span class="decision-value">' + t + '</span>'; };
-            answerSpan.innerHTML = (answer ? 'Yes' : 'No') + ', the criterion ' + v(criterion)
-                + (answer ? ' holds in ' : ' does not hold in ')
-                + v(quantifier) + ' ' + v(semanticsDisplay) + ' extensions.';
+            var phrase;
+            if (quantifier === 'at least one') {
+                phrase = v('at least one') + ' ' + v(semanticsDisplay) + ' extension';
+            } else if (quantifier === 'all') {
+                phrase = v('all') + ' ' + v(semanticsDisplay) + ' extensions';
+            } else if (quantifier === 'none') {
+                phrase = v('none') + ' of the ' + v(semanticsDisplay) + ' extensions';
+            } else {
+                phrase = v(quantifier) + ' ' + v(semanticsDisplay) + ' extensions';
+            }
+            answerSpan.innerHTML = (answer ? 'Yes' : 'No')
+                + ', it is ' + (answer ? '' : 'not ') + 'the case that the criterion '
+                + v(criterion) + ' holds in ' + phrase + '.';
 
             itemDiv.appendChild(questionSpan);
             itemDiv.appendChild(answerSpan);

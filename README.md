@@ -80,7 +80,7 @@ arguments:
   c:
     summary: Fried chicken to go will not be crispy
   d:
-    summary: An air fryer at home can make fried chicken crispy again
+    summary: An air fryer at home can make fried chicken crispy
 attacks:
   - [b, a]
   - [a, b]
@@ -116,16 +116,16 @@ arguments:
       - apt 1
       - apt 2
   c:
-    summary: To-go chicken will not be crispy
+    summary: To-go chicken will be soggy
     details:
       rule: Food transported in a box loses crispiness due to trapped steam
       evidence: Fried chicken taken to go is transported in a box
-      conclusion: To-go chicken will not be crispy
+      conclusion: To-go chicken will be soggy
     sets:
       - apt 1
       - apt 2
   d:
-    summary: An air fryer at home can make fried chicken crispy again
+    summary: An air fryer at home can make fried chicken crispy
     details:
       rule: An air fryer restores crispiness by circulating hot air
       evidence: There is an air fryer at home

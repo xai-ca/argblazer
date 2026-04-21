@@ -1464,13 +1464,13 @@ function getScriptFuncs(): string {
             var dec = decisions[question] || {};
             var semanticsType = dec.semantics !== undefined ? dec.semantics : 'preferred';
             var criterion = dec.criterion !== undefined ? String(dec.criterion) : null;
-            var quantifier = dec.quantifier !== undefined ? dec.quantifier : 'some';
+            var quantifier = dec.quantifier !== undefined ? dec.quantifier : 'at least one';
 
             if (criterion === null) return;
 
             var extList = extensions[semanticsType] || [];
             var answer;
-            if (quantifier === 'some') {
+            if (quantifier === 'at least one') {
                 answer = extList.some(function(ext) { return ext.indexOf(criterion) !== -1; });
             } else if (quantifier === 'all') {
                 answer = extList.length > 0 && extList.every(function(ext) { return ext.indexOf(criterion) !== -1; });
@@ -1489,9 +1489,19 @@ function getScriptFuncs(): string {
             var answerSpan = document.createElement('span');
             answerSpan.className = 'decision-answer ' + (answer ? 'yes' : 'no');
             var v = function(t) { return '<span class="decision-value">' + t + '</span>'; };
-            answerSpan.innerHTML = (answer ? 'Yes' : 'No') + ', the criterion ' + v(criterion)
-                + (answer ? ' holds in ' : ' does not hold in ')
-                + v(quantifier) + ' ' + v(semanticsDisplay) + ' extensions.';
+            var phrase;
+            if (quantifier === 'at least one') {
+                phrase = v('at least one') + ' ' + v(semanticsDisplay) + ' extension';
+            } else if (quantifier === 'all') {
+                phrase = v('all') + ' ' + v(semanticsDisplay) + ' extensions';
+            } else if (quantifier === 'none') {
+                phrase = v('none') + ' of the ' + v(semanticsDisplay) + ' extensions';
+            } else {
+                phrase = v(quantifier) + ' ' + v(semanticsDisplay) + ' extensions';
+            }
+            answerSpan.innerHTML = (answer ? 'Yes' : 'No')
+                + ', it is ' + (answer ? '' : 'not ') + 'the case that the criterion '
+                + v(criterion) + ' holds in ' + phrase + '.';
 
             itemDiv.appendChild(questionSpan);
             itemDiv.appendChild(answerSpan);
