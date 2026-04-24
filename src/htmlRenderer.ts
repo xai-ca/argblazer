@@ -50,7 +50,7 @@ export function renderHtml(params: {
             .nav-btn{padding:4px 8px;font-size:14px;font-weight:500;font-family:'JetBrains Mono',monospace;background:#f0f0f0;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer;transition:all .2s}
             .nav-btn:hover:not(:disabled){background:#e0e0e0;border-color:#bbb}
             .nav-btn:disabled{background:#f8f8f8;border-color:#e0e0e0;color:#ccc;cursor:not-allowed}
-            #step-indicator{font-size:14px;font-weight:500;color:#555;min-width:60px;text-align:center}
+            #step-indicator{font-size:14px;font-weight:bold;color:#222;min-width:60px;text-align:center}
             .display-controls{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:nowrap;min-width:0}
             .set-dropdown-wrap{position:relative}
             .set-dropdown-btn{padding:4px 8px;min-width:80px;max-width:180px;font-size:12px;font-family:'JetBrains Mono',monospace;background:#f8f9fa;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
