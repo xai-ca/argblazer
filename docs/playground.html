@@ -942,14 +942,22 @@
                     'default': 'fill:#ffffff,stroke:#000000',
                     add: 'fill:#ffffff,stroke:#000000,stroke-width:4px',
                     select: 'fill:#6DCCFA,stroke:#000000',
-                    selectadd: 'fill:#6DCCFA,stroke:#000000,stroke-width:4px'
+                    selectadd: 'fill:#6DCCFA,stroke:#000000,stroke-width:4px',
+                    undec: 'fill:#FFFEB4,stroke:#000000',
+                    undecadd: 'fill:#FFFEB4,stroke:#000000,stroke-width:4px',
+                    out: 'fill:#F4BA70,stroke:#000000',
+                    outadd: 'fill:#F4BA70,stroke:#000000,stroke-width:4px'
                 };
             default:
                 return {
                     'default': 'fill:#D5E8D4,stroke:#004d00',
                     add: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px',
                     select: 'fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff',
-                    selectadd: 'fill:#0F7C0F,stroke:#004d00,color:#ffffff,stroke-width:4px'
+                    selectadd: 'fill:#0F7C0F,stroke:#004d00,color:#ffffff,stroke-width:4px',
+                    undec: 'fill:#D5E8D4,stroke:#004d00',
+                    undecadd: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px',
+                    out: 'fill:#D5E8D4,stroke:#004d00',
+                    outadd: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px'
                 };
         }
     }
@@ -982,22 +990,38 @@
         graph += '  classDef add ' + themeColors.add + '\\n';
         graph += '  classDef select ' + themeColors.select + '\\n';
         graph += '  classDef selectadd ' + themeColors.selectadd + '\\n';
+        graph += '  classDef undec ' + themeColors.undec + '\\n';
+        graph += '  classDef undecadd ' + themeColors.undecadd + '\\n';
+        graph += '  classDef out ' + themeColors.out + '\\n';
+        graph += '  classDef outadd ' + themeColors.outadd + '\\n';
 
         graph += generateSubgraphs(currentStepIndex);
 
         var newNodes = currentStepIndex > 0 ? getNewArgumentsForStep(currentStepIndex) : [];
         var newNodeIds = new Set(newNodes.map(function(arg) { return Object.keys(arg)[0]; }));
 
-        var defaultNodes='', addedNodes='', selectedNodes='', selectedAddNodes='';
+        var defaultNodes='', addedNodes='', selectedNodes='', selectedAddNodes='', undecNodes='', undecAddNodes='', outNodes='', outAddNodes='';
 
         nodeData.forEach(function(node) {
             graph += '  ' + node.id + '["' + node.label + '"]\\n';
 
-            if (colors[node.id] !== null) {
+            if (colors[node.id] === 'selected') {
                 if (newNodeIds.has(node.id)){
                     selectedAddNodes += selectedAddNodes ? ',' + node.id : node.id;
                 } else {
                     selectedNodes += selectedNodes ? ',' + node.id : node.id;
+                }
+            } else if (colors[node.id] === 'undec') {
+                if (newNodeIds.has(node.id)) {
+                    undecAddNodes += undecAddNodes ? ',' + node.id : node.id;
+                } else {
+                    undecNodes += undecNodes ? ',' + node.id : node.id;
+                }
+            } else if (colors[node.id] === 'out') {
+                if (newNodeIds.has(node.id)) {
+                    outAddNodes += outAddNodes ? ',' + node.id : node.id;
+                } else {
+                    outNodes += outNodes ? ',' + node.id : node.id;
                 }
             } else if (newNodeIds.has(node.id)) {
                 addedNodes += addedNodes ? ',' + node.id : node.id;
@@ -1010,6 +1034,10 @@
         if (addedNodes) graph += '  class ' + addedNodes + ' add\\n';
         if (selectedNodes) graph += '  class ' + selectedNodes + ' select\\n';
         if (selectedAddNodes) graph += '  class ' + selectedAddNodes + ' selectadd\\n';
+        if (undecNodes) graph += '  class ' + undecNodes + ' undec\\n';
+        if (undecAddNodes) graph += '  class ' + undecAddNodes + ' undecadd\\n';
+        if (outNodes) graph += '  class ' + outNodes + ' out\\n';
+        if (outAddNodes) graph += '  class ' + outAddNodes + ' outadd\\n';
 
         var filteredAttacks = getFilteredAttacks(currentStepIndex);
         filteredAttacks.forEach(function(attack) {
@@ -1065,15 +1093,29 @@
     }
 
     function highlightNodes(nodeIds) {
-        if (nodeIds.length === 0) {
-            resetNodeHighlighting();
-        } else {
-            colors = {};
-            nodeData.forEach(function(node) {
-                colors[node.id] = nodeIds.includes(node.id) ? 'selected' : null;
-            });
-        }
+        colors = computeLabelling(nodeIds);
         render();
+    }
+
+    // Labels every argument as "in" (the extension itself), "out" (attacked by any argument in the extension) or "undec" (neither), following the standard labelling semantics.
+    function computeLabelling(nodeIds) {
+        var inSet = new Set(nodeIds);
+        var outSet = new Set();
+        getFilteredAttacks(currentStepIndex).forEach(function(attack) {
+            if (inSet.has(attack[0])) outSet.add(attack[1]);
+        });
+
+        var labelling = {};
+        nodeData.forEach(function(node) {
+            if (inSet.has(node.id)) {
+                labelling[node.id] = 'selected';
+            } else if (outSet.has(node.id)) {
+                labelling[node.id] = 'out';
+            } else {
+                labelling[node.id] = 'undec';
+            }
+        });
+        return labelling;
     }
 
     function resetNodeHighlighting() {
