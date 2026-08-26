@@ -8,7 +8,8 @@ A VS Code extension that generates interactive HTML reports from YAML files, whe
 ## Features
 
 - **Interactive graph visualization** &mdash; generates an interactive HTML report from a YAML file representing an argumentation framework, displayed in a side-by-side webview panel
-- **Extensions** &mdash; automatically computes and displays conflict-free, admissible, complete, preferred, grounded, and stable extensions
+- **Extensions** &mdash; automatically computes and displays conflict-free, admissible, complete, preferred, grounded, and stable extensions (powered by the [afsolver](https://www.npmjs.com/package/afsolver) package); clicking an extension highlights each argument as *in* (member of the extension), *out* (attacked by a member), or *undecided*
+- **In / out / undec colors** &mdash; when an extension is selected, the XRAY theme colors each argument by its label: **in** (blue), **out** (orange), and **undecided** (yellow)
 - **Decisions** &mdash; pose yes/no questions about whether an argument can or must appear in a given extension type (see [Decisions](#decisions))
 - **Sets** &mdash; assign arguments to named sets and filter the graph by set (see [Sets](#sets))
 - **Step-by-step construction** &mdash; arguments can be introduced incrementally across steps, with the graph and extensions recomputed at each step (see [Step-by-Step Construction](#step-by-step-construction))
@@ -49,7 +50,7 @@ arguments:
       evidence: Tweety is a penguin
       conclusion: Tweety cannot fly
 attacks:
-  - [b, a]
+  b: [a]
 ```
 
 Arguments with no fields can be written with an empty value:
@@ -58,7 +59,7 @@ arguments:
   a:
   b:
 attacks:
-  - [b, a]
+  b: [a]
 ```
 
 When `attacks` is omitted, the report displays the arguments as disconnected nodes.
@@ -68,7 +69,7 @@ When `attacks` is omitted, the report displays the arguments as disconnected nod
 The `decisions` key poses yes/no questions about whether a specific argument appears in a given extension. Each decision has three fields:
 
 - `criterion`: the argument to query
-- `quantifier`: `some` (the argument appears in at least one extension, default), `all` (it appears in every extension), or `none` (it appears in no extension)
+- `quantifier`: `at least one` (the argument appears in at least one extension, default), `all` (it appears in every extension), or `none` (it appears in no extension)
 - `semantics`: the extension type to query, one of `conflict_free`, `admissible`, `complete`, `preferred`, `grounded`, or `stable` (default: `preferred`)
 
 ```yaml
@@ -82,14 +83,14 @@ arguments:
   d:
     summary: An air fryer at home can make fried chicken crispy
 attacks:
-  - [b, a]
-  - [a, b]
-  - [c, b]
-  - [d, c]
+  b: [a]
+  a: [b]
+  c: [b]
+  d: [c]
 decisions:
   "Can we get fried chicken to go?":
     criterion: b
-    quantifier: some
+    quantifier: at least one
     semantics: preferred
   "Must we get fried chicken to go?":
     criterion: b
@@ -133,10 +134,10 @@ arguments:
     sets:
       - apt 2
 attacks:
-  - [b, a]
-  - [a, b]
-  - [c, b]
-  - [d, c]
+  b: [a]
+  a: [b]
+  c: [b]
+  d: [c]
 ```
 
 ### Step-by-Step Construction
@@ -154,9 +155,9 @@ arguments:
   d:
     step: 3
 attacks:
-  - [b, a]
-  - [c, b]
-  - [d, c]
+  b: [a]
+  c: [b]
+  d: [c]
 ```
 
 In this example, step 1 shows `a` and `b` with the attack `[b, a]`; step 2 adds `c` and the attack `[c, b]`; step 3 adds `d` and the attack `[d, c]`. Extensions are recomputed at each step. If the `step` field is omitted for an argument, steps are assigned automatically based on the order in which the arguments appear in the `arguments` list. Specifically, each argument is assigned to a new step in sequence.
@@ -176,10 +177,10 @@ arguments:
   e:
     anchor: bottom
 attacks:
-  - [b, a]
-  - [c, b]
-  - [d, c]
-  - [e, b]
+  b: [a]
+  c: [b]
+  d: [c]
+  e: [b]
 ```
 
 When no `anchor` is provided, the first argument defaults to the top root and the last argument defaults to the bottom root.
@@ -195,8 +196,10 @@ When no `anchor` is provided, the first argument defaults to the top root and th
 ### v0.1.1
 - **Decisions** &mdash; pose yes/no questions about whether an argument appears in a given extension type, with answers updating at each step
 - **Sets** &mdash; assign arguments to named sets and filter the graph by set; extensions are recomputed per step and per active set filter
-- **Simplified YAML format** &mdash; argument fields (`summary`, `details`, `step`, `anchor`, `sets`) are now direct keys under the argument ID instead of list items; `top`/`bottom` replaced by `anchor: top`/`anchor: bottom`
+- **Simplified YAML format** &mdash; argument fields (`summary`, `details`, `step`, `anchor`, `sets`) are now direct keys under the argument ID instead of list items; `top`/`bottom` replaced by `anchor: top`/`anchor: bottom`; the `attacks` field is a mapping from attacker to targets (e.g. `b: [a]`) instead of a list of pairs
 - **Keyboard shortcut** &mdash; `Ctrl+/` (or `Cmd+/`) to toggle comments on selected lines in the YAML editor
+- **Extension computation via afsolver** &mdash; the hand-written semantics code is replaced by the [afsolver](https://www.npmjs.com/package/afsolver) npm package (same algorithms, now maintained as a standalone library)
+- **Extension labelling colors** &mdash; clicking an extension labels every argument as *in*, *out*, or *undec*; the XRAY theme shows each with a distinct color (blue/orange/yellow)
 
 ### v0.1.0 (2026-02-07)
 Initial release with interactive report generation for a given argumentation framework.

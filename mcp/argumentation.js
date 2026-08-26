@@ -175,11 +175,11 @@ function evaluateDecisions(yamlData) {
         const criterion = dec.criterion !== undefined ? String(dec.criterion) : null;
         if (criterion === null)
             continue;
-        const quantifier = dec.quantifier ?? 'some';
+        const quantifier = dec.quantifier ?? 'at least one';
         const semantics = dec.semantics ?? 'preferred';
         const extList = extensions[semantics] || [];
         let answer;
-        if (quantifier === 'some') {
+        if (quantifier === 'at least one') {
             answer = extList.some(ext => ext.includes(criterion));
         }
         else if (quantifier === 'all') {

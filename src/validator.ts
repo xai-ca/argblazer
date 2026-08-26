@@ -1,5 +1,5 @@
 const VALID_ANCHORS = ['top', 'bottom'];
-const VALID_QUANTIFIERS = ['all', 'some', 'none'];
+const VALID_QUANTIFIERS = ['all', 'at least one', 'none'];
 const VALID_SEMANTICS = ['preferred', 'grounded', 'complete', 'stable', 'conflict_free', 'admissible'];
 
 export function validateYaml(yamlData: any): string | null {

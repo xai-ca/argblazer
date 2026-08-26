@@ -76,7 +76,7 @@ attacks:
 decisions:
   "Can Tweety fly?":
     criterion: a       # which argument to test
-    quantifier: some   # some | all | none
+    quantifier: at least one   # at least one | all | none
     semantics: preferred
 ```
 

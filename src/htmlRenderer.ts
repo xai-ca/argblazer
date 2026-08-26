@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 export function renderHtml(params: {
     af4graph: string;
     exhibit: string;
@@ -612,6 +615,10 @@ function getScriptFuncs(): string {
                     add: 'fill:#ffffff,stroke:#000000,stroke-width:4px',
                     select: 'fill:#6DCCFA,stroke:#000000',
                     selectadd: 'fill:#6DCCFA,stroke:#000000,stroke-width:4px',
+                    undec: 'fill:#FFFEB4,stroke:#000000',
+                    undecadd: 'fill:#FFFEB4,stroke:#000000,stroke-width:4px',
+                    out: 'fill:#F4BA70,stroke:#000000',
+                    outadd: 'fill:#F4BA70,stroke:#000000,stroke-width:4px',
                     selectSeparator: '#333333'
                 };
             default:
@@ -620,6 +627,10 @@ function getScriptFuncs(): string {
                     add: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px',
                     select: 'fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff',
                     selectadd: 'fill:#0F7C0F,stroke:#004d00,color:#ffffff,stroke-width:4px',
+                    undec: 'fill:#D5E8D4,stroke:#004d00',
+                    undecadd: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px',
+                    out: 'fill:#D5E8D4,stroke:#004d00',
+                    outadd: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px',
                     selectSeparator: '#ffffff'
                 };
         }
@@ -654,22 +665,38 @@ function getScriptFuncs(): string {
         graph += '  classDef add ' + themeColors.add + '\\n';
         graph += '  classDef select ' + themeColors.select + '\\n';
         graph += '  classDef selectadd ' + themeColors.selectadd + '\\n';
+        graph += '  classDef undec ' + themeColors.undec + '\\n';
+        graph += '  classDef undecadd ' + themeColors.undecadd + '\\n';
+        graph += '  classDef out ' + themeColors.out + '\\n';
+        graph += '  classDef outadd ' + themeColors.outadd + '\\n';
 
         graph += generateSubgraphs(currentStepIndex);
 
         var newNodes = currentStepIndex > 0 ? getNewArgumentsForStep(currentStepIndex) : [];
         var newNodeIds = new Set(newNodes.map(function(arg) { return Object.keys(arg)[0]; }));
 
-        var defaultNodes='', addedNodes='', selectedNodes='', selectedAddNodes='';
+        var defaultNodes='', addedNodes='', selectedNodes='', selectedAddNodes='', undecNodes='', undecAddNodes='', outNodes='', outAddNodes='';
 
         nodeData.forEach(function(node) {
             graph += '  ' + node.id + '["' + node.label + '"]\\n';
 
-            if (colors[node.id] !== null) {
+            if (colors[node.id] === 'selected') {
                 if (newNodeIds.has(node.id)){
                     selectedAddNodes += selectedAddNodes ? ',' + node.id : node.id;
                 } else {
                     selectedNodes += selectedNodes ? ',' + node.id : node.id;
+                }
+            } else if (colors[node.id] === 'undec') {
+                if (newNodeIds.has(node.id)) {
+                    undecAddNodes += undecAddNodes ? ',' + node.id : node.id;
+                } else {
+                    undecNodes += undecNodes ? ',' + node.id : node.id;
+                }
+            } else if (colors[node.id] === 'out') {
+                if (newNodeIds.has(node.id)) {
+                    outAddNodes += outAddNodes ? ',' + node.id : node.id;
+                } else {
+                    outNodes += outNodes ? ',' + node.id : node.id;
                 }
             } else if (newNodeIds.has(node.id)) {
                 addedNodes += addedNodes ? ',' + node.id : node.id;
@@ -682,6 +709,10 @@ function getScriptFuncs(): string {
         if (addedNodes) graph += '  class ' + addedNodes + ' add\\n';
         if (selectedNodes) graph += '  class ' + selectedNodes + ' select\\n';
         if (selectedAddNodes) graph += '  class ' + selectedAddNodes + ' selectadd\\n';
+        if (undecNodes) graph += '  class ' + undecNodes + ' undec\\n';
+        if (undecAddNodes) graph += '  class ' + undecAddNodes + ' undecadd\\n';
+        if (outNodes) graph += '  class ' + outNodes + ' out\\n';
+        if (outAddNodes) graph += '  class ' + outAddNodes + ' outadd\\n';
 
         var filteredAttacks = getFilteredAttacks(currentStepIndex);
         filteredAttacks.forEach(function(attack) {
@@ -737,15 +768,29 @@ function getScriptFuncs(): string {
     }
 
     function highlightNodes(nodeIds) {
-        if (nodeIds.length === 0) {
-            resetNodeHighlighting();
-        } else {
-            colors = {};
-            nodeData.forEach(function(node) {
-                colors[node.id] = nodeIds.includes(node.id) ? 'selected' : null;
-            });
-        }
+        colors = computeLabelling(nodeIds);
         render();
+    }
+
+    // Labels every argument as "in" (the extension itself), "out" (attacked by any argument in the extension) or "undec" (neither), following the standard labelling semantics.
+    function computeLabelling(nodeIds) {
+        var inSet = new Set(nodeIds);
+        var outSet = new Set();
+        getFilteredAttacks(currentStepIndex).forEach(function(attack) {
+            if (inSet.has(attack[0])) outSet.add(attack[1]);
+        });
+
+        var labelling = {};
+        nodeData.forEach(function(node) {
+            if (inSet.has(node.id)) {
+                labelling[node.id] = 'selected';
+            } else if (outSet.has(node.id)) {
+                labelling[node.id] = 'out';
+            } else {
+                labelling[node.id] = 'undec';
+            }
+        });
+        return labelling;
     }
 
     function resetNodeHighlighting() {
@@ -1567,141 +1612,31 @@ function getScriptFuncs(): string {
 }
 
 export function getExtensionFuncs(): string {
+    // The semantics come from the afsolver npm package. It ships as an ES
+    // module, but the generated report runs it as a plain inline <script>,
+    // so strip the `export` keywords and scope everything inside an IIFE
+    // (afsolver/dist/semantics.js is self-contained — no imports).
+    const semanticsPath = path.join(path.dirname(require.resolve('afsolver')), 'semantics.js');
+    const afsolverSource = fs.readFileSync(semanticsPath, 'utf8').replace(/^export /gm, '');
     return `
-    function isConflictFree(subset, attacks) {
-        for (const [a, b] of attacks) {
-            if (subset.has(a) && subset.has(b)) return false;
-        }
-        return true;
-    }
-
-    function isDefended(arg, subset, attacks) {
-        for (const [attacker, target] of attacks) {
-            if (target === arg) {
-                let defended = false;
-                for (const [z, t] of attacks) {
-                    if (t === attacker && subset.has(z)) { defended = true; break; }
-                }
-                if (!defended) return false;
-            }
-        }
-        return true;
-    }
-
-    function isAdmissible(subset, attacks) {
-        if (!isConflictFree(subset, attacks)) return false;
-        for (const x of subset) {
-            if (!isDefended(x, subset, attacks)) return false;
-        }
-        return true;
-    }
-
-    function isComplete(subset, args, attacks) {
-        if (!isAdmissible(subset, attacks)) return false;
-        for (const x of args) {
-            if (subset.has(x)) continue;
-            if (isDefended(x, subset, attacks)) return false;
-        }
-        return true;
-    }
-
-    function isStable(subset, args, attacks) {
-        if (!isConflictFree(subset, attacks)) return false;
-        for (const x of args) {
-            if (subset.has(x)) continue;
-            let attacked = false;
-            for (const [a, b] of attacks) {
-                if (b === x && subset.has(a)) { attacked = true; break; }
-            }
-            if (!attacked) return false;
-        }
-        return true;
-    }
-
-    function isProperSuperset(a, b) {
-        if (a.size <= b.size) return false;
-        for (const x of b) {
-            if (!a.has(x)) return false;
-        }
-        return true;
-    }
-
-    function computeGrounded(args, attacks) {
-        const inSet = new Set();
-        const outSet = new Set();
-        let changed = true;
-        while (changed) {
-            changed = false;
-            for (const x of args) {
-                if (inSet.has(x) || outSet.has(x)) continue;
-                const attackers = [];
-                for (const [a, b] of attacks) {
-                    if (b === x) attackers.push(a);
-                }
-                if (attackers.every(function(y) { return outSet.has(y); })) {
-                    inSet.add(x);
-                    changed = true;
-                }
-            }
-            for (const [a, b] of attacks) {
-                if (inSet.has(a) && !outSet.has(b)) {
-                    outSet.add(b);
-                    changed = true;
-                }
-            }
-        }
-        return inSet;
-    }
-
-    function extractConflictFreeSets(args, attacks) {
-        const n = args.length;
-        const argIndex = {};
-        for (let i = 0; i < n; i++) argIndex[args[i]] = i;
-        const conflictMask = [];
-        for (let i = 0; i < n; i++) conflictMask.push(0n);
-        for (const [a, b] of attacks) {
-            const ai = argIndex[a];
-            const bi = argIndex[b];
-            conflictMask[ai] |= (1n << BigInt(bi));
-            conflictMask[bi] |= (1n << BigInt(ai));
-        }
-        const result = [];
-        const current = new Set();
-        function backtrack(index, blocked) {
-            result.push(new Set(current));
-            for (let i = index; i < n; i++) {
-                const bit = 1n << BigInt(i);
-                if (blocked & bit) continue;
-                if (conflictMask[i] & bit) continue;
-                current.add(args[i]);
-                backtrack(i + 1, blocked | conflictMask[i]);
-                current.delete(args[i]);
-            }
-        }
-        backtrack(0, 0n);
-        return result;
-    }
+    var afsolver = (function() {
+${afsolverSource}
+    return { computeExtensions: computeExtensions };
+    })();
 
     function computeExtensions(args, attacks) {
-        const argOrder = {};
+        var argOrder = {};
         args.forEach(function(a, i) { argOrder[a] = i; });
         function setToOrderedArray(s) { return Array.from(s).sort(function(a, b) { return argOrder[a] - argOrder[b]; }); }
 
-        const conflictFree = extractConflictFreeSets(args, attacks);
-        const admissible = conflictFree.filter(function(s) { return isAdmissible(s, attacks); });
-        const complete = admissible.filter(function(s) { return isComplete(s, args, attacks); });
-        const preferred = admissible.filter(function(ext) {
-            return !admissible.some(function(other) { return other !== ext && isProperSuperset(other, ext); });
-        });
-        const grounded = computeGrounded(args, attacks);
-        const stable = conflictFree.filter(function(s) { return isStable(s, args, attacks); });
+        var ext = afsolver.computeExtensions(args, attacks);
         return {
-            conflict_free: conflictFree.map(setToOrderedArray),
-            admissible: admissible.map(setToOrderedArray),
-            complete: complete.map(setToOrderedArray),
-            preferred: preferred.map(setToOrderedArray),
-            grounded: [setToOrderedArray(grounded)],
-            stable: stable.map(setToOrderedArray)
+            conflict_free: ext.conflictFree.map(setToOrderedArray),
+            admissible: ext.admissible.map(setToOrderedArray),
+            complete: ext.complete.map(setToOrderedArray),
+            preferred: ext.preferred.map(setToOrderedArray),
+            grounded: [setToOrderedArray(ext.grounded)],
+            stable: ext.stable.map(setToOrderedArray)
         };
     }`;
 }

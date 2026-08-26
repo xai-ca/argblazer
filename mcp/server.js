@@ -93,7 +93,7 @@ server.tool('compute_extensions', 'Compute all semantic extensions (conflict_fre
     }
 });
 // ── Tool: evaluate_decisions ──────────────────────────────────────────────────
-server.tool('evaluate_decisions', 'Evaluate the decisions block of an argumentation framework YAML. Each decision specifies a criterion argument, a quantifier (some/all/none), and a semantics type; this tool returns yes/no answers.', { yaml_string: zod_1.z.string().describe('YAML content of an argumentation framework with a decisions block') }, async ({ yaml_string }) => {
+server.tool('evaluate_decisions', 'Evaluate the decisions block of an argumentation framework YAML. Each decision specifies a criterion argument, a quantifier (at least one/all/none), and a semantics type; this tool returns yes/no answers.', { yaml_string: zod_1.z.string().describe('YAML content of an argumentation framework with a decisions block') }, async ({ yaml_string }) => {
     try {
         let parsed;
         try {

@@ -13,7 +13,7 @@ export interface DecisionResult {
     question: string;
     answer: boolean;
     criterion: string;
-    quantifier: 'some' | 'all' | 'none';
+    quantifier: 'at least one' | 'all' | 'none';
     semantics: keyof Extensions;
 }
 
@@ -183,12 +183,12 @@ export function evaluateDecisions(yamlData: any): DecisionResult[] {
         const criterion: string | null = dec.criterion !== undefined ? String(dec.criterion) : null;
         if (criterion === null) continue;
 
-        const quantifier: 'some' | 'all' | 'none' = dec.quantifier ?? 'some';
+        const quantifier: 'at least one' | 'all' | 'none' = dec.quantifier ?? 'at least one';
         const semantics: keyof Extensions = dec.semantics ?? 'preferred';
 
         const extList: string[][] = extensions[semantics] || [];
         let answer: boolean;
-        if (quantifier === 'some') {
+        if (quantifier === 'at least one') {
             answer = extList.some(ext => ext.includes(criterion));
         } else if (quantifier === 'all') {
             answer = extList.length > 0 && extList.every(ext => ext.includes(criterion));
