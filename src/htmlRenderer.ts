@@ -93,7 +93,7 @@ export function renderHtml(params: {
             .extension-set{border:1px solid #d0d0d0;background:#f0f0f0;box-shadow:0 1px 2px rgba(0,0,0,.1);max-width:100%;word-break:break-word;white-space:normal}
             .extension-set:hover,.extension-set.selected{background:var(--extension-hover-bg);border-color:var(--extension-hover-border);color:var(--extension-hover-text);box-shadow:0 2px 4px rgba(0,0,0,.15)}
             .extension-set.selected{font-weight:600}
-            g.select foreignObject hr,g.selectadd foreignObject hr{border-top-color:white!important}
+            g.select foreignObject hr,g.selectadd foreignObject hr{border-top-color:var(--select-separator)!important}
             @media(max-width:600px){
                 body{padding:10px 10px 0 10px}
                 .header-controls{flex-direction:column;align-items:flex-start;gap:8px;width:100%}
@@ -114,7 +114,7 @@ export function renderHtml(params: {
                 .extension-set.selected{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:var(--extension-hover-bg)!important;border-color:var(--extension-hover-border)!important;color:var(--extension-hover-text)!important}
                 g.select *,g.selectadd *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
                 g.select foreignObject *,g.selectadd foreignObject *{color:white!important}
-                g.select foreignObject hr,g.selectadd foreignObject hr{border-top-color:white!important}
+                g.select foreignObject hr,g.selectadd foreignObject hr{border-top-color:var(--select-separator)!important}
             }
         </style>
     </head>
@@ -611,14 +611,16 @@ function getScriptFuncs(): string {
                     'default': 'fill:#ffffff,stroke:#000000',
                     add: 'fill:#ffffff,stroke:#000000,stroke-width:4px',
                     select: 'fill:#6DCCFA,stroke:#000000',
-                    selectadd: 'fill:#6DCCFA,stroke:#000000,stroke-width:4px'
+                    selectadd: 'fill:#6DCCFA,stroke:#000000,stroke-width:4px',
+                    selectSeparator: '#333333'
                 };
             default:
                 return {
                     'default': 'fill:#D5E8D4,stroke:#004d00',
                     add: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px',
                     select: 'fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff',
-                    selectadd: 'fill:#0F7C0F,stroke:#004d00,color:#ffffff,stroke-width:4px'
+                    selectadd: 'fill:#0F7C0F,stroke:#004d00,color:#ffffff,stroke-width:4px',
+                    selectSeparator: '#ffffff'
                 };
         }
     }
@@ -637,6 +639,7 @@ function getScriptFuncs(): string {
             root.style.setProperty('--extension-hover-border', strokeMatch[1]);
             root.style.setProperty('--extension-hover-text', colorMatch ? colorMatch[1] : 'inherit');
         }
+        root.style.setProperty('--select-separator', themeColors.selectSeparator);
     }
 
     async function render() {
