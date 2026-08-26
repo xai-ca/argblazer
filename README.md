@@ -11,7 +11,7 @@ A VS Code extension that generates interactive HTML reports from YAML files, whe
 - **Extensions** &mdash; automatically computes and displays conflict-free, admissible, complete, preferred, grounded, and stable extensions (powered by the [afsolver](https://www.npmjs.com/package/afsolver) package); clicking an extension highlights each argument as *in* (member of the extension), *out* (attacked by a member), or *undecided*
 - **In / out / undec colors** &mdash; when an extension is selected, the XRAY theme colors each argument by its label: **in** (blue), **out** (orange), and **undecided** (yellow)
 - **Decisions** &mdash; pose yes/no questions about whether an argument can or must appear in a given extension type (see [Decisions](#decisions))
-- **Sets** &mdash; assign arguments to named sets and filter the graph by set (see [Sets](#sets))
+- **Sets** &mdash; assign arguments to named sets and show only the arguments belonging to selected sets, with extensions and decisions recomputed accordingly (see [Sets](#sets))
 - **Step-by-step construction** &mdash; arguments can be introduced incrementally across steps, with the graph and extensions recomputed at each step (see [Step-by-Step Construction](#step-by-step-construction))
 - **Graph layout control** &mdash; `top` and `bottom` annotations control which arguments are placed at the top or bottom of the graph layout (see [Top and Bottom Layout](#top-and-bottom-layout))
 - **Zoom controls** &mdash; zoom in, zoom out, and fit-to-view buttons on the graph
@@ -31,7 +31,7 @@ A VS Code extension that generates interactive HTML reports from YAML files, whe
 
 ### YAML Format
 
-A YAML file contains the `exhibit` (optional), `arguments` (required), and `attacks` (optional) keys:
+A YAML file contains the `exhibit` (optional), `decisions` (optional), `arguments` (required), and `attacks` (optional) keys:
 ```yaml
 exhibit: |
   Tweety is a bird.
@@ -53,6 +53,8 @@ attacks:
   b: [a]
 ```
 
+Each key under `arguments` (here `a` and `b`) is the argument's ID. The ID labels the node in the graph and is referenced in `attacks` and in a decision's `criterion`.
+
 Arguments with no fields can be written with an empty value:
 ```yaml
 arguments:
@@ -62,13 +64,15 @@ attacks:
   b: [a]
 ```
 
+When an attacker has a single target, the brackets may be omitted: `b: [a]` can also be written as `b: a`.
+
 When `attacks` is omitted, the report displays the arguments as disconnected nodes.
 
 ### Decisions
 
 The `decisions` key poses yes/no questions about whether a specific argument appears in a given extension. Each decision has three fields:
 
-- `criterion`: the argument to query
+- `criterion`: the ID of the argument to query
 - `quantifier`: `at least one` (the argument appears in at least one extension, default), `all` (it appears in every extension), or `none` (it appears in no extension)
 - `semantics`: the extension type to query, one of `conflict_free`, `admissible`, `complete`, `preferred`, `grounded`, or `stable` (default: `preferred`)
 
@@ -102,7 +106,7 @@ The Decisions panel appears in the report when `decisions` is present, showing e
 
 ### Sets
 
-The `sets` annotation assigns an argument to one or more named sets. Arguments without a `sets` annotation are treated as "unassigned" and can be shown or hidden separately via the dropdown. You can filter the graph to show only arguments belonging to selected sets.
+The `sets` annotation assigns an argument to one or more named sets. Arguments without a `sets` annotation are treated as "unassigned" and can be shown or hidden separately via the dropdown. You can choose to show only the arguments belonging to selected sets; extensions and decisions are recomputed accordingly.
 
 ```yaml
 arguments:

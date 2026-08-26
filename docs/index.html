@@ -6,19 +6,12 @@
     <title>ArgBlazer</title>
     <meta
       name="description"
-      content="ArgBlazer is a VS Code extension that generates interactive HTML reports from YAML files, where each YAML file represents an argumentation framework."
+      content="ArgBlazer is an interactive tool for exploring decision landscapes using argumentation frameworks, available as a client-side browser playground with shareable URLs and a VS Code extension with exportable standalone HTML reports."
     />
     <link rel="stylesheet" href="styles.css" />
     <link rel="icon" type="image/png" sizes="32x32" href="media/favicon-32.png" />
   </head>
   <body>
-    <div class="ambient">
-      <div class="orb orb-a"></div>
-      <div class="orb orb-b"></div>
-      <div class="orb orb-c"></div>
-      <div class="grid"></div>
-    </div>
-
     <header class="topbar">
       <div class="logo">
         <img src="media/icon.png" alt="ArgBlazer icon" />
@@ -26,24 +19,24 @@
       </div>
       <nav class="nav">
         <a href="playground.html">Playground</a>
+        <a href="https://marketplace.visualstudio.com/items?itemName=CIRSS.argblazer">Install</a>
         <a href="https://github.com/xai-ca/argblazer">GitHub</a>
-        <button class="pill" id="installBtn">Install</button>
       </nav>
     </header>
 
     <main>
       <section class="hero">
         <div class="hero-copy">
-          <div class="badge">VS Code Extension</div>
+          <div class="badge">Browser Playground &amp; VS Code Extension</div>
           <h1>
-            <span class="accent">ArgBlazer</span> turns YAML argumentation frameworks into interactive HTML reports.
+            <span class="accent">ArgBlazer</span> explores decision landscapes using argumentation frameworks.
           </h1>
           <p>
-            ArgBlazer generates interactive HTML reports from YAML files representing argumentation frameworks; the reports provide graph visualizations, extension sets, step-by-step constructions, and top/bottom layout—seamlessly integrated into your editor.
+            ArgBlazer lets you construct an argumentation framework (AF) incrementally, step forward and backward through the construction, and watch the extensions and decision outcomes update at every step.
           </p>
-          <div class="signal">
-            <div class="pulse"></div>
-            <span>Live reload enabled while you edit YAML.</span>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="playground.html">Try the Playground</a>
+            <a class="btn btn-primary" href="https://marketplace.visualstudio.com/items?itemName=CIRSS.argblazer">Install for VS Code</a>
           </div>
         </div>
 
@@ -56,45 +49,81 @@
         <div class="feature-list">
           <div class="feature-item">
             <h3>Interactive graph visualization</h3>
+            <div class="feature-tags"><span class="feature-tag">Playground</span><span class="feature-tag">VS Code</span></div>
             <p>
-              Generates an interactive HTML report from a YAML file representing
-              an argumentation framework, displayed in a side-by-side webview panel.
+              Generates an interactive HTML report from YAML describing an
+              argumentation framework&mdash;typed interactively in the playground
+              editor, or read from a file in VS Code&mdash;displayed side by side
+              with the YAML.
             </p>
           </div>
           <div class="feature-item">
             <h3>Extensions</h3>
+            <div class="feature-tags"><span class="feature-tag">Playground</span><span class="feature-tag">VS Code</span></div>
             <p>
               Automatically computes and displays conflict-free, admissible,
               complete, preferred, grounded, and stable extensions.
             </p>
           </div>
           <div class="feature-item">
-            <h3>Step-by-step construction</h3>
+            <h3>Decisions</h3>
+            <div class="feature-tags"><span class="feature-tag">Playground</span><span class="feature-tag">VS Code</span></div>
             <p>
-              Arguments can be introduced incrementally across steps, with the
-              graph and extensions recomputed at each step.
+              Declare decisions of interest and specify how each answer is
+              extracted from the AF via a criterion, a quantifier, and a choice
+              of semantics; answers update automatically at every step.
+            </p>
+          </div>
+          <div class="feature-item">
+            <h3>Sets</h3>
+            <div class="feature-tags"><span class="feature-tag">Playground</span><span class="feature-tag">VS Code</span></div>
+            <p>
+              Assign arguments to named sets and show only the arguments
+              belonging to selected sets, with extensions and decisions
+              recomputed accordingly.
+            </p>
+          </div>
+          <div class="feature-item">
+            <h3>Step-by-step construction</h3>
+            <div class="feature-tags"><span class="feature-tag">Playground</span><span class="feature-tag">VS Code</span></div>
+            <p>
+              Construct an AF incrementally by adding arguments and attacks,
+              and step forward and backward through the construction to observe
+              how each argument affects the extensions and decision outcomes.
             </p>
           </div>
           <div class="feature-item">
             <h3>Graph layout control</h3>
+            <div class="feature-tags"><span class="feature-tag">Playground</span><span class="feature-tag">VS Code</span></div>
             <p>
-              Top and bottom annotations control which arguments are placed at
-              the top or bottom of the graph layout.
+              Anchor annotations control which arguments are placed at the top
+              or bottom of the graph layout.
             </p>
           </div>
           <div class="feature-item">
             <h3>Zoom controls</h3>
+            <div class="feature-tags"><span class="feature-tag">Playground</span><span class="feature-tag">VS Code</span></div>
             <p>Zoom in, zoom out, and fit-to-view buttons on the graph.</p>
           </div>
           <div class="feature-item">
             <h3>Live reload</h3>
+            <div class="feature-tags"><span class="feature-tag">VS Code</span></div>
             <p>The report updates automatically whenever the YAML file is saved.</p>
           </div>
           <div class="feature-item">
             <h3>Export to HTML</h3>
+            <div class="feature-tags"><span class="feature-tag">VS Code</span></div>
             <p>
               Right-click the report panel and select "Export as HTML" to save a
               standalone HTML file.
+            </p>
+          </div>
+          <div class="feature-item">
+            <h3>Shareable URLs</h3>
+            <div class="feature-tags"><span class="feature-tag">Playground</span></div>
+            <p>
+              The browser playground encodes your framework in the URL, so any
+              exploration can be shared as a link.
             </p>
           </div>
         </div>
@@ -121,9 +150,9 @@
   d:
     step: 3
 attacks:
-  - [b, a]
-  - [c, b]
-  - [d, c]</code></pre>
+  b: [a]
+  c: [b]
+  d: [c]</code></pre>
             </div>
             <div class="graph-panel">
               <span class="graph-label">Step 1</span>
@@ -211,10 +240,10 @@ graph BT
   e:
     anchor: bottom
 attacks:
-  - [b, a]
-  - [c, b]
-  - [d, c]
-  - [e, b]</code></pre>
+  b: [a]
+  c: [b]
+  d: [c]
+  e: [b]</code></pre>
             </div>
             <div class="graph-panel">
               <span class="graph-label">Rank from top</span>
@@ -271,6 +300,83 @@ graph BT
             <a href="playground.html#example=topbottom" class="demo-playground-link">Try in Playground &rarr;</a>
           </div>
         </div>
+
+        <div class="demo-card">
+          <h3>Extension labelling &amp; decisions</h3>
+          <p class="demo-desc">Clicking an extension highlights the arguments it contains, and decisions pose yes/no questions answered against the computed extensions.</p>
+          <div class="demo-content">
+            <div class="yaml-block yaml-demo">
+              <div class="yaml-label">YAML</div>
+              <pre><code>arguments:
+  dine-in:
+  to-go:
+  soggy:
+  fryer:
+attacks:
+  to-go: [dine-in]
+  dine-in: [to-go]
+  soggy: [to-go]
+  fryer: [soggy]
+decisions:
+  "Can we get fried chicken to go?":
+    criterion: to-go
+    quantifier: at least one
+    semantics: preferred
+  "Must we get fried chicken to go?":
+    criterion: to-go
+    quantifier: all
+    semantics: preferred</code></pre>
+            </div>
+            <div class="graph-panel">
+              <span class="graph-label">Preferred {to-go, fryer} selected</span>
+              <pre class="mermaid">
+graph BT
+  classDef default fill:#D5E8D4,stroke:#004d00
+  classDef in fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff
+  din["dine-in"]
+  tog["to-go"]
+  sog["soggy"]
+  fry["fryer"]
+  tog --> din
+  din --> tog
+  sog --> tog
+  fry --> sog
+  class tog,fry in
+              </pre>
+            </div>
+            <div class="graph-panel">
+              <span class="graph-label">Preferred {dine-in, fryer} selected</span>
+              <pre class="mermaid">
+graph BT
+  classDef default fill:#D5E8D4,stroke:#004d00
+  classDef in fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff
+  din["dine-in"]
+  tog["to-go"]
+  sog["soggy"]
+  fry["fryer"]
+  tog --> din
+  din --> tog
+  sog --> tog
+  fry --> sog
+  class din,fry in
+              </pre>
+            </div>
+          </div>
+          <p class="demo-note">In the XRAY theme, all three labels get distinct colors: in (blue), out (orange), and undecided (yellow).</p>
+          <div class="decisions-strip">
+            <div class="decision-line">
+              <span class="decision-q">Can we get fried chicken to go?</span>
+              <span class="decision-a yes">Yes, it is the case that the criterion to-go holds in at least one preferred extension.</span>
+            </div>
+            <div class="decision-line">
+              <span class="decision-q">Must we get fried chicken to go?</span>
+              <span class="decision-a no">No, it is not the case that the criterion to-go holds in all preferred extensions.</span>
+            </div>
+          </div>
+          <div class="demo-footer">
+            <a href="playground.html#example=friedchicken_step" class="demo-playground-link">Try in Playground &rarr;</a>
+          </div>
+        </div>
       </section>
 
       <section id="yaml-structure" class="section">
@@ -278,7 +384,7 @@ graph BT
           <h2>YAML Structure</h2>
         </div>
         <div class="demo-card">
-          <h3 class="schema-subheading">ArgBlazer reads YAML files with three top-level fields.</h3>
+          <h3 class="schema-subheading">ArgBlazer reads YAML files with these top-level fields.</h3>
 
           <div class="table-scroll">
             <table class="schema-table">
@@ -295,19 +401,25 @@ graph BT
                   <td><code>exhibit</code></td>
                   <td>No</td>
                   <td>String</td>
-                  <td>Background text displayed in the Exhibit section</td>
+                  <td>Context information displayed in the Exhibit section</td>
                 </tr>
                 <tr>
                   <td><code>arguments</code></td>
                   <td>Yes</td>
-                  <td>List</td>
-                  <td>Argument definitions. Each argument can optionally include annotations listed below.</td>
+                  <td>Mapping</td>
+                  <td>Argument definitions, keyed by argument ID (e.g. <code>a</code>, <code>to-go</code>). The ID labels the node in the graph and is referenced in <code>attacks</code> and in a decision's <code>criterion</code>. Arguments may also include the annotations below.</td>
                 </tr>
                 <tr>
                   <td><code>attacks</code></td>
                   <td>No</td>
-                  <td>List of pairs</td>
-                  <td>Attack relationships, e.g. <code>[b, a]</code> means b attacks a</td>
+                  <td>Mapping</td>
+                  <td>Attack relationships from attacker to targets, e.g. <code>b: [a]</code> means b attacks a. A single target may also be written without brackets: <code>b: a</code></td>
+                </tr>
+                <tr>
+                  <td><code>decisions</code></td>
+                  <td>No</td>
+                  <td>Mapping</td>
+                  <td>Yes/no questions keyed by question text; each has a <code>criterion</code> argument, a <code>quantifier</code> (<code>at least one</code>, <code>all</code>, or <code>none</code>), and a <code>semantics</code> type (<code>conflict_free</code>, <code>admissible</code>, <code>complete</code>, <code>preferred</code>, <code>grounded</code>, or <code>stable</code>)</td>
                 </tr>
               </tbody>
             </table>
@@ -341,14 +453,14 @@ graph BT
                   <td>Which step the argument is introduced (for incremental construction)</td>
                 </tr>
                 <tr>
-                  <td><code>top</code></td>
-                  <td>Flag</td>
-                  <td>Place this argument at the top of the graph layout</td>
+                  <td><code>anchor</code></td>
+                  <td>String</td>
+                  <td> Place this argument at the top or bottom of the graph layout (<code>top</code> or <code>bottom</code>)</td>
                 </tr>
                 <tr>
-                  <td><code>bottom</code></td>
-                  <td>Flag</td>
-                  <td>Place this argument at the bottom of the graph layout</td>
+                  <td><code>sets</code></td>
+                  <td>List</td>
+                  <td>The named sets this argument belongs to, used for filtering arguments</td>
                 </tr>
               </tbody>
             </table>
