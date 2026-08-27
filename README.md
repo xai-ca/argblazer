@@ -14,7 +14,7 @@ ArgBlazer is also available as a [browser playground](https://xai-ca.github.io/a
 - **Interactive graph visualization** &mdash; generates an interactive HTML report from a YAML file representing an argumentation framework, displayed in a side-by-side webview panel
 - **Extensions** &mdash; automatically computes and displays conflict-free, admissible, complete, preferred, grounded, and stable extensions (powered by the [afsolver](https://www.npmjs.com/package/afsolver) package); clicking an extension highlights each argument as *in* (member of the extension), *out* (attacked by a member), or *undecided*
 - **Step-by-step construction** &mdash; arguments can be introduced incrementally across steps, with the graph and extensions recomputed at each step (see [Step-by-Step Construction](#step-by-step-construction))
-- **Sets** &mdash; assign arguments to named sets and show only the arguments belonging to selected sets, with extensions and decisions recomputed accordingly (see [Sets](#sets))
+- **Cases** &mdash; assign arguments to named cases and show only the arguments belonging to selected cases, with extensions and decisions recomputed accordingly (see [Cases](#cases))
 - **Decisions** &mdash; pose yes/no questions about whether an argument can or must appear in a given extension type (see [Decisions](#decisions))
 - **Argument labeling** &mdash; when an extension is selected, each argument is colored by its label, with a legend below the graph. By default *out* and *undec* share a single "Not in" color; ticking the "Distinguish Out/Undec" checkbox in the legend switches to the full three-way labeling. Green theme: **in** (dark green), **out** (light green), **undec** (white); XRAY theme: **in** (blue), **out** (orange), **undec** (yellow)
 - **Graph layout control** &mdash; `top` and `bottom` annotations control which arguments are placed at the top or bottom of the graph layout (see [Top and Bottom Layout](#top-and-bottom-layout))
@@ -108,39 +108,39 @@ decisions:
 
 The Decisions panel appears in the report when `decisions` is present, showing each question with a **Yes** or **No** answer that updates as you navigate steps.
 
-### Sets
+### Cases
 
-The `sets` annotation assigns an argument to one or more named sets. Arguments without a `sets` annotation are treated as "unassigned" and can be shown or hidden separately via the dropdown. You can choose to show only the arguments belonging to selected sets; extensions and decisions are recomputed accordingly.
+The `cases` annotation assigns an argument to one or more named cases. Arguments without a `cases` annotation are treated as "unassigned" and can be shown or hidden separately via the dropdown. You can choose to show only the arguments belonging to selected cases; extensions and decisions are recomputed accordingly.
 
 ```yaml
 arguments:
   a:
     summary: Order fried chicken in
-    sets:
-      - apt 1
-      - apt 2
+    cases:
+      - apartment without air fryer
+      - apartment with air fryer
   b:
     summary: Get fried chicken to go
-    sets:
-      - apt 1
-      - apt 2
+    cases:
+      - apartment without air fryer
+      - apartment with air fryer
   c:
     summary: To-go chicken will be soggy
     details:
       rule: Food transported in a box loses crispiness due to trapped steam
       evidence: Fried chicken taken to go is transported in a box
       conclusion: To-go chicken will be soggy
-    sets:
-      - apt 1
-      - apt 2
+    cases:
+      - apartment without air fryer
+      - apartment with air fryer
   d:
     summary: An air fryer at home can make fried chicken crispy
     details:
       rule: An air fryer restores crispiness by circulating hot air
       evidence: There is an air fryer at home
       conclusion: An air fryer at home can make fried chicken crispy again
-    sets:
-      - apt 2
+    cases:
+      - apartment with air fryer
 attacks:
   b: [a]
   a: [b]
@@ -203,8 +203,8 @@ When no `anchor` is provided, the first argument defaults to the top root and th
 
 ### v0.1.1
 - **Decisions** &mdash; pose yes/no questions about whether an argument appears in a given extension type, with answers updating at each step
-- **Sets** &mdash; assign arguments to named sets and filter the graph by set; extensions are recomputed per step and per active set filter
-- **Simplified YAML format** &mdash; argument fields (`summary`, `details`, `step`, `anchor`, `sets`) are now direct keys under the argument ID instead of list items; `top`/`bottom` replaced by `anchor: top`/`anchor: bottom`; the `attacks` field is a mapping from attacker to targets (e.g. `b: [a]`) instead of a list of pairs
+- **Cases** &mdash; assign arguments to named cases and filter the graph by case; extensions are recomputed per step and per active case filter
+- **Simplified YAML format** &mdash; argument fields (`summary`, `details`, `step`, `anchor`, `cases`) are now direct keys under the argument ID instead of list items; `top`/`bottom` replaced by `anchor: top`/`anchor: bottom`; the `attacks` field is a mapping from attacker to targets (e.g. `b: [a]`) instead of a list of pairs
 - **Keyboard shortcut** &mdash; `Ctrl+/` (or `Cmd+/`) to toggle comments on selected lines in the YAML editor
 - **Extension computation via afsolver** &mdash; the hand-written semantics code is replaced by the [afsolver](https://www.npmjs.com/package/afsolver) npm package (same algorithms, now maintained as a standalone library)
 - **Argument labeling colors** &mdash; clicking an extension labels every argument as *in*, *out*, or *undec*; both themes show each label with a distinct color (Green: dark green/light green/white; XRAY: blue/orange/yellow)

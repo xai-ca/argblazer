@@ -75,11 +75,11 @@
             </p>
           </div>
           <div class="feature-item">
-            <h3>Sets</h3>
+            <h3>Cases</h3>
             <div class="feature-tags"><span class="feature-tag">Playground</span><span class="feature-tag">VS Code</span></div>
             <p>
-              Assign arguments to named sets and show only the arguments
-              belonging to selected sets, with extensions and decisions
+              Assign arguments to named cases and show only the arguments
+              belonging to selected cases, with extensions and decisions
               recomputed accordingly.
             </p>
           </div>
@@ -115,17 +115,22 @@
             <p>Zoom in, zoom out, and fit-to-view buttons on the graph.</p>
           </div>
           <div class="feature-item">
+            <h3>Live reload</h3>
+            <div class="feature-tags"><span class="feature-tag">Playground</span><span class="feature-tag">VS Code</span></div>
+            <p>
+              In VS Code, the report updates automatically whenever the YAML
+              file is saved. In the playground, press
+              <kbd>Cmd</kbd>+<kbd>S</kbd> (Mac) or <kbd>Ctrl</kbd>+<kbd>S</kbd>
+              (Windows/Linux) to apply your changes in the browser.
+            </p>
+          </div>
+          <div class="feature-item">
             <h3>Shareable URLs</h3>
             <div class="feature-tags"><span class="feature-tag">Playground</span></div>
             <p>
               The browser playground encodes your framework in the URL, so any
               exploration can be shared as a link.
             </p>
-          </div>
-          <div class="feature-item">
-            <h3>Live reload</h3>
-            <div class="feature-tags"><span class="feature-tag">VS Code</span></div>
-            <p>The report updates automatically whenever the YAML file is saved.</p>
           </div>
           <div class="feature-item">
             <h3>Export to HTML</h3>
@@ -512,9 +517,9 @@ graph BT
                   <td> Place this argument at the top or bottom of the graph layout (<code>top</code> or <code>bottom</code>)</td>
                 </tr>
                 <tr>
-                  <td><code>sets</code></td>
+                  <td><code>cases</code></td>
                   <td>List</td>
-                  <td>The named sets this argument belongs to, used for filtering arguments</td>
+                  <td>The named cases this argument belongs to, used for filtering arguments</td>
                 </tr>
               </tbody>
             </table>
@@ -525,7 +530,11 @@ graph BT
     </main>
 
     <footer>
-      <span>ArgBlazer © 2026</span>
+      <span>
+        ArgBlazer © 2026 &middot;
+        <a href="https://cirss.ischool.illinois.edu/">Center for Informatics Research in Science and Scholarship (CIRSS)</a>,
+        University of Illinois Urbana-Champaign
+      </span>
     </footer>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.9.0/mermaid.min.js"></script>

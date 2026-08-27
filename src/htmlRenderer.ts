@@ -191,7 +191,7 @@ export function renderHtml(params: {
                     </select>
                 </div>
                 <div class="display-controls" id="set-filter-controls" style="display:none;">
-                    <label>Sets:</label>
+                    <label>Cases:</label>
                     <div class="set-dropdown-wrap" id="set-dropdown-wrap">
                         <button type="button" class="set-dropdown-btn" id="set-dropdown-btn"></button>
                         <div class="set-dropdown-list" id="set-dropdown-list"></div>
@@ -322,8 +322,8 @@ function getScriptFuncs(): string {
         var setObj = {};
         if (!argumentationData.arguments) return [];
         Object.values(argumentationData.arguments).forEach(function(argData) {
-            if (argData && argData.sets !== undefined) {
-                normalizeSets(argData.sets).forEach(function(t) { setObj[t] = true; });
+            if (argData && argData.cases !== undefined) {
+                normalizeSets(argData.cases).forEach(function(t) { setObj[t] = true; });
             }
         });
         return Object.keys(setObj).sort();
@@ -332,8 +332,8 @@ function getScriptFuncs(): string {
     function getArgumentSets(arg) {
         var argData = Object.values(arg)[0];
         var sets = new Set();
-        if (argData && argData.sets !== undefined) {
-            normalizeSets(argData.sets).forEach(function(v) { sets.add(v); });
+        if (argData && argData.cases !== undefined) {
+            normalizeSets(argData.cases).forEach(function(v) { sets.add(v); });
         }
         return sets;
     }
@@ -1077,7 +1077,7 @@ function getScriptFuncs(): string {
 
         var allSets = collectAllSets();
         if (allSets.length > 0) {
-            var hasUnassigned = Object.values(argumentationData.arguments).some(function(argData) { return argData && argData.sets === undefined; });
+            var hasUnassigned = Object.values(argumentationData.arguments).some(function(argData) { return argData && argData.cases === undefined; });
             var setBtn = document.getElementById('set-dropdown-btn');
             var setList = document.getElementById('set-dropdown-list');
             var setWrap = document.getElementById('set-dropdown-wrap');
@@ -1085,7 +1085,7 @@ function getScriptFuncs(): string {
 
             function updateSetBtnText() {
                 var total = allCheckboxes.filter(function(cb) { return !cb.disabled; }).length;
-                setBtn.textContent = currentSetFilter.length + '/' + total + ' sets selected';
+                setBtn.textContent = currentSetFilter.length + '/' + total + ' cases selected';
             }
 
             function applySetFilter() {

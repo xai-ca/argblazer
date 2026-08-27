@@ -363,6 +363,16 @@ main {
   border-radius: 5px;
 }
 
+kbd {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.85em;
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
 /* ── Demo cards ──────────────────────────────────────────── */
 
 .demo-card {
@@ -507,8 +517,17 @@ footer {
   padding: 28px 24px;
   display: flex;
   justify-content: center;
+  text-align: center;
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+footer a {
+  text-decoration: underline;
+}
+
+footer a:hover {
+  color: var(--accent);
 }
 
 /* ── Responsive ──────────────────────────────────────────── */

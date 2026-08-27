@@ -85,7 +85,7 @@ decisions:
 - `details` — rule/evidence/conclusion breakdown
 - `step` — integer for step-by-step construction
 - `anchor` — `top` or `bottom` for layout control
-- `sets` — list of named groups for filtering
+- `cases` — list of named groups for filtering
 
 **Semantics types:** `conflict_free`, `admissible`, `complete`, `preferred`, `grounded`, `stable`
 
