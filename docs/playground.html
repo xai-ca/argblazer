@@ -839,14 +839,14 @@
                 };
             default:
                 return {
-                    'default': 'fill:#D5E8D4,stroke:#004d00',
-                    add: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px',
-                    select: 'fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff',
-                    selectadd: 'fill:#0F7C0F,stroke:#004d00,color:#ffffff,stroke-width:4px',
-                    undec: 'fill:#D5E8D4,stroke:#004d00',
-                    undecadd: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px',
-                    out: 'fill:#D5E8D4,stroke:#004d00',
-                    outadd: 'fill:#D5E8D4,stroke:#004d00,stroke-width:4px',
+                    'default': 'fill:#D5E8D4,stroke:#000000',
+                    add: 'fill:#D5E8D4,stroke:#000000,stroke-width:4px',
+                    select: 'fill:#0F7C0F,stroke:#000000,color:#ffffff',
+                    selectadd: 'fill:#0F7C0F,stroke:#000000,color:#ffffff,stroke-width:4px',
+                    undec: 'fill:#FFFFFF,stroke:#000000',
+                    undecadd: 'fill:#FFFFFF,stroke:#000000,stroke-width:4px',
+                    out: 'fill:#D5E8D4,stroke:#000000',
+                    outadd: 'fill:#D5E8D4,stroke:#000000,stroke-width:4px',
                     selectSeparator: '#ffffff'
                 };
         }
@@ -869,11 +869,42 @@
         root.style.setProperty('--select-separator', themeColors.selectSeparator);
     }
 
+    function distinguishOutUndec() {
+        return sessionStorage.getItem('argblazer_global_sessionDistinguishOutUndec') === 'true';
+    }
+
+    function updateLegend() {
+        var legend = document.getElementById('graph-legend');
+        if (!legend) return;
+
+        var hasLabelling = colors && nodeData && nodeData.some(function(node) { return colors[node.id]; });
+        legend.style.display = hasLabelling ? '' : 'none';
+        if (!hasLabelling) return;
+
+        var split = distinguishOutUndec();
+        document.getElementById('legend-out-label').textContent = split ? 'Out' : 'Not in';
+        document.getElementById('legend-undec-item').style.display = split ? '' : 'none';
+        var distinguishToggle = document.getElementById('legend-distinguish-toggle');
+        if (distinguishToggle) distinguishToggle.checked = split;
+
+        var themeColors = getThemeColors();
+        [['legend-in', themeColors.select], ['legend-out', themeColors.out], ['legend-undec', themeColors.undec]].forEach(function(entry) {
+            var swatch = document.getElementById(entry[0]);
+            var fillMatch = entry[1].match(/fill:([^,]+)/);
+            var strokeMatch = entry[1].match(/stroke:([^,]+)/);
+            if (swatch && fillMatch && strokeMatch) {
+                swatch.style.background = fillMatch[1];
+                swatch.style.borderColor = strokeMatch[1];
+            }
+        });
+    }
+
     async function render() {
         var mermaidContainer = document.getElementById('mermaid-diagram')
         var wrapper = document.getElementById('wrapper');
 
         mermaidContainer.innerHTML = '';
+        updateLegend();
 
         var graph = 'graph BT\\n';
         var themeColors = getThemeColors();
@@ -902,13 +933,13 @@
                 } else {
                     selectedNodes += selectedNodes ? ',' + node.id : node.id;
                 }
-            } else if (colors[node.id] === 'undec') {
+            } else if (colors[node.id] === 'undec' && distinguishOutUndec()) {
                 if (newNodeIds.has(node.id)) {
                     undecAddNodes += undecAddNodes ? ',' + node.id : node.id;
                 } else {
                     undecNodes += undecNodes ? ',' + node.id : node.id;
                 }
-            } else if (colors[node.id] === 'out') {
+            } else if (colors[node.id] === 'out' || colors[node.id] === 'undec') {
                 if (newNodeIds.has(node.id)) {
                     outAddNodes += outAddNodes ? ',' + node.id : node.id;
                 } else {
@@ -988,7 +1019,7 @@
         render();
     }
 
-    // Labels every argument as "in" (the extension itself), "out" (attacked by any argument in the extension) or "undec" (neither), following the standard labelling semantics.
+    // Labels every argument as "in" (the extension itself), "out" (attacked by any argument in the extension) or "undec" (neither), following the standard labeling semantics.
     function computeLabelling(nodeIds) {
         var inSet = new Set(nodeIds);
         var outSet = new Set();
@@ -996,17 +1027,17 @@
             if (inSet.has(attack[0])) outSet.add(attack[1]);
         });
 
-        var labelling = {};
+        var labeling = {};
         nodeData.forEach(function(node) {
             if (inSet.has(node.id)) {
-                labelling[node.id] = 'selected';
+                labeling[node.id] = 'selected';
             } else if (outSet.has(node.id)) {
-                labelling[node.id] = 'out';
+                labeling[node.id] = 'out';
             } else {
-                labelling[node.id] = 'undec';
+                labeling[node.id] = 'undec';
             }
         });
-        return labelling;
+        return labeling;
     }
 
     function resetNodeHighlighting() {
@@ -1112,6 +1143,14 @@
         }
         if (zoomFitBtn) {
             zoomFitBtn.addEventListener('click', fitToScreen);
+        }
+
+        var distinguishToggle = document.getElementById('legend-distinguish-toggle');
+        if (distinguishToggle) {
+            distinguishToggle.addEventListener('change', function() {
+                sessionStorage.setItem('argblazer_global_sessionDistinguishOutUndec', distinguishToggle.checked ? 'true' : 'false');
+                render();
+            });
         }
 
         var themeSelector = document.getElementById('theme-selector');
@@ -1900,6 +1939,11 @@
             .main-content{display:flex;flex-direction:column;min-height:0}
             #graph-container{width:calc(100% - 2px);margin-left:0;margin-right:0;flex:1;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;background:#f8f9fa;box-shadow:0 2px 4px rgba(0,0,0,.05);position:relative}
             .zoom-controls{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:4px;z-index:1000}
+            .graph-legend{position:absolute;bottom:0;left:0;right:0;z-index:1000;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;background:rgba(255,255,255,.85);border-top:1px solid #e0e0e0;padding:3px 10px;font-size:12px;color:#333}
+            .legend-item{display:flex;align-items:center;gap:5px;line-height:18px}
+            .legend-swatch{display:inline-block;width:12px;height:12px;border:2px solid #000;border-radius:3px;flex-shrink:0}
+            .legend-switch{display:flex;align-items:center;gap:4px;margin-left:6px;padding-left:12px;border-left:1px solid #d0d0d0;font-size:11px;color:#666;cursor:pointer;white-space:nowrap}
+            .legend-switch input{margin:0;cursor:pointer}
             .zoom-btn{width:32px;height:32px;padding:0;font-size:16px;font-weight:600;font-family:'JetBrains Mono',monospace;background:#fff;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.1)}
             .zoom-btn:hover{background:#f0f0f0;border-color:#bbb;box-shadow:0 3px 6px rgba(0,0,0,.15)}
             .zoom-btn:active{background:#e0e0e0;border-color:#999;transform:translateY(1px)}
@@ -2013,6 +2057,12 @@
             </div>
         </div>
         <div id="graph-container">
+            <div class="graph-legend" id="graph-legend" style="display:none;">
+                <div class="legend-item"><span class="legend-swatch" id="legend-in"></span>In</div>
+                <div class="legend-item"><span class="legend-swatch" id="legend-out"></span><span id="legend-out-label">Out</span></div>
+                <div class="legend-item" id="legend-undec-item"><span class="legend-swatch" id="legend-undec"></span>Undec</div>
+                <label class="legend-switch"><input type="checkbox" id="legend-distinguish-toggle">Distinguish Out/Undec</label>
+            </div>
             <div class="zoom-controls">
                 <button id="zoom-in-btn" class="zoom-btn" title="Zoom In">+</button>
                 <button id="zoom-out-btn" class="zoom-btn" title="Zoom Out">-</button>

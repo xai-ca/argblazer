@@ -19,7 +19,7 @@
       </div>
       <nav class="nav">
         <a href="playground.html">Playground</a>
-        <a href="https://marketplace.visualstudio.com/items?itemName=CIRSS.argblazer">Install</a>
+        <a href="https://marketplace.visualstudio.com/items?itemName=CIRSS.argblazer">Install VS Code</a>
         <a href="https://github.com/xai-ca/argblazer">GitHub</a>
       </nav>
     </header>
@@ -66,12 +66,12 @@
             </p>
           </div>
           <div class="feature-item">
-            <h3>Decisions</h3>
+            <h3>Step-by-step construction</h3>
             <div class="feature-tags"><span class="feature-tag">Playground</span><span class="feature-tag">VS Code</span></div>
             <p>
-              Declare decisions of interest and specify how each answer is
-              extracted from the AF via a criterion, a quantifier, and a choice
-              of semantics; answers update automatically at every step.
+              Construct an AF incrementally by adding arguments and attacks,
+              and step forward and backward through the construction to observe
+              how each argument affects the extensions and decision outcomes.
             </p>
           </div>
           <div class="feature-item">
@@ -84,12 +84,21 @@
             </p>
           </div>
           <div class="feature-item">
-            <h3>Step-by-step construction</h3>
+            <h3>Decisions</h3>
             <div class="feature-tags"><span class="feature-tag">Playground</span><span class="feature-tag">VS Code</span></div>
             <p>
-              Construct an AF incrementally by adding arguments and attacks,
-              and step forward and backward through the construction to observe
-              how each argument affects the extensions and decision outcomes.
+              Declare decisions of interest and specify how each answer is
+              extracted from the AF via a criterion, a quantifier, and a choice
+              of semantics; answers update automatically at every step.
+            </p>
+          </div>
+          <div class="feature-item">
+            <h3>Argument labeling</h3>
+            <div class="feature-tags"><span class="feature-tag">Playground</span><span class="feature-tag">VS Code</span></div>
+            <p>
+              Selecting an extension colors each argument by its label, with a
+              legend below the graph&mdash;In and Not in by default, and a
+              checkbox to distinguish out and undec.
             </p>
           </div>
           <div class="feature-item">
@@ -106,9 +115,12 @@
             <p>Zoom in, zoom out, and fit-to-view buttons on the graph.</p>
           </div>
           <div class="feature-item">
-            <h3>Live reload</h3>
-            <div class="feature-tags"><span class="feature-tag">VS Code</span></div>
-            <p>The report updates automatically whenever the YAML file is saved.</p>
+            <h3>Shareable URLs</h3>
+            <div class="feature-tags"><span class="feature-tag">Playground</span></div>
+            <p>
+              The browser playground encodes your framework in the URL, so any
+              exploration can be shared as a link.
+            </p>
           </div>
           <div class="feature-item">
             <h3>Export to HTML</h3>
@@ -119,12 +131,9 @@
             </p>
           </div>
           <div class="feature-item">
-            <h3>Shareable URLs</h3>
-            <div class="feature-tags"><span class="feature-tag">Playground</span></div>
-            <p>
-              The browser playground encodes your framework in the URL, so any
-              exploration can be shared as a link.
-            </p>
+            <h3>Live reload</h3>
+            <div class="feature-tags"><span class="feature-tag">VS Code</span></div>
+            <p>The report updates automatically whenever the YAML file is saved.</p>
           </div>
         </div>
       </section>
@@ -136,7 +145,7 @@
 
         <div class="demo-card">
           <h3>Step-by-step construction</h3>
-          <p class="demo-desc">Arguments are introduced incrementally across steps, with the graph and extensions recomputed at each step.</p>
+          <p class="demo-desc">Arguments are introduced incrementally across steps, with the extensions recomputed at each step.</p>
           <div class="demo-content">
             <div class="yaml-block yaml-demo">
               <div class="yaml-label">YAML</div>
@@ -158,7 +167,7 @@ attacks:
               <span class="graph-label">Step 1</span>
               <pre class="mermaid">
 graph BT
-  classDef default fill:#D5E8D4,stroke:#004d00
+  classDef default fill:#D5E8D4,stroke:#000000
   classDef ghost fill:transparent,stroke:none,color:transparent
   subgraph r2[Rank 2]
     b
@@ -174,8 +183,8 @@ graph BT
               <span class="graph-label">Step 2</span>
               <pre class="mermaid">
 graph BT
-  classDef default fill:#D5E8D4,stroke:#004d00
-  classDef add fill:#D5E8D4,stroke:#004d00,stroke-width:4px
+  classDef default fill:#D5E8D4,stroke:#000000
+  classDef add fill:#D5E8D4,stroke:#000000,stroke-width:4px
   classDef ghost fill:transparent,stroke:none,color:transparent
   subgraph r3[Rank 3]
     c
@@ -196,8 +205,8 @@ graph BT
               <span class="graph-label">Step 3</span>
               <pre class="mermaid">
 graph BT
-  classDef default fill:#D5E8D4,stroke:#004d00
-  classDef add fill:#D5E8D4,stroke:#004d00,stroke-width:4px
+  classDef default fill:#D5E8D4,stroke:#000000
+  classDef add fill:#D5E8D4,stroke:#000000,stroke-width:4px
   classDef ghost fill:transparent,stroke:none,color:transparent
   subgraph r4[Rank 4]
     d
@@ -249,7 +258,7 @@ attacks:
               <span class="graph-label">Rank from top</span>
               <pre class="mermaid">
 graph BT
-  classDef default fill:#D5E8D4,stroke:#004d00
+  classDef default fill:#D5E8D4,stroke:#000000
   classDef ghost fill:transparent,stroke:none,color:transparent
   subgraph r4[Rank 4]
     d
@@ -275,7 +284,7 @@ graph BT
               <span class="graph-label">Rank from bottom</span>
               <pre class="mermaid">
 graph BT
-  classDef default fill:#D5E8D4,stroke:#004d00
+  classDef default fill:#D5E8D4,stroke:#000000
   classDef ghost fill:transparent,stroke:none,color:transparent
   subgraph r1[Rank 1]
     d
@@ -302,8 +311,8 @@ graph BT
         </div>
 
         <div class="demo-card">
-          <h3>Extension labelling &amp; decisions</h3>
-          <p class="demo-desc">Clicking an extension highlights the arguments it contains, and decisions pose yes/no questions answered against the computed extensions.</p>
+          <h3>Decisions</h3>
+          <p class="demo-desc">Decisions pose yes/no questions about the argumentation framework; each is answered against the computed extensions and updates at every step.</p>
           <div class="demo-content">
             <div class="yaml-block yaml-demo">
               <div class="yaml-label">YAML</div>
@@ -331,8 +340,8 @@ decisions:
               <span class="graph-label">Preferred {to-go, fryer} selected</span>
               <pre class="mermaid">
 graph BT
-  classDef default fill:#D5E8D4,stroke:#004d00
-  classDef in fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff
+  classDef default fill:#D5E8D4,stroke:#000000
+  classDef in fill:#0F7C0F,stroke:#000000,color:#ffffff
   din["dine-in"]
   tog["to-go"]
   sog["soggy"]
@@ -348,8 +357,8 @@ graph BT
               <span class="graph-label">Preferred {dine-in, fryer} selected</span>
               <pre class="mermaid">
 graph BT
-  classDef default fill:#D5E8D4,stroke:#004d00
-  classDef in fill:#0F7C0F,stroke:#0F7C0F,color:#ffffff
+  classDef default fill:#D5E8D4,stroke:#000000
+  classDef in fill:#0F7C0F,stroke:#000000,color:#ffffff
   din["dine-in"]
   tog["to-go"]
   sog["soggy"]
@@ -362,7 +371,6 @@ graph BT
               </pre>
             </div>
           </div>
-          <p class="demo-note">In the XRAY theme, all three labels get distinct colors: in (blue), out (orange), and undecided (yellow).</p>
           <div class="decisions-strip">
             <div class="decision-line">
               <span class="decision-q">Can we get fried chicken to go?</span>
@@ -373,6 +381,55 @@ graph BT
               <span class="decision-a no">No, it is not the case that the criterion to-go holds in all preferred extensions.</span>
             </div>
           </div>
+          <div class="demo-footer">
+            <a href="playground.html#example=friedchicken_step" class="demo-playground-link">Try in Playground &rarr;</a>
+          </div>
+        </div>
+
+        <div class="demo-card">
+          <h3>Argument labeling</h3>
+          <p class="demo-desc">Clicking an extension highlights the arguments it contains. By default the graph shows two colors&mdash;In and Not in; ticking "Distinguish Out/Undec" in the legend splits "Not in" into out (attacked by a member) and undec (neither).</p>
+          <div class="demo-content">
+            <div class="graph-panel">
+              <span class="graph-label">Grounded {fryer} selected &mdash; default</span>
+              <pre class="mermaid">
+graph BT
+  classDef in fill:#0F7C0F,stroke:#000000,color:#ffffff
+  classDef notin fill:#D5E8D4,stroke:#000000
+  din["dine-in"]
+  tog["to-go"]
+  sog["soggy"]
+  fry["fryer"]
+  tog --> din
+  din --> tog
+  sog --> tog
+  fry --> sog
+  class fry in
+  class din,tog,sog notin
+              </pre>
+            </div>
+            <div class="graph-panel">
+              <span class="graph-label">Grounded {fryer} selected &mdash; "Distinguish Out/Undec" ticked</span>
+              <pre class="mermaid">
+graph BT
+  classDef in fill:#0F7C0F,stroke:#000000,color:#ffffff
+  classDef out fill:#D5E8D4,stroke:#000000
+  classDef undec fill:#FFFFFF,stroke:#000000
+  din["dine-in"]
+  tog["to-go"]
+  sog["soggy"]
+  fry["fryer"]
+  tog --> din
+  din --> tog
+  sog --> tog
+  fry --> sog
+  class fry in
+  class sog out
+  class din,tog undec
+              </pre>
+            </div>
+          </div>
+          <p class="demo-note">In the grounded extension {fryer}, soggy is out (attacked by fryer) while dine-in and to-go remain undecided (they only attack each other). Each theme gives the three labels distinct colors&mdash;Green: in (dark green), out (light green), undec (white); XRAY: in (blue), out (orange), undec (yellow).</p>
           <div class="demo-footer">
             <a href="playground.html#example=friedchicken_step" class="demo-playground-link">Try in Playground &rarr;</a>
           </div>

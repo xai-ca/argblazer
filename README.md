@@ -3,13 +3,17 @@
     <h1 align="center">ArgBlazer</h1>
 </div>
 
-A VS Code extension that generates interactive HTML reports from YAML files, where each YAML file represents an argumentation framework.
+ArgBlazer is an interactive tool for exploring decision landscapes&mdash;the competing options, their supporting arguments and conflicts, and how each option fares as arguments are added or removed&mdash;using argumentation frameworks (AFs). The tool enables a user to construct an AF for making a determination by incrementally adding arguments and attacks, and to step forward and backward through the construction to observe how each argument affects the extensions and decision outcomes. Users can explore the implications of the AF and its extensions under various semantics at each step. ArgBlazer further provides means to declare decisions of interest and to specify, for each, how its answer is extracted from the AF, via a criterion, a quantifier, and a choice of semantics. Answers are updated automatically at every step for the user's consideration.
+
+This VS Code extension generates the ArgBlazer report from a YAML file describing the AF, displays it side by side with the YAML in a webview panel, updates it automatically whenever the file is saved, and can export it as a standalone HTML file.
+
+ArgBlazer is also available as a [browser playground](https://xai-ca.github.io/argblazer/playground.html) with shareable URLs&mdash;the same reports, running entirely client-side, no installation needed.
 
 ## Features
 
 - **Interactive graph visualization** &mdash; generates an interactive HTML report from a YAML file representing an argumentation framework, displayed in a side-by-side webview panel
 - **Extensions** &mdash; automatically computes and displays conflict-free, admissible, complete, preferred, grounded, and stable extensions (powered by the [afsolver](https://www.npmjs.com/package/afsolver) package); clicking an extension highlights each argument as *in* (member of the extension), *out* (attacked by a member), or *undecided*
-- **In / out / undec colors** &mdash; when an extension is selected, the XRAY theme colors each argument by its label: **in** (blue), **out** (orange), and **undecided** (yellow)
+- **Argument labeling** &mdash; when an extension is selected, each argument is colored by its label, with a legend below the graph. By default *out* and *undec* share a single "Not in" color; ticking the "Distinguish Out/Undec" checkbox in the legend switches to the full three-way labeling. Green theme: **in** (dark green), **out** (light green), **undec** (white); XRAY theme: **in** (blue), **out** (orange), **undec** (yellow)
 - **Decisions** &mdash; pose yes/no questions about whether an argument can or must appear in a given extension type (see [Decisions](#decisions))
 - **Sets** &mdash; assign arguments to named sets and show only the arguments belonging to selected sets, with extensions and decisions recomputed accordingly (see [Sets](#sets))
 - **Step-by-step construction** &mdash; arguments can be introduced incrementally across steps, with the graph and extensions recomputed at each step (see [Step-by-Step Construction](#step-by-step-construction))
@@ -203,7 +207,9 @@ When no `anchor` is provided, the first argument defaults to the top root and th
 - **Simplified YAML format** &mdash; argument fields (`summary`, `details`, `step`, `anchor`, `sets`) are now direct keys under the argument ID instead of list items; `top`/`bottom` replaced by `anchor: top`/`anchor: bottom`; the `attacks` field is a mapping from attacker to targets (e.g. `b: [a]`) instead of a list of pairs
 - **Keyboard shortcut** &mdash; `Ctrl+/` (or `Cmd+/`) to toggle comments on selected lines in the YAML editor
 - **Extension computation via afsolver** &mdash; the hand-written semantics code is replaced by the [afsolver](https://www.npmjs.com/package/afsolver) npm package (same algorithms, now maintained as a standalone library)
-- **Extension labelling colors** &mdash; clicking an extension labels every argument as *in*, *out*, or *undec*; the XRAY theme shows each with a distinct color (blue/orange/yellow)
+- **Argument labeling colors** &mdash; clicking an extension labels every argument as *in*, *out*, or *undec*; both themes show each label with a distinct color (Green: dark green/light green/white; XRAY: blue/orange/yellow)
+- **Labelling legend & distinguish switch** &mdash; a legend bar appears below the graph while an extension is selected; by default *out* and *undec* share a single "Not in" color, and the "Distinguish Out/Undec" checkbox switches to distinct *out*/*undec* colors
+- **Green theme updates** &mdash; argument borders are now black instead of dark green (matching the XRAY theme)
 
 ### v0.1.0 (2026-02-07)
 Initial release with interactive report generation for a given argumentation framework.
