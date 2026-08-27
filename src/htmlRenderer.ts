@@ -50,6 +50,12 @@ export function renderHtml(params: {
             .section-header:has(+ .section-content.collapsed){border-bottom:none}
             .header-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;min-width:0;justify-content:flex-end;flex:1 1 auto}
             .step-navigation{display:flex;align-items:center;gap:8px;flex-shrink:0}
+            .more-controls-wrap{position:relative;display:flex}
+            #more-controls-btn{display:flex;align-items:center;justify-content:center}
+            #more-controls-btn svg{display:block}
+            .more-controls-panel{display:none;position:absolute;top:100%;right:0;margin-top:4px;background:#fff;border:1px solid #d0d0d0;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:2000;padding:10px 12px;min-width:220px;flex-direction:column;gap:10px}
+            .more-controls-panel.open{display:flex}
+            .more-controls-panel .display-controls{justify-content:space-between}
             .nav-btn{padding:4px 8px;font-size:14px;font-weight:500;font-family:'JetBrains Mono',monospace;background:#f0f0f0;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer;transition:all .2s}
             .nav-btn:hover:not(:disabled){background:#e0e0e0;border-color:#bbb}
             .nav-btn:disabled{background:#f8f8f8;border-color:#e0e0e0;color:#ccc;cursor:not-allowed}
@@ -81,6 +87,8 @@ export function renderHtml(params: {
             .legend-swatch{display:inline-block;width:12px;height:12px;border:2px solid #000;border-radius:3px;flex-shrink:0}
             .legend-switch{display:flex;align-items:center;gap:4px;margin-left:6px;padding-left:12px;border-left:1px solid #d0d0d0;font-size:11px;color:#666;cursor:pointer;white-space:nowrap}
             .legend-switch input{margin:0;cursor:pointer}
+            .legend-switch input:focus{outline:none}
+            .legend-switch input:focus-visible{outline:1px solid #999;outline-offset:1px}
             .zoom-btn{width:32px;height:32px;padding:0;font-size:16px;font-weight:600;font-family:'JetBrains Mono',monospace;background:#fff;border:1px solid #d0d0d0;border-radius:4px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.1)}
             .zoom-btn:hover{background:#f0f0f0;border-color:#bbb;box-shadow:0 3px 6px rgba(0,0,0,.15)}
             .zoom-btn:active{background:#e0e0e0;border-color:#999;transform:translateY(1px)}
@@ -104,9 +112,7 @@ export function renderHtml(params: {
             g.select foreignObject hr,g.selectadd foreignObject hr{border-top-color:var(--select-separator)!important}
             @media(max-width:600px){
                 body{padding:10px 10px 0 10px}
-                .header-controls{flex-direction:column;align-items:flex-start;gap:8px;width:100%}
-                .step-navigation{align-self:flex-end;justify-content:flex-end}
-                .display-controls{align-self:flex-end;justify-content:flex-end}
+                .header-controls{gap:8px}
                 .extensions-grid{grid-template-columns:1fr}
                 #graph-container{min-height:150px}
             }
@@ -190,6 +196,10 @@ export function renderHtml(params: {
                         <button type="button" class="set-dropdown-btn" id="set-dropdown-btn"></button>
                         <div class="set-dropdown-list" id="set-dropdown-list"></div>
                     </div>
+                </div>
+                <div class="more-controls-wrap" id="more-controls-wrap" style="display:none;">
+                    <button type="button" id="more-controls-btn" class="nav-btn" title="More controls"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg></button>
+                    <div class="more-controls-panel" id="more-controls-panel"></div>
                 </div>
             </div>
         </div>
@@ -1632,29 +1642,55 @@ function getScriptFuncs(): string {
         var rankControls = document.getElementById('rank-direction').parentElement;
         var displayControls = document.getElementById('argument-display-mode').parentElement;
         var setFilterControls = document.getElementById('set-filter-controls');
-        var stepNav = document.querySelector('.step-navigation');
+        var headerControls = graphSectionHeader.querySelector('.header-controls');
+        var moreWrap = document.getElementById('more-controls-wrap');
+        var moreBtn = document.getElementById('more-controls-btn');
+        var morePanel = document.getElementById('more-controls-panel');
 
+        // Markers remember each control's original spot in the header so it can be moved back when the header widens again.
+        var controls = [themeControls, rankControls, displayControls, setFilterControls].map(function(el) {
+            var marker = document.createElement('span');
+            marker.style.display = 'none';
+            el.parentNode.insertBefore(marker, el);
+            return { el: el, marker: marker };
+        });
+
+        // The header wraps if any two visible children (the "..." button included) sit on different lines.
         function isWrapping() {
-            var refRect = stepNav.getBoundingClientRect();
-            var refMid = (refRect.top + refRect.bottom) / 2;
-            return [themeControls, rankControls, displayControls, setFilterControls].some(function(el) {
-                if (el.style.display === 'none') return false;
+            var mids = [];
+            Array.prototype.forEach.call(headerControls.children, function(el) {
                 var rect = el.getBoundingClientRect();
-                return Math.abs((rect.top + rect.bottom) / 2 - refMid) > 5;
+                if (rect.width === 0 && rect.height === 0) return;
+                mids.push((rect.top + rect.bottom) / 2);
             });
+            return Math.max.apply(null, mids) - Math.min.apply(null, mids) > 5;
         }
 
         function updateVisibility() {
-            themeControls.style.display = '';
-            rankControls.style.display = '';
-            displayControls.style.display = '';
-            if (!isWrapping()) return;
-            themeControls.style.display = 'none';
-            if (!isWrapping()) return;
-            rankControls.style.display = 'none';
-            if (!isWrapping()) return;
-            displayControls.style.display = 'none';
+            morePanel.classList.remove('open');
+            // Measure with the button visible so its width is accounted for when deciding which controls fit in the header.
+            moreWrap.style.display = '';
+            controls.forEach(function(c) {
+                c.marker.parentNode.insertBefore(c.el, c.marker.nextSibling);
+            });
+            var moved = 0;
+            for (var i = 0; i < controls.length && isWrapping(); i++) {
+                if (controls[i].el.style.display === 'none') continue;
+                morePanel.appendChild(controls[i].el);
+                moved++;
+            }
+            if (!moved) moreWrap.style.display = 'none';
         }
+
+        moreBtn.addEventListener('click', function(event) {
+            event.stopPropagation();
+            morePanel.classList.toggle('open');
+        });
+        document.addEventListener('click', function(event) {
+            if (!morePanel.contains(event.target)) {
+                morePanel.classList.remove('open');
+            }
+        });
 
         new ResizeObserver(updateVisibility).observe(graphSectionHeader);
     })();

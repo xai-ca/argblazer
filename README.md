@@ -13,10 +13,10 @@ ArgBlazer is also available as a [browser playground](https://xai-ca.github.io/a
 
 - **Interactive graph visualization** &mdash; generates an interactive HTML report from a YAML file representing an argumentation framework, displayed in a side-by-side webview panel
 - **Extensions** &mdash; automatically computes and displays conflict-free, admissible, complete, preferred, grounded, and stable extensions (powered by the [afsolver](https://www.npmjs.com/package/afsolver) package); clicking an extension highlights each argument as *in* (member of the extension), *out* (attacked by a member), or *undecided*
-- **Argument labeling** &mdash; when an extension is selected, each argument is colored by its label, with a legend below the graph. By default *out* and *undec* share a single "Not in" color; ticking the "Distinguish Out/Undec" checkbox in the legend switches to the full three-way labeling. Green theme: **in** (dark green), **out** (light green), **undec** (white); XRAY theme: **in** (blue), **out** (orange), **undec** (yellow)
-- **Decisions** &mdash; pose yes/no questions about whether an argument can or must appear in a given extension type (see [Decisions](#decisions))
-- **Sets** &mdash; assign arguments to named sets and show only the arguments belonging to selected sets, with extensions and decisions recomputed accordingly (see [Sets](#sets))
 - **Step-by-step construction** &mdash; arguments can be introduced incrementally across steps, with the graph and extensions recomputed at each step (see [Step-by-Step Construction](#step-by-step-construction))
+- **Sets** &mdash; assign arguments to named sets and show only the arguments belonging to selected sets, with extensions and decisions recomputed accordingly (see [Sets](#sets))
+- **Decisions** &mdash; pose yes/no questions about whether an argument can or must appear in a given extension type (see [Decisions](#decisions))
+- **Argument labeling** &mdash; when an extension is selected, each argument is colored by its label, with a legend below the graph. By default *out* and *undec* share a single "Not in" color; ticking the "Distinguish Out/Undec" checkbox in the legend switches to the full three-way labeling. Green theme: **in** (dark green), **out** (light green), **undec** (white); XRAY theme: **in** (blue), **out** (orange), **undec** (yellow)
 - **Graph layout control** &mdash; `top` and `bottom` annotations control which arguments are placed at the top or bottom of the graph layout (see [Top and Bottom Layout](#top-and-bottom-layout))
 - **Zoom controls** &mdash; zoom in, zoom out, and fit-to-view buttons on the graph
 - **Live reload** &mdash; the report updates automatically whenever the YAML file is saved
