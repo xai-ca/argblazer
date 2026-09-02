@@ -24,7 +24,7 @@ ArgBlazer is also available as a [browser playground](https://xai-ca.github.io/a
 
 ## Requirements
 
-- A YAML file that represents an argumentation framework using the `arguments` key (required), and optionally the `exhibit`, `attacks`, and `decisions` keys.
+- A YAML file that represents an argumentation framework using the `ARGUMENTS` key (required), and optionally the `EXHIBIT`, `ATTACKS`, and `DECISIONS` keys.
 
 ## Usage
 
@@ -35,12 +35,12 @@ ArgBlazer is also available as a [browser playground](https://xai-ca.github.io/a
 
 ### YAML Format
 
-A YAML file contains the `exhibit` (optional), `decisions` (optional), `arguments` (required), and `attacks` (optional) keys:
+A YAML file contains the `EXHIBIT` (optional), `DECISIONS` (optional), `ARGUMENTS` (required), and `ATTACKS` (optional) keys. These key names are case-insensitive, so `exhibit`, `Attacks`, etc. are accepted as well:
 ```yaml
-exhibit: |
+EXHIBIT: |
   Tweety is a bird.
   Tweety is a penguin.
-arguments:
+ARGUMENTS:
   a:
     summary: Tweety can fly because birds typically can fly
     details:
@@ -53,35 +53,35 @@ arguments:
       rule: Penguins cannot fly
       evidence: Tweety is a penguin
       conclusion: Tweety cannot fly
-attacks:
+ATTACKS:
   b: [a]
 ```
 
-Each key under `arguments` (here `a` and `b`) is the argument's ID. The ID labels the node in the graph and is referenced in `attacks` and in a decision's `criterion`.
+Each key under `ARGUMENTS` (here `a` and `b`) is the argument's ID. The ID labels the node in the graph and is referenced in `ATTACKS` and in a decision's `criterion`.
 
 Arguments with no fields can be written with an empty value:
 ```yaml
-arguments:
+ARGUMENTS:
   a:
   b:
-attacks:
+ATTACKS:
   b: [a]
 ```
 
 When an attacker has a single target, the brackets may be omitted: `b: [a]` can also be written as `b: a`.
 
-When `attacks` is omitted, the report displays the arguments as disconnected nodes.
+When `ATTACKS` is omitted, the report displays the arguments as disconnected nodes.
 
 ### Decisions
 
-The `decisions` key poses yes/no questions about whether a specific argument appears in a given extension. Each decision has three fields:
+The `DECISIONS` key poses yes/no questions about whether a specific argument appears in a given extension. Each decision has three fields:
 
 - `criterion`: the ID of the argument to query
 - `quantifier`: `at least one` (the argument appears in at least one extension, default), `all` (it appears in every extension), or `none` (it appears in no extension)
 - `semantics`: the extension type to query, one of `conflict_free`, `admissible`, `complete`, `preferred`, `grounded`, or `stable` (default: `preferred`)
 
 ```yaml
-arguments:
+ARGUMENTS:
   a:
     summary: Order fried chicken in
   b:
@@ -90,12 +90,12 @@ arguments:
     summary: Fried chicken to go will not be crispy
   d:
     summary: An air fryer at home can make fried chicken crispy
-attacks:
+ATTACKS:
   b: [a]
   a: [b]
   c: [b]
   d: [c]
-decisions:
+DECISIONS:
   "Can we get fried chicken to go?":
     criterion: b
     quantifier: at least one
@@ -106,14 +106,14 @@ decisions:
     semantics: preferred
 ```
 
-The Decisions panel appears in the report when `decisions` is present, showing each question with a **Yes** or **No** answer that updates as you navigate steps.
+The Decisions panel appears in the report when `DECISIONS` is present, showing each question with a **Yes** or **No** answer that updates as you navigate steps.
 
 ### Cases
 
 The `cases` annotation assigns an argument to one or more named cases. Arguments without a `cases` annotation are treated as "unassigned" and can be shown or hidden separately via the dropdown. You can choose to show only the arguments belonging to selected cases; extensions and decisions are recomputed accordingly.
 
 ```yaml
-arguments:
+ARGUMENTS:
   a:
     summary: Order fried chicken in
     cases:
@@ -141,7 +141,7 @@ arguments:
       conclusion: An air fryer at home can make fried chicken crispy again
     cases:
       - apartment with air fryer
-attacks:
+ATTACKS:
   b: [a]
   a: [b]
   c: [b]
@@ -153,7 +153,7 @@ attacks:
 Arguments can be introduced incrementally using the `step` annotation. The graph is built up step by step&mdash;each step shows all arguments introduced up to that point, along with any attacks between them. Use the navigation buttons in the report to move between steps.
 
 ```yaml
-arguments:
+ARGUMENTS:
   a:
     step: 1
   b:
@@ -162,20 +162,20 @@ arguments:
     step: 2
   d:
     step: 3
-attacks:
+ATTACKS:
   b: [a]
   c: [b]
   d: [c]
 ```
 
-In this example, step 1 shows `a` and `b` with the attack `[b, a]`; step 2 adds `c` and the attack `[c, b]`; step 3 adds `d` and the attack `[d, c]`. Extensions are recomputed at each step. If the `step` field is omitted for an argument, steps are assigned automatically based on the order in which the arguments appear in the `arguments` list. Specifically, each argument is assigned to a new step in sequence.
+In this example, step 1 shows `a` and `b` with the attack `[b, a]`; step 2 adds `c` and the attack `[c, b]`; step 3 adds `d` and the attack `[d, c]`. Extensions are recomputed at each step. If the `step` field is omitted for an argument, steps are assigned automatically based on the order in which the arguments appear in the `ARGUMENTS` list. Specifically, each argument is assigned to a new step in sequence.
 
 ### Top and Bottom Layout
 
 The `top` and `bottom` annotations control the vertical placement of arguments in the graph. Arguments marked `top` are positioned at the top of the layout, and those marked `bottom` at the bottom. The graph layout is computed using BFS distances from these root nodes.
 
 ```yaml
-arguments:
+ARGUMENTS:
   a:
     anchor: top
   b:
@@ -184,7 +184,7 @@ arguments:
     anchor: bottom
   e:
     anchor: bottom
-attacks:
+ATTACKS:
   b: [a]
   c: [b]
   d: [c]
@@ -210,6 +210,7 @@ When no `anchor` is provided, the first argument defaults to the top root and th
 - **Argument labeling colors** &mdash; clicking an extension labels every argument as *in*, *out*, or *undec*; both themes show each label with a distinct color (Green: dark green/light green/white; XRAY: blue/orange/yellow)
 - **Labelling legend & distinguish switch** &mdash; a legend bar appears below the graph while an extension is selected; by default *out* and *undec* share a single "Not in" color, and the "Distinguish Out/Undec" checkbox switches to distinct *out*/*undec* colors
 - **Green theme updates** &mdash; argument borders are now black instead of dark green (matching the XRAY theme)
+- **Case-insensitive field names** &mdash; the top-level `EXHIBIT`, `ARGUMENTS`, `ATTACKS`, and `DECISIONS` keys are matched regardless of case (`exhibit`, `Attacks`, etc. all work); examples and docs now use the uppercase form
 
 ### v0.1.0 (2026-02-07)
 Initial release with interactive report generation for a given argumentation framework.

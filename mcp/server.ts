@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import * as yaml from 'js-yaml';
-import { validateYaml } from '../src/validator';
+import { validateYaml, normalizeFieldNames } from '../src/validator';
 import { computeExtensions, evaluateDecisions } from './argumentation';
 import { EXAMPLES, EXAMPLE_DESCRIPTIONS } from './examples';
 
@@ -14,13 +14,13 @@ const server = new McpServer({
 // ── Tool: validate_framework ──────────────────────────────────────────────────
 server.tool(
     'validate_framework',
-    'Validate the structure of an argumentation framework YAML string. Returns whether it is valid and any error message.',
+    'Validate the structure of an argumentation framework YAML string. Returns whether it is valid and any error message. The top-level "EXHIBIT", "ARGUMENTS", "ATTACKS" and "DECISIONS" fields are case-insensitive.',
     { yaml_string: z.string().describe('YAML content of an argumentation framework') },
     async ({ yaml_string }) => {
         try {
             let parsed: any;
             try {
-                parsed = yaml.load(yaml_string);
+                parsed = normalizeFieldNames(yaml.load(yaml_string));
             } catch (e: any) {
                 return { content: [{ type: 'text', text: JSON.stringify({ valid: false, error: `YAML parse error: ${e.message}` }) }] };
             }
@@ -41,7 +41,7 @@ server.tool(
         try {
             let parsed: any;
             try {
-                parsed = yaml.load(yaml_string);
+                parsed = normalizeFieldNames(yaml.load(yaml_string));
             } catch (e: any) {
                 return { content: [{ type: 'text', text: `YAML parse error: ${e.message}` }] };
             }
@@ -79,7 +79,7 @@ server.tool(
         try {
             let parsed: any;
             try {
-                parsed = yaml.load(yaml_string);
+                parsed = normalizeFieldNames(yaml.load(yaml_string));
             } catch (e: any) {
                 return { content: [{ type: 'text', text: `YAML parse error: ${e.message}` }] };
             }

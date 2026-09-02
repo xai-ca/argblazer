@@ -151,7 +151,7 @@
           <div class="demo-content">
             <div class="yaml-block yaml-demo">
               <div class="yaml-label">YAML</div>
-              <pre><code>arguments:
+              <pre><code>ARGUMENTS:
   a:
     step: 1
   b:
@@ -160,7 +160,7 @@
     step: 2
   d:
     step: 3
-attacks:
+ATTACKS:
   b: [a]
   c: [b]
   d: [c]</code></pre>
@@ -241,7 +241,7 @@ graph BT
           <div class="demo-content">
             <div class="yaml-block yaml-demo">
               <div class="yaml-label">YAML</div>
-              <pre><code>arguments:
+              <pre><code>ARGUMENTS:
   a:
     anchor: top
   b:
@@ -250,7 +250,7 @@ graph BT
     anchor: bottom
   e:
     anchor: bottom
-attacks:
+ATTACKS:
   b: [a]
   c: [b]
   d: [c]
@@ -318,17 +318,17 @@ graph BT
           <div class="demo-content">
             <div class="yaml-block yaml-demo">
               <div class="yaml-label">YAML</div>
-              <pre><code>arguments:
+              <pre><code>ARGUMENTS:
   dine-in:
   to-go:
   soggy:
   fryer:
-attacks:
+ATTACKS:
   to-go: [dine-in]
   dine-in: [to-go]
   soggy: [to-go]
   fryer: [soggy]
-decisions:
+DECISIONS:
   "Can we get fried chicken to go?":
     criterion: to-go
     quantifier: at least one
@@ -444,6 +444,7 @@ graph BT
         </div>
         <div class="demo-card">
           <h3 class="schema-subheading">ArgBlazer reads YAML files with these top-level fields.</h3>
+          <p class="demo-desc">Field names are case-insensitive: <code>exhibit</code>, <code>Attacks</code>, etc. are accepted as well.</p>
 
           <div class="table-scroll">
             <table class="schema-table">
@@ -457,25 +458,25 @@ graph BT
               </thead>
               <tbody>
                 <tr>
-                  <td><code>exhibit</code></td>
+                  <td><code>EXHIBIT</code></td>
                   <td>No</td>
                   <td>String</td>
                   <td>Context information displayed in the Exhibit section</td>
                 </tr>
                 <tr>
-                  <td><code>arguments</code></td>
+                  <td><code>ARGUMENTS</code></td>
                   <td>Yes</td>
                   <td>Mapping</td>
-                  <td>Argument definitions, keyed by argument ID (e.g. <code>a</code>, <code>to-go</code>). The ID labels the node in the graph and is referenced in <code>attacks</code> and in a decision's <code>criterion</code>. Arguments may also include the annotations below.</td>
+                  <td>Argument definitions, keyed by argument ID (e.g. <code>a</code>, <code>to-go</code>). The ID labels the node in the graph and is referenced in <code>ATTACKS</code> and in a decision's <code>criterion</code>. Arguments may also include the annotations below.</td>
                 </tr>
                 <tr>
-                  <td><code>attacks</code></td>
+                  <td><code>ATTACKS</code></td>
                   <td>No</td>
                   <td>Mapping</td>
                   <td>Attack relationships from attacker to targets, e.g. <code>b: [a]</code> means b attacks a. A single target may also be written without brackets: <code>b: a</code></td>
                 </tr>
                 <tr>
-                  <td><code>decisions</code></td>
+                  <td><code>DECISIONS</code></td>
                   <td>No</td>
                   <td>Mapping</td>
                   <td>Yes/no questions keyed by question text; each has a <code>criterion</code> argument, a <code>quantifier</code> (<code>at least one</code>, <code>all</code>, or <code>none</code>), and a <code>semantics</code> type (<code>conflict_free</code>, <code>admissible</code>, <code>complete</code>, <code>preferred</code>, <code>grounded</code>, or <code>stable</code>)</td>

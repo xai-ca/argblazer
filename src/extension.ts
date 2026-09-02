@@ -280,8 +280,8 @@ function extractRawExhibit(yamlContent: string): string | null {
         const line = lines[i];
 
         if (!foundExhibit) {
-            // Look for top-level exhibit key (no leading whitespace)
-            const match = line.match(/^exhibit\s*:\s*(.*)/);
+            // Look for top-level exhibit key (no leading whitespace, any casing)
+            const match = line.match(/^exhibit\s*:\s*(.*)/i);
             if (match) {
                 foundExhibit = true;
                 const rest = match[1].trim();

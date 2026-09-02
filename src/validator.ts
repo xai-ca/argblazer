@@ -1,10 +1,30 @@
 const VALID_ANCHORS = ['top', 'bottom'];
 const VALID_QUANTIFIERS = ['all', 'at least one', 'none'];
 const VALID_SEMANTICS = ['preferred', 'grounded', 'complete', 'stable', 'conflict_free', 'admissible'];
+const CASE_INSENSITIVE_FIELDS = ['exhibit', 'arguments', 'attacks', 'decisions'];
 
-export function validateYaml(yamlData: any): string | null {
+/**
+ * Returns a shallow copy of the top-level YAML mapping in which the
+ * "exhibit", "arguments", "attacks" and "decisions" fields are renamed to lowercase,
+ * whatever their original casing (e.g. "Arguments", "ATTACKS").
+ * Non-object inputs are returned unchanged.
+ */
+export function normalizeFieldNames(yamlData: any): any {
+    if (!yamlData || typeof yamlData !== 'object' || Array.isArray(yamlData)) {
+        return yamlData;
+    }
+    const normalized: Record<string, any> = {};
+    for (const [key, value] of Object.entries(yamlData)) {
+        const lower = key.toLowerCase();
+        normalized[CASE_INSENSITIVE_FIELDS.includes(lower) ? lower : key] = value;
+    }
+    return normalized;
+}
+
+export function validateYaml(rawYamlData: any): string | null {
+    const yamlData = normalizeFieldNames(rawYamlData);
     if (!yamlData?.arguments || typeof yamlData.arguments !== 'object' || Array.isArray(yamlData.arguments) || Object.keys(yamlData.arguments).length === 0) {
-        return 'The "arguments" field must be a non-empty mapping.';
+        return 'The "ARGUMENTS" field must be a non-empty mapping.';
     }
 
     const argIds = new Set<string>();
@@ -22,7 +42,7 @@ export function validateYaml(yamlData: any): string | null {
     const attacksField = yamlData.attacks;
     if (attacksField !== undefined) {
         if (typeof attacksField !== 'object' || Array.isArray(attacksField)) {
-            return 'The "attacks" field must be a mapping.';
+            return 'The "ATTACKS" field must be a mapping.';
         }
         for (const [attacker, targets] of Object.entries(attacksField)) {
             if (!argIds.has(attacker)) return `Unknown argument "${attacker}" in attacks.`;

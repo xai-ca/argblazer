@@ -1,4 +1,6 @@
 import { getExtensionFuncs } from '../src/htmlRenderer';
+import { validateYaml } from '../src/validator';
+import { preprocessAndCompute } from '../src/preprocessor';
 
 // Eval the client-side computation functions to get computeExtensions
 const computeExtensions: (args: string[], attacks: [string, string][]) => any =
@@ -306,6 +308,30 @@ for (const tc of testCases) {
             passed++;
         }
     }
+}
+
+// --- Top-level field names are case-insensitive (validator.ts / preprocessor.ts) ---
+const fieldNameCases: { name: string; data: any }[] = [
+    { name: 'Capitalized', data: { Arguments: { a: null, b: null }, Attacks: { b: 'a' }, Decisions: { 'Q?': { criterion: 'a' } } } },
+    { name: 'UPPERCASE', data: { ARGUMENTS: { a: null, b: null }, ATTACKS: { b: 'a' }, DECISIONS: { 'Q?': { criterion: 'a' } } } },
+    { name: 'lowercase', data: { arguments: { a: null, b: null }, attacks: { b: 'a' }, decisions: { 'Q?': { criterion: 'a' } } } },
+    { name: 'mIxEd', data: { ExHiBiT: 'x', aRgUmEnTs: { a: null, b: null }, AtTaCkS: { b: 'a' }, dEcIsIoNs: { 'Q?': { criterion: 'a' } } } },
+];
+for (const tc of fieldNameCases) {
+    const error = validateYaml(tc.data);
+    const out = preprocessAndCompute(tc.data);
+    const ok = error === null
+        && Object.keys(out.arguments).join() === 'a,b'
+        && JSON.stringify(out.attacks) === '[["b","a"]]'
+        && Object.keys(out.decisions).join() === 'Q?'
+        && !Object.keys(out).some(k => /^(exhibit|arguments|attacks|decisions)$/i.test(k) && k !== k.toLowerCase())
+        && (tc.name !== 'mIxEd' || out.exhibit === 'x');
+    if (ok) { passed++; } else { failed++; console.log(`FAIL: field names ${tc.name} - error=${error} out=${JSON.stringify(out)}`); }
+}
+{
+    const error = validateYaml({ Attacks: { b: 'a' } });
+    if (error && /"ARGUMENTS" field must be a non-empty mapping/.test(error)) { passed++; }
+    else { failed++; console.log(`FAIL: missing Arguments should be rejected, got: ${error}`); }
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

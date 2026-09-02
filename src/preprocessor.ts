@@ -1,7 +1,8 @@
 import { computeRank } from './bfs';
+import { normalizeFieldNames } from './validator';
 
 export function preprocessAndCompute(yamlData: any): any {
-    const jsonData = JSON.parse(JSON.stringify(yamlData)); // deep clone
+    const jsonData = normalizeFieldNames(JSON.parse(JSON.stringify(yamlData))); // deep clone with canonical field names
 
     const argsMap: Record<string, any> = {};
     for (const [k, v] of Object.entries(jsonData.arguments)) {

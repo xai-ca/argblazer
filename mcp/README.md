@@ -53,12 +53,12 @@ In Claude Code, run `/mcp` — you should see `argblazer` listed with its 4 tool
 The tools accept YAML strings describing an [argumentation framework](https://en.wikipedia.org/wiki/Argumentation_framework):
 
 ```yaml
-# Optional exhibit (background facts)
-exhibit: |
+# Optional EXHIBIT (background facts)
+EXHIBIT: |
   Tweety is a bird and a penguin.
 
-# Arguments (required, non-empty mapping)
-arguments:
+# ARGUMENTS (required, non-empty mapping)
+ARGUMENTS:
   a:
     summary: Tweety can fly because birds typically can fly
     details:
@@ -68,17 +68,19 @@ arguments:
   b:
     summary: Tweety cannot fly because it is a penguin
 
-# Attacks: attacker -> target (or list of targets)
-attacks:
+# ATTACKS: attacker -> target (or list of targets)
+ATTACKS:
   b: a
 
-# Optional decisions
-decisions:
+# Optional DECISIONS
+DECISIONS:
   "Can Tweety fly?":
     criterion: a       # which argument to test
     quantifier: at least one   # at least one | all | none
     semantics: preferred
 ```
+
+The `EXHIBIT`, `ARGUMENTS`, `ATTACKS` and `DECISIONS` field names are case-insensitive (`exhibit`, `Attacks`, etc. are accepted).
 
 **Argument fields** (all optional):
 - `summary` — short label
