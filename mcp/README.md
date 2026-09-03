@@ -87,7 +87,7 @@ The `EXHIBIT`, `ARGUMENTS`, `ATTACKS` and `DECISIONS` field names are case-insen
 - `details` — rule/evidence/conclusion breakdown
 - `step` — integer for step-by-step construction
 - `anchor` — `top` or `bottom` for layout control
-- `cases` — list of named groups for filtering
+- `cases` — list of named groups for filtering; the scalar `all` is a reserved wildcard meaning every named case in the file (a list such as `[all]` is a literal case named "all")
 
 **Semantics types:** `conflict_free`, `admissible`, `complete`, `preferred`, `grounded`, `stable`
 

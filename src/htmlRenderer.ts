@@ -318,11 +318,17 @@ function getScriptFuncs(): string {
         return Array.isArray(sets) ? sets : [sets];
     }
 
+    // The scalar "cases: all" is a reserved wildcard meaning every named case in the file.
+    // A list containing "all" (e.g. "cases: [all]") is a literal case named "all".
+    function isAllCases(argData) {
+        return !!argData && argData.cases === 'all';
+    }
+
     function collectAllSets() {
         var setObj = {};
         if (!argumentationData.arguments) return [];
         Object.values(argumentationData.arguments).forEach(function(argData) {
-            if (argData && argData.cases !== undefined) {
+            if (argData && argData.cases !== undefined && !isAllCases(argData)) {
                 normalizeSets(argData.cases).forEach(function(t) { setObj[t] = true; });
             }
         });
@@ -332,14 +338,12 @@ function getScriptFuncs(): string {
     function getArgumentSets(arg) {
         var argData = Object.values(arg)[0];
         var sets = new Set();
-        if (argData && argData.cases !== undefined) {
+        if (isAllCases(argData)) {
+            collectAllSets().forEach(function(v) { sets.add(v); });
+        } else if (argData && argData.cases !== undefined) {
             normalizeSets(argData.cases).forEach(function(v) { sets.add(v); });
         }
         return sets;
-    }
-
-    function hasAnySets(arg) {
-        return getArgumentSets(arg).size > 0;
     }
 
     ${getExtensionFuncs()}

@@ -112,18 +112,16 @@ The Decisions panel appears in the report when `DECISIONS` is present, showing e
 
 The `cases` annotation assigns an argument to one or more named cases. Arguments without a `cases` annotation are treated as "unassigned" and can be shown or hidden separately via the dropdown. You can choose to show only the arguments belonging to selected cases; extensions and decisions are recomputed accordingly.
 
+The scalar `cases: all` is a reserved wildcard: the argument belongs to every named case in the file, so it is shown whenever any case is selected. Only the bare scalar is reserved&mdash;a list such as `cases: [all]` denotes a literal case named "all". Note that `all` does not introduce cases by itself: a case appears in the dropdown only if at least one argument names it explicitly.
+
 ```yaml
 ARGUMENTS:
   a:
     summary: Order fried chicken in
-    cases:
-      - apartment without air fryer
-      - apartment with air fryer
+    cases: all
   b:
     summary: Get fried chicken to go
-    cases:
-      - apartment without air fryer
-      - apartment with air fryer
+    cases: all
   c:
     summary: To-go chicken will be soggy
     details:
@@ -211,6 +209,7 @@ When no `anchor` is provided, the first argument defaults to the top root and th
 - **Labelling legend & distinguish switch** &mdash; a legend bar appears below the graph while an extension is selected; by default *out* and *undec* share a single "Not in" color, and the "Distinguish Out/Undec" checkbox switches to distinct *out*/*undec* colors
 - **Green theme updates** &mdash; argument borders are now black instead of dark green (matching the XRAY theme)
 - **Case-insensitive field names** &mdash; the top-level `EXHIBIT`, `ARGUMENTS`, `ATTACKS`, and `DECISIONS` keys are matched regardless of case (`exhibit`, `Attacks`, etc. all work); examples and docs now use the uppercase form
+- **`cases: all` wildcard** &mdash; the scalar `cases: all` assigns an argument to every named case in the file; a list such as `cases: [all]` still denotes a literal case named "all"
 
 ### v0.1.0 (2026-02-07)
 Initial release with interactive report generation for a given argumentation framework.
