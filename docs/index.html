@@ -467,7 +467,7 @@ graph BT
                   <td><code>ARGUMENTS</code></td>
                   <td>Yes</td>
                   <td>Mapping</td>
-                  <td>Argument definitions, keyed by argument ID (e.g. <code>a</code>, <code>to-go</code>). The ID labels the node in the graph and is referenced in <code>ATTACKS</code> and in a decision's <code>criterion</code>. Arguments may also include the annotations below.</td>
+                  <td>Argument definitions, keyed by argument ID (e.g. <code>a</code>, <code>to-go</code>). The ID labels the node in the graph and is referenced in <code>ATTACKS</code> and in a decision's <code>criterion</code>. An ID cannot begin with <code>~</code>, which is reserved to mark exclusion in a decision's <code>criterion</code>. Arguments may also include the annotations below.</td>
                 </tr>
                 <tr>
                   <td><code>ATTACKS</code></td>
@@ -479,7 +479,7 @@ graph BT
                   <td><code>DECISIONS</code></td>
                   <td>No</td>
                   <td>Mapping</td>
-                  <td>Yes/no questions keyed by question text; each has a <code>criterion</code> argument, a <code>quantifier</code> (<code>at least one</code>, <code>all</code>, or <code>none</code>), and a <code>semantics</code> type (<code>conflict_free</code>, <code>admissible</code>, <code>complete</code>, <code>preferred</code>, <code>grounded</code>, or <code>stable</code>)</td>
+                  <td>Yes/no questions keyed by question text; each has a <code>criterion</code> &mdash; an argument ID, or a list of them, where a <code>~</code> prefix excludes an argument and the terms combine conjunctively (<code>[b, ~c]</code> means "contains b and not c") &mdash; a <code>quantifier</code> (<code>at least one</code>, <code>all</code>, or <code>none</code>), and a <code>semantics</code> type (<code>conflict_free</code>, <code>admissible</code>, <code>complete</code>, <code>preferred</code>, <code>grounded</code>, or <code>stable</code>)</td>
                 </tr>
               </tbody>
             </table>

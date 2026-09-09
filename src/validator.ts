@@ -21,6 +21,30 @@ export function normalizeFieldNames(yamlData: any): any {
     return normalized;
 }
 
+export interface CriterionTerm {
+    /** The argument ID, with any leading "~" removed. */
+    id: string;
+    /** True when the term was written with a leading "~" (exclusion). */
+    negated: boolean;
+    /** The token exactly as written, used in error messages. */
+    raw: string;
+}
+
+/**
+ * Splits a decision's "criterion" into terms. Accepts a single scalar or a list;
+ * a leading "~" marks the term as excluded. Terms combine conjunctively: an
+ * extension satisfies the criterion when it contains every non-negated id and
+ * none of the negated ones.
+ */
+export function parseCriterion(criterion: any): CriterionTerm[] {
+    const tokens = Array.isArray(criterion) ? criterion : [criterion];
+    return tokens.map(token => {
+        const raw = String(token).trim();
+        const negated = raw.startsWith('~');
+        return { id: negated ? raw.slice(1).trim() : raw, negated, raw };
+    });
+}
+
 export function validateYaml(rawYamlData: any): string | null {
     const yamlData = normalizeFieldNames(rawYamlData);
     if (!yamlData?.arguments || typeof yamlData.arguments !== 'object' || Array.isArray(yamlData.arguments) || Object.keys(yamlData.arguments).length === 0) {
@@ -29,6 +53,9 @@ export function validateYaml(rawYamlData: any): string | null {
 
     const argIds = new Set<string>();
     for (const [id, val] of Object.entries(yamlData.arguments)) {
+        if (/^\s*~/.test(id)) {
+            return `Argument "${id}" has an invalid ID: IDs cannot start with "~", which marks exclusion in a decision's criterion.`;
+        }
         argIds.add(id);
         const arg = (val as any) ?? {};
         if (arg.anchor !== undefined && !VALID_ANCHORS.includes(arg.anchor)) {
@@ -55,8 +82,21 @@ export function validateYaml(rawYamlData: any): string | null {
 
     for (const question of Object.keys(yamlData.decisions ?? {})) {
         const dec = yamlData.decisions[question] ?? {};
-        if (dec.criterion !== undefined && !argIds.has(String(dec.criterion))) {
-            return `Decision "${question}" has unknown criterion "${dec.criterion}".`;
+        if (dec.criterion !== undefined) {
+            const tokens = Array.isArray(dec.criterion) ? dec.criterion : [dec.criterion];
+            if (tokens.length === 0) {
+                return `Decision "${question}" has an empty criterion list.`;
+            }
+            for (const token of tokens) {
+                if (token === null || token === undefined || typeof token === 'object') {
+                    return `Decision "${question}" has an invalid criterion entry (each entry must be an argument ID, optionally prefixed with "~").`;
+                }
+            }
+            for (const term of parseCriterion(dec.criterion)) {
+                if (!argIds.has(term.id)) {
+                    return `Decision "${question}" has unknown criterion "${term.raw}".`;
+                }
+            }
         }
         if (dec.quantifier !== undefined && !VALID_QUANTIFIERS.includes(dec.quantifier)) {
             return `Decision "${question}" has invalid quantifier "${dec.quantifier}" (must be one of: ${VALID_QUANTIFIERS.join(', ')}).`;

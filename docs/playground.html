@@ -287,6 +287,15 @@
         return normalized;
     }
 
+    function parseCriterion(criterion) {
+        var tokens = Array.isArray(criterion) ? criterion : [criterion];
+        return tokens.map(function(token) {
+            var raw = String(token).trim();
+            var negated = raw.charAt(0) === '~';
+            return { id: negated ? raw.slice(1).trim() : raw, negated: negated, raw: raw };
+        });
+    }
+
     function validateYaml(rawYamlData) {
         var yamlData = normalizeFieldNames(rawYamlData);
         if (!yamlData?.arguments || typeof yamlData.arguments !== 'object' || Array.isArray(yamlData.arguments) || Object.keys(yamlData.arguments).length === 0)
@@ -295,6 +304,8 @@
         var argEntries = Object.entries(yamlData.arguments);
         for (var i = 0; i < argEntries.length; i++) {
             var id = argEntries[i][0];
+            if (/^\s*~/.test(id))
+                return 'Argument "' + id + '" has an invalid ID: IDs cannot start with "~", which marks exclusion in a decision\'s criterion.';
             argIds.add(id);
             var arg = argEntries[i][1] != null ? argEntries[i][1] : {};
             if (arg.anchor !== undefined && VALID_ANCHORS.indexOf(arg.anchor) === -1)
@@ -322,8 +333,21 @@
         for (var d = 0; d < decKeys.length; d++) {
             var question = decKeys[d];
             var dec = decisions[question] || {};
-            if (dec.criterion !== undefined && !argIds.has(String(dec.criterion)))
-                return 'Decision "' + question + '" has unknown criterion "' + dec.criterion + '".';
+            if (dec.criterion !== undefined) {
+                var critTokens = Array.isArray(dec.criterion) ? dec.criterion : [dec.criterion];
+                if (critTokens.length === 0)
+                    return 'Decision "' + question + '" has an empty criterion list.';
+                for (var ci = 0; ci < critTokens.length; ci++) {
+                    var tok = critTokens[ci];
+                    if (tok === null || tok === undefined || typeof tok === 'object')
+                        return 'Decision "' + question + '" has an invalid criterion entry (each entry must be an argument ID, optionally prefixed with "~").';
+                }
+                var critTerms = parseCriterion(dec.criterion);
+                for (var ct = 0; ct < critTerms.length; ct++) {
+                    if (!argIds.has(critTerms[ct].id))
+                        return 'Decision "' + question + '" has unknown criterion "' + critTerms[ct].raw + '".';
+                }
+            }
             if (dec.quantifier !== undefined && VALID_QUANTIFIERS.indexOf(dec.quantifier) === -1)
                 return 'Decision "' + question + '" has invalid quantifier "' + dec.quantifier + '" (must be one of: ' + VALID_QUANTIFIERS.join(', ') + ').';
             if (dec.semantics !== undefined && VALID_SEMANTICS.indexOf(dec.semantics) === -1)
@@ -1771,6 +1795,15 @@
         sessionStorage.setItem(getFileSpecificKey(key), value);
     }
 
+    function parseCriterion(criterion) {
+        var tokens = Array.isArray(criterion) ? criterion : [criterion];
+        return tokens.map(function(token) {
+            var raw = String(token).trim();
+            var negated = raw.charAt(0) === '~';
+            return { id: negated ? raw.slice(1).trim() : raw, negated: negated, raw: raw };
+        });
+    }
+
     function updateDecisionsDisplay() {
         var decisionsList = document.getElementById('decisions-list');
         if (!decisionsList) return;
@@ -1790,19 +1823,25 @@
         Object.keys(decisions).forEach(function(question) {
             var dec = decisions[question] || {};
             var semanticsType = dec.semantics !== undefined ? dec.semantics : 'preferred';
-            var criterion = dec.criterion !== undefined ? String(dec.criterion) : null;
+            var terms = dec.criterion !== undefined && dec.criterion !== null ? parseCriterion(dec.criterion) : null;
             var quantifier = dec.quantifier !== undefined ? dec.quantifier : 'at least one';
 
-            if (criterion === null) return;
+            if (terms === null || terms.length === 0) return;
 
             var extList = extensions[semanticsType] || [];
+            // Terms are conjunctive: every included id present, every excluded id absent.
+            var satisfies = function(ext) {
+                return terms.every(function(term) {
+                    return term.negated ? ext.indexOf(term.id) === -1 : ext.indexOf(term.id) !== -1;
+                });
+            };
             var answer;
             if (quantifier === 'at least one') {
-                answer = extList.some(function(ext) { return ext.indexOf(criterion) !== -1; });
+                answer = extList.some(satisfies);
             } else if (quantifier === 'all') {
-                answer = extList.length > 0 && extList.every(function(ext) { return ext.indexOf(criterion) !== -1; });
+                answer = extList.length > 0 && extList.every(satisfies);
             } else {
-                answer = extList.every(function(ext) { return ext.indexOf(criterion) === -1; });
+                answer = !extList.some(satisfies);
             }
 
             var itemDiv = document.createElement('div');
@@ -1826,9 +1865,16 @@
             } else {
                 phrase = v(quantifier) + ' ' + v(semanticsDisplay) + ' extensions';
             }
+            var termPhrases = terms.map(function(term) {
+                return (term.negated ? 'not ' : '') + v(term.id);
+            });
+            var termList = termPhrases.length === 1
+                ? termPhrases[0]
+                : termPhrases.slice(0, -1).join(', ') + ' and ' + termPhrases[termPhrases.length - 1];
             answerSpan.innerHTML = (answer ? 'Yes' : 'No')
-                + ', it is ' + (answer ? '' : 'not ') + 'the case that the criterion '
-                + v(criterion) + ' holds in ' + phrase + '.';
+                + ', it is ' + (answer ? '' : 'not ') + 'the case that '
+                + (terms.length === 1 ? 'the criterion ' : 'the criteria ') + termList
+                + (terms.length === 1 ? ' holds in ' : ' hold in ') + phrase + '.';
 
             itemDiv.appendChild(questionSpan);
             itemDiv.appendChild(answerSpan);

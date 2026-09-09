@@ -57,7 +57,7 @@ ATTACKS:
   b: [a]
 ```
 
-Each key under `ARGUMENTS` (here `a` and `b`) is the argument's ID. The ID labels the node in the graph and is referenced in `ATTACKS` and in a decision's `criterion`.
+Each key under `ARGUMENTS` (here `a` and `b`) is the argument's ID. The ID labels the node in the graph and is referenced in `ATTACKS` and in a decision's `criterion`. An ID cannot begin with `~`, which is reserved to mark exclusion in a decision's `criterion`.
 
 Arguments with no fields can be written with an empty value:
 ```yaml
@@ -76,7 +76,7 @@ When `ATTACKS` is omitted, the report displays the arguments as disconnected nod
 
 The `DECISIONS` key poses yes/no questions about whether a specific argument appears in a given extension. Each decision has three fields:
 
-- `criterion`: the ID of the argument to query
+- `criterion`: the argument to query, or a list of arguments. Prefixing an ID with `~` excludes it, so `~c` asks that `c` be *absent*. A list combines conjunctively: `[b, ~c]` is satisfied by an extension that contains `b` and does not contain `c`.
 - `quantifier`: `at least one` (the argument appears in at least one extension, default), `all` (it appears in every extension), or `none` (it appears in no extension)
 - `semantics`: the extension type to query, one of `conflict_free`, `admissible`, `complete`, `preferred`, `grounded`, or `stable` (default: `preferred`)
 

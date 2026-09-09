@@ -9,10 +9,31 @@ export interface Extensions {
     stable: string[][];
 }
 
+interface CriterionTerm {
+    id: string;
+    negated: boolean;
+    raw: string;
+}
+
+/**
+ * Splits a decision's "criterion" into terms. Accepts a single scalar or a list;
+ * a leading "~" marks the term as excluded. Kept local so this module stays
+ * self-contained, mirroring parseCriterion in src/validator.ts.
+ */
+function parseCriterion(criterion: any): CriterionTerm[] {
+    const tokens = Array.isArray(criterion) ? criterion : [criterion];
+    return tokens.map(token => {
+        const raw = String(token).trim();
+        const negated = raw.startsWith('~');
+        return { id: negated ? raw.slice(1).trim() : raw, negated, raw };
+    });
+}
+
 export interface DecisionResult {
     question: string;
     answer: boolean;
-    criterion: string;
+    /** Criterion terms as written, e.g. ['to-go', '~soggy']. */
+    criterion: string[];
     quantifier: 'at least one' | 'all' | 'none';
     semantics: keyof Extensions;
 }
@@ -180,23 +201,27 @@ export function evaluateDecisions(yamlData: any): DecisionResult[] {
 
     for (const question of Object.keys(decisions)) {
         const dec = decisions[question] || {};
-        const criterion: string | null = dec.criterion !== undefined ? String(dec.criterion) : null;
-        if (criterion === null) continue;
+        if (dec.criterion === undefined || dec.criterion === null) continue;
+        const terms = parseCriterion(dec.criterion);
+        if (terms.length === 0) continue;
 
         const quantifier: 'at least one' | 'all' | 'none' = dec.quantifier ?? 'at least one';
         const semantics: keyof Extensions = dec.semantics ?? 'preferred';
 
         const extList: string[][] = extensions[semantics] || [];
+        // Terms are conjunctive: every included id present, every excluded id absent.
+        const satisfies = (ext: string[]) =>
+            terms.every(term => term.negated ? !ext.includes(term.id) : ext.includes(term.id));
         let answer: boolean;
         if (quantifier === 'at least one') {
-            answer = extList.some(ext => ext.includes(criterion));
+            answer = extList.some(satisfies);
         } else if (quantifier === 'all') {
-            answer = extList.length > 0 && extList.every(ext => ext.includes(criterion));
+            answer = extList.length > 0 && extList.every(satisfies);
         } else {
-            answer = extList.every(ext => !ext.includes(criterion));
+            answer = !extList.some(satisfies);
         }
 
-        results.push({ question, answer, criterion, quantifier, semantics });
+        results.push({ question, answer, criterion: terms.map(t => t.raw), quantifier, semantics });
     }
 
     return results;

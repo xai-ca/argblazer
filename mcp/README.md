@@ -75,7 +75,7 @@ ATTACKS:
 # Optional DECISIONS
 DECISIONS:
   "Can Tweety fly?":
-    criterion: a       # which argument to test
+    criterion: a       # argument to test; a list is allowed, and ~a excludes a
     quantifier: at least one   # at least one | all | none
     semantics: preferred
 ```

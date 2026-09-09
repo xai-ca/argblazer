@@ -1,10 +1,16 @@
 import { getExtensionFuncs } from '../src/htmlRenderer';
-import { validateYaml } from '../src/validator';
+import { validateYaml, parseCriterion } from '../src/validator';
 import { preprocessAndCompute } from '../src/preprocessor';
+import { evaluateDecisions } from '../mcp/argumentation';
 
 // Eval the client-side computation functions to get computeExtensions
 const computeExtensions: (args: string[], attacks: [string, string][]) => any =
     new Function(getExtensionFuncs() + '\nreturn computeExtensions;')();
+
+// The report ships a hand-ported ES5 copy of parseCriterion; pull it out so the
+// port can be checked against the TypeScript original below.
+const clientParseCriterion: (criterion: any) => any[] =
+    new Function(getExtensionFuncs() + '\nreturn parseCriterion;')();
 
 // Helper: normalize extension results for comparison (sort inner arrays, sort outer array)
 function normalize(exts: string[][]): string {
@@ -332,6 +338,97 @@ for (const tc of fieldNameCases) {
     const error = validateYaml({ Attacks: { b: 'a' } });
     if (error && /"ARGUMENTS" field must be a non-empty mapping/.test(error)) { passed++; }
     else { failed++; console.log(`FAIL: missing Arguments should be rejected, got: ${error}`); }
+}
+
+
+// --- criterion parsing: scalar or list, "~" marks exclusion (validator.ts) ---
+const criterionCases: { name: string; input: any; expected: { id: string; negated: boolean }[] }[] = [
+    { name: 'bare scalar', input: 'to-go', expected: [{ id: 'to-go', negated: false }] },
+    { name: 'negated scalar', input: '~soggy', expected: [{ id: 'soggy', negated: true }] },
+    { name: 'list of includes', input: ['to-go', 'fryer'], expected: [{ id: 'to-go', negated: false }, { id: 'fryer', negated: false }] },
+    { name: 'mixed list', input: ['to-go', '~soggy'], expected: [{ id: 'to-go', negated: false }, { id: 'soggy', negated: true }] },
+    { name: 'whitespace tolerated', input: ['  to-go  ', '~ soggy'], expected: [{ id: 'to-go', negated: false }, { id: 'soggy', negated: true }] },
+    { name: 'id containing a tilde', input: 'a~b', expected: [{ id: 'a~b', negated: false }] },
+];
+for (const tc of criterionCases) {
+    const strip = (terms: any[]) => JSON.stringify(terms.map(t => ({ id: t.id, negated: t.negated })));
+    const expected = JSON.stringify(tc.expected);
+    const actual = strip(parseCriterion(tc.input));
+    if (actual !== expected) {
+        failed++; console.log(`FAIL: parseCriterion ${tc.name} - expected ${expected}, got ${actual}`);
+    } else { passed++; }
+    // the report's ES5 port must agree with the TypeScript original
+    const clientActual = strip(clientParseCriterion(tc.input));
+    if (clientActual !== expected) {
+        failed++; console.log(`FAIL: client parseCriterion ${tc.name} - expected ${expected}, got ${clientActual}`);
+    } else { passed++; }
+}
+
+// --- decision evaluation: conjunctive include/exclude terms (mcp/argumentation.ts) ---
+// Fried chicken AF; preferred extensions are {fryer, to-go} and {fryer, dine-in}.
+const chicken = {
+    arguments: { 'dine-in': null, 'to-go': null, soggy: null, fryer: null },
+    attacks: { 'to-go': ['dine-in'], 'dine-in': ['to-go'], soggy: ['to-go'], fryer: ['soggy'] },
+};
+const decisionCases: { name: string; criterion: any; quantifier: string; expected: boolean }[] = [
+    { name: 'scalar include, at least one', criterion: 'to-go', quantifier: 'at least one', expected: true },
+    { name: 'scalar include, all', criterion: 'to-go', quantifier: 'all', expected: false },
+    { name: 'scalar exclude, all', criterion: '~soggy', quantifier: 'all', expected: true },
+    { name: 'scalar exclude of an unattacked arg', criterion: '~fryer', quantifier: 'at least one', expected: false },
+    { name: 'mixed list, satisfiable', criterion: ['to-go', '~soggy'], quantifier: 'at least one', expected: true },
+    { name: 'mixed list, unsatisfiable', criterion: ['to-go', '~fryer'], quantifier: 'at least one', expected: false },
+    { name: 'mixed list, all', criterion: ['fryer', '~soggy'], quantifier: 'all', expected: true },
+    { name: 'conjunction is not disjunction', criterion: ['to-go', 'dine-in'], quantifier: 'at least one', expected: false },
+    { name: 'none, satisfiable criterion', criterion: ['to-go', '~soggy'], quantifier: 'none', expected: false },
+    { name: 'none, unsatisfiable criterion', criterion: ['to-go', '~fryer'], quantifier: 'none', expected: true },
+];
+for (const tc of decisionCases) {
+    const data = { ...chicken, decisions: { 'Q?': { criterion: tc.criterion, quantifier: tc.quantifier, semantics: 'preferred' } } };
+    const error = validateYaml(data);
+    const results = evaluateDecisions(data);
+    if (error === null && results.length === 1 && results[0].answer === tc.expected) { passed++; }
+    else { failed++; console.log(`FAIL: decision ${tc.name} - error=${error} expected=${tc.expected} got=${results[0]?.answer}`); }
+}
+
+// --- validator rules for IDs and criterion entries (validator.ts) ---
+const rejectionCases: { name: string; data: any; match: RegExp }[] = [
+    {
+        name: 'argument ID cannot start with ~',
+        data: { arguments: { '~a': null, b: null } },
+        match: /Argument "~a" has an invalid ID/,
+    },
+    {
+        name: 'argument ID cannot start with ~ after whitespace',
+        data: { arguments: { ' ~a': null, b: null } },
+        match: /has an invalid ID/,
+    },
+    {
+        name: 'unknown criterion echoes the token as written',
+        data: { arguments: { a: null }, decisions: { 'Q?': { criterion: ['a', '~typo'] } } },
+        match: /unknown criterion "~typo"/,
+    },
+    {
+        name: 'empty criterion list',
+        data: { arguments: { a: null }, decisions: { 'Q?': { criterion: [] } } },
+        match: /empty criterion list/,
+    },
+    {
+        name: 'bare ~ criterion (YAML null)',
+        data: { arguments: { a: null }, decisions: { 'Q?': { criterion: null } } },
+        match: /invalid criterion entry/,
+    },
+];
+for (const tc of rejectionCases) {
+    const error = validateYaml(tc.data);
+    if (error && tc.match.test(error)) { passed++; }
+    else { failed++; console.log(`FAIL: ${tc.name} - got: ${error}`); }
+}
+
+// An ID merely containing "~" stays legal, and remains referenceable.
+{
+    const error = validateYaml({ arguments: { 'a~b': null }, decisions: { 'Q?': { criterion: 'a~b' } } });
+    if (error === null) { passed++; }
+    else { failed++; console.log(`FAIL: ID containing ~ should be accepted, got: ${error}`); }
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

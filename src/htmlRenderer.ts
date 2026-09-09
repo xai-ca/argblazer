@@ -1575,19 +1575,25 @@ function getScriptFuncs(): string {
         Object.keys(decisions).forEach(function(question) {
             var dec = decisions[question] || {};
             var semanticsType = dec.semantics !== undefined ? dec.semantics : 'preferred';
-            var criterion = dec.criterion !== undefined ? String(dec.criterion) : null;
+            var terms = dec.criterion !== undefined && dec.criterion !== null ? parseCriterion(dec.criterion) : null;
             var quantifier = dec.quantifier !== undefined ? dec.quantifier : 'at least one';
 
-            if (criterion === null) return;
+            if (terms === null || terms.length === 0) return;
 
             var extList = extensions[semanticsType] || [];
+            // Terms are conjunctive: every included id present, every excluded id absent.
+            var satisfies = function(ext) {
+                return terms.every(function(term) {
+                    return term.negated ? ext.indexOf(term.id) === -1 : ext.indexOf(term.id) !== -1;
+                });
+            };
             var answer;
             if (quantifier === 'at least one') {
-                answer = extList.some(function(ext) { return ext.indexOf(criterion) !== -1; });
+                answer = extList.some(satisfies);
             } else if (quantifier === 'all') {
-                answer = extList.length > 0 && extList.every(function(ext) { return ext.indexOf(criterion) !== -1; });
+                answer = extList.length > 0 && extList.every(satisfies);
             } else {
-                answer = extList.every(function(ext) { return ext.indexOf(criterion) === -1; });
+                answer = !extList.some(satisfies);
             }
 
             var itemDiv = document.createElement('div');
@@ -1611,9 +1617,16 @@ function getScriptFuncs(): string {
             } else {
                 phrase = v(quantifier) + ' ' + v(semanticsDisplay) + ' extensions';
             }
+            var termPhrases = terms.map(function(term) {
+                return (term.negated ? 'not ' : '') + v(term.id);
+            });
+            var termList = termPhrases.length === 1
+                ? termPhrases[0]
+                : termPhrases.slice(0, -1).join(', ') + ' and ' + termPhrases[termPhrases.length - 1];
             answerSpan.innerHTML = (answer ? 'Yes' : 'No')
-                + ', it is ' + (answer ? '' : 'not ') + 'the case that the criterion '
-                + v(criterion) + ' holds in ' + phrase + '.';
+                + ', it is ' + (answer ? '' : 'not ') + 'the case that '
+                + (terms.length === 1 ? 'the criterion ' : 'the criteria ') + termList
+                + (terms.length === 1 ? ' holds in ' : ' hold in ') + phrase + '.';
 
             itemDiv.appendChild(questionSpan);
             itemDiv.appendChild(answerSpan);
@@ -1713,6 +1726,15 @@ export function getExtensionFuncs(): string {
 ${afsolverSource}
     return { computeExtensions: computeExtensions };
     })();
+
+    function parseCriterion(criterion) {
+        var tokens = Array.isArray(criterion) ? criterion : [criterion];
+        return tokens.map(function(token) {
+            var raw = String(token).trim();
+            var negated = raw.charAt(0) === '~';
+            return { id: negated ? raw.slice(1).trim() : raw, negated: negated, raw: raw };
+        });
+    }
 
     function computeExtensions(args, attacks) {
         var argOrder = {};
