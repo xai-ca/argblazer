@@ -2333,6 +2333,11 @@
         }
     });
 
+    // Re-measure the editor whenever its container resizes (divider drag, tab switch)
+    // or once the web font has loaded, so cursor placement matches what is on screen.
+    new ResizeObserver(function() { editor.refresh(); }).observe(document.getElementById('editor-container'));
+    document.fonts.ready.then(function() { editor.refresh(); });
+
     // --- Run button ---
     document.getElementById('runBtn').addEventListener('click', function() {
         runVisualization(editor.getValue());
@@ -2493,6 +2498,9 @@
 
         document.addEventListener('mouseup', endDrag);
         document.addEventListener('touchend', endDrag);
+        // End the drag even if the button is released off-window or the tab loses focus
+        window.addEventListener('blur', endDrag);
+        document.addEventListener('mouseleave', endDrag);
     })();
 
     // --- Load from shared URL or run default (once afsolver has loaded) ---
