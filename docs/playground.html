@@ -760,7 +760,7 @@
         displayMode = displayMode || 'label-summary';
         var separator = "<hr style='border:0;border-top:1px dashed;margin:0;'/>";
         if (displayMode === 'label' || typeof argData === 'string') {
-            return "<div style='display:flex;align-items:center;justify-content:center;padding:2px 10px;font-size:16px;white-space:nowrap;'>" + key + "</div>";
+            return "<div style='display:flex;align-items:center;justify-content:center;padding:2px 10px;font-size:16px;max-width:150px;white-space:normal;overflow-wrap:anywhere;'>" + key + "</div>";
         }
 
         var formattedText = key + "<br>" + separator;
@@ -1112,7 +1112,7 @@
             var hasSummary = argData && argData.summary !== undefined;
             return {
                 id: key,
-                label: (hasSummary || displayMode === 'label') ? formatMultiLineLabel(key, argData, displayMode) : "<div style='display:flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;aspect-ratio:1;font-size:18px;'>" + key + "</div>",
+                label: formatMultiLineLabel(key, argData, hasSummary ? displayMode : 'label'),
                 shape: 'rect'
             };
         });
